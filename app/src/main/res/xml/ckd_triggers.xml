@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<triggers>
+    <nutrient name="SODIUM" low_max="140" moderate_max="300" />
+
+    <!-- RED Triggers -->
+    <trigger category="RED">PHOSPHORUS</trigger>
+    <trigger category="RED">CALCIUM PHOSPHATE</trigger>
+    <trigger category="RED">DISODIUM PHOSPHATE</trigger>
+    <trigger category="RED">PHOSPHORIC ACID</trigger>
+    <trigger category="RED">SODIUM HEXAMETAPHOSPHATE</trigger>
+    <trigger category="RED">POTASSIUM</trigger>
+    <trigger category="RED">POTASSIUM CHLORIDE</trigger>
+    <trigger category="RED">MONOSODIUM GLUTAMATE</trigger>
+    <trigger category="RED">MSG</trigger>
+    <trigger category="RED">SODIUM BICARBONATE</trigger>
+    <trigger category="RED">BRIM</trigger>
+    <trigger category="RED">HIGH FRUCTOSE CORN SYRUP</trigger>
+    <trigger category="RED">NSAID</trigger>
+
+    <!-- Example of how you can now expand the file -->
+    <trigger category="YELLOW">PROTEIN</trigger>
+    <trigger category="YELLOW">SUGAR</trigger>
+    <trigger category="YELLOW">SUCRALOSE</trigger>
+    <trigger category="YELLOW">ASPARTAME</trigger>
+</triggers>

@@ -1,0 +1,80 @@
+<resources>
+    <string name="app_name">LabelScanner</string>
+
+    <string-array name="medical_conditions_array">
+        <item>Chronic Kidney Disease (CKD)</item>
+        <item>Type 2 Diabetes</item>
+        <item>GLP-1 Diet Support</item>
+        <item>General Low Sodium</item>
+    </string-array>
+
+    <string name="camera_msg_1">Opening camera…</string>
+    <string name="analyzing_label_msg">Analyzing label…</string>
+
+    <string name="error_loading_msg">Error loading captured image.</string>
+    <string name="selected_target_message">Selected Target: %1$s</string>
+
+    <string name="error_processing_label_msg">Error processing label metrics.</string>
+
+    <string name="opening_camera">Opening camera…</string>
+    <string name="error_loading_image">Error loading captured image.</string>
+    <string name="error_processing_file">Error processing storage file.</string>
+    <string name="camera_cancelled">Camera scan canceled or failed.</string>
+    <string name="storage_error_message">Storage Error: %1$s</string>
+    <string name="metrics_error_message">Error processing label metrics.</string>
+
+    <string name="analyzing_label">Analyzing label…</string>
+    <string name="selected_target_label">Selected Target: %1$s</string>
+    <string name="no_conditions_active">No profile restrictions active. Ready to scan.</string>
+    <string name="active_profile_tracking">Active Profile Filter: %1$s\nStrictest Sodium Ceiling: %2$dmg\nReady to scan.</string>
+
+    <string name="grade_red_blacklist">RED: BLACKLISTED INGREDIENT DETECTED</string>
+    <string name="grade_red_high_risk">RED: HIGH RISK INGREDIENT MATCH</string>
+    <string name="grade_red_high_sodium">RED: HIGH SODIUM\n%1$dmg per serving exceeds %2$dmg limit!</string>
+    <string name="grade_yellow_moderate">YELLOW: MODERATE SODIUM (%1$dmg)</string>
+    <string name="grade_yellow_warning">YELLOW: WARNING INGREDIENT MATCH</string>
+    <string name="grade_green_compliant">GREEN: SAFE COMPLIANT SODIUM: (%1$dmg per serving)</string>
+    <string name="selected_target_standard_baseline">Selected Target: Standard Baseline</string>
+
+    <string name="ready_to_scan">Ready to scan.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="take_picture">TAKE PICTURE</string>
+
+    <string-array name="negation_phrases">
+        <item>NOT A SIGNIFICANT SOURCE</item>
+        <item>NOT A SOURCE OF</item>
+        <item>CONTAINS ZERO</item>
+        <item>AMOUNT IN SERVING IS NEGLIGIBLE</item>
+        <item>DOES NOT CONTAIN</item> </string-array>
+
+    <!-- "#5C1D24" -->
+    <string name="red">#FF0000</string>
+    <!-- "#6E561C" -->
+    <string name="yellow">#FFFF00</string>
+    <!-- "#1B4D22" -->
+    <string name="green">#1B4D22</string>
+    <!-- "#33FFFFFF" -->
+    <string name="frost_white">#33FFFFFF</string>
+
+    <string name="grade_red_blacklist_format">RED: BLACKLISTED INGREDIENT DETECTED\n(%1$s)</string>
+    <string name="grade_red_high_risk_format">RED: HIGH RISK INGREDIENT MATCH\n(%1$s)</string>
+
+    <!-- New added strings -->
+    <string name="title_dietary_thresholds">Dietary Thresholds</string>
+    <string name="label_max_sodium">Max Allowable Sodium Per Scan (mg):</string>
+    <string name="hint_sodium_limit">e.g. 140</string>
+    <string name="label_custom_ingredients">Custom Ingredients to Always Flag:</string>
+    <string name="hint_add_ingredient">Add ingredient (e.g. Red 40)</string>
+    <string name="button_add">ADD</string>
+    <string name="no_custom_items">No custom items tracked yet.</string>
+    <string name="button_save_return">💾 SAVE &amp; RETURN</string>
+    <string name="title_tracked_conditions">TRACKED MEDICAL CONDITIONS</string>
+    <string name="checkbox_ckd">CKD</string>
+    <string name="checkbox_glp1">GLP-1</string>
+    <string name="checkbox_low_sodium">Low Sodium</string>
+
+    <string name="toast_added_ingredient">Added: %1$s</string>
+    <string name="toast_settings_saved">Settings Saved Successfully</string>
+    <string name="watchlist_header">CURRENT WATCHLIST:\n</string>
+    <string name="standard_baseline">Standard Baseline</string>
+</resources>
