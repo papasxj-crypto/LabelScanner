@@ -12,7 +12,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private lateinit var settings: AppSettings
     private lateinit var textCurrentBlacklist: TextView
-
+    private lateinit var editUserWeight: EditText
     // Checkbox references
     private lateinit var checkCKD: CheckBox
     private lateinit var checkGLP1: CheckBox
@@ -29,6 +29,7 @@ class SettingsActivity : AppCompatActivity() {
         val buttonAdd = findViewById<Button>(R.id.buttonAddIngredient)
         val buttonSave = findViewById<Button>(R.id.buttonSaveSettings)
         textCurrentBlacklist = findViewById(R.id.textCurrentBlacklist)
+        editUserWeight = findViewById(R.id.editUserWeight)
 
         // 1. Initialize Checkboxes from your activity_settings.xml layout
         checkCKD = findViewById(R.id.checkCKD)
@@ -37,6 +38,9 @@ class SettingsActivity : AppCompatActivity() {
 
         // 2. Pre-populate fields and set Checkbox states from saved storage
         editSodium.setText(settings.getSodiumLimit().toString())
+        // Load existing weight. If no weight exists yet, default to a sensible baseline string like "195"
+        val savedWeight = settings.getUserWeight() // We will add this helper to AppSettings next
+        editUserWeight.setText(if (savedWeight > 0) savedWeight.toString() else "195")
         refreshBlacklistDisplay()
 
         val savedConditions = settings.getSelectedConditions()
@@ -60,6 +64,12 @@ class SettingsActivity : AppCompatActivity() {
             val sodiumText = editSodium.text.toString().trim()
             if (sodiumText.isNotEmpty()) {
                 settings.setSodiumLimit(sodiumText.toInt())
+            }
+
+            // Capture and save the custom weight input
+            val weightText = editUserWeight.text.toString().trim()
+            if (weightText.isNotEmpty()) {
+                settings.setUserWeight(weightText.toDouble()) // We will add this helper to AppSettings next
             }
 
             // 3. Gather checked states and save them via AppSettings

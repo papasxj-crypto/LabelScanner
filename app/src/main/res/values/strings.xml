@@ -77,4 +77,17 @@
     <string name="toast_settings_saved">Settings Saved Successfully</string>
     <string name="watchlist_header">CURRENT WATCHLIST:\n</string>
     <string name="standard_baseline">Standard Baseline</string>
+    <string name="scan_capture_jpg">scan_capture.jpg</string>
+    <string name="fileprovider_id">net.meinook.labelscanner.fileprovider</string>
+    <string name="low_sodium_txt">Low Sodium</string>
+    <string name="ckd_txt">CKD</string>
+    <string name="glp_1_txt">GLP-1</string>
+    <string name="model_identifier_txt">gemini-1.5-flash</string>
+    <string name="detected_ingredients_txt">detected_ingredients</string>
+    <string name="sodium_mg_txt">sodium_mg</string>
+    <string name="sodium_dv_percent_txt">sodium_dv_percent</string>
+    <string name="red_txt">RED</string>
+    <string name="yellow_txt">YELLOW</string>
+    <string name="sodium_txt">SODIUM</string>
+    <string name="comma">", "</string>
 </resources>

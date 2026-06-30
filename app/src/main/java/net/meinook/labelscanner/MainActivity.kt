@@ -23,6 +23,7 @@ class MainActivity : AppCompatActivity() {
 
     // 1. Global State Management (Enforces the absolute strictest limit if multiple boxes are checked)
     private var sodiumModMax: Int = 2300
+    private var proteinModMax: Int = 80
     private var selectedConditionsString: String = ""
 
     // 2. View Element Declarations
@@ -87,14 +88,15 @@ class MainActivity : AppCompatActivity() {
             textExplanation.setTextColor(android.graphics.Color.WHITE)
 
             try {
-                val photoFile = java.io.File(this@MainActivity.filesDir, "scan_capture.jpg").apply {
+                val photoFile = java.io.File(this@MainActivity.filesDir,
+                    getString(R.string.scan_capture_jpg)).apply {
                     if (exists()) delete()
                     createNewFile()
                 }
 
                 tempPhotoUri = androidx.core.content.FileProvider.getUriForFile(
                     this@MainActivity,
-                    "net.meinook.labelscanner.fileprovider",
+                    getString(R.string.fileprovider_id),
                     photoFile
                 )
 
@@ -117,12 +119,12 @@ class MainActivity : AppCompatActivity() {
         activeConditions.clear()
         activeConditions.addAll(savedConditions)
 
-        // 2. Automatically recalculate your strict sodium limits based on the saved rules
-        sodiumModMax = 2300 // Baseline fallback
+        // 2. Fetch User Target Weight (Replace 195.0 with your actual input field/shared pref call later)
+        val userTargetWeightLbs = userSettings.getUserWeight().let { if (it > 0) it else 195.0 }
 
-        if (activeConditions.contains("Low Sodium")) sodiumModMax = minOf(sodiumModMax, 140)
-        if (activeConditions.contains("CKD"))        sodiumModMax = minOf(sodiumModMax, 300)
-        if (activeConditions.contains("GLP-1"))      sodiumModMax = minOf(sodiumModMax, 400)
+        // 3. Offloaded dynamic calculations
+        sodiumModMax = getMaxSodium(activeConditions)
+        proteinModMax = getMaxProtein(userTargetWeightLbs, activeConditions)
 
         updateConditionText()
     }
@@ -140,7 +142,7 @@ class MainActivity : AppCompatActivity() {
 
                 // Use it to initialize your Gemini client
                 val generativeModel = GenerativeModel(
-                    modelName = "gemini-1.5-flash",
+                    modelName = getString(R.string.model_identifier_txt),
                     apiKey = secureApiKey
                 )
 
@@ -157,7 +159,7 @@ class MainActivity : AppCompatActivity() {
                 val rawResponseFromGemini = GeminiAnalyzer.analyzeIngredientsImage(imageBitmap, selectedConditionsString, secureApiKey)
 
                 val jsonResult = JSONObject(rawResponseFromGemini)
-                val jsonArray = jsonResult.getJSONArray("detected_ingredients")
+                val jsonArray = jsonResult.getJSONArray(getString(R.string.detected_ingredients_txt))
                 val detectedIngredients = mutableListOf<String>()
 
                 // Pulls the entire array at once, instantly upper-casing them
@@ -175,12 +177,12 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                val sodiumMg = jsonResult.optInt("sodium_mg", 0)
-                val sodiumDv = jsonResult.optInt("sodium_dv_percent", 0)
+                val sodiumMg = jsonResult.optInt(getString(R.string.sodium_mg_txt), 0)
+                val sodiumDv = jsonResult.optInt(getString(R.string.sodium_dv_percent_txt), 0)
 
                 // Load your static rules from assets
-                val xmlRedTriggers = userSettings.loadTriggersFromAssets("RED")
-                val xmlYellowTriggers = userSettings.loadTriggersFromAssets("YELLOW")
+                val xmlRedTriggers = userSettings.loadTriggersFromAssets(getString(R.string.red_txt))
+                val xmlYellowTriggers = userSettings.loadTriggersFromAssets(getString(R.string.yellow_txt))
                 val customBlacklist = userSettings.getCustomBlacklist()
 
                 // Default Layout Colors and Text Formats (Safe State baseline)
@@ -189,7 +191,7 @@ class MainActivity : AppCompatActivity() {
                 var finalGrade = getString(R.string.grade_green_compliant, sodiumMg)
 
                 // Pull local low ceiling profile thresholds
-                val (sodiumLowMax, _) = userSettings.getNutrientThresholds("SODIUM")
+                val (sodiumLowMax, _) = userSettings.getNutrientThresholds(getString(R.string.sodium_txt))
 
                 // 1. Find EXACTLY which blacklisted or XML red ingredients were found
                 val matchedBlacklist = customBlacklist.filter { detectedIngredients.contains(it) }
@@ -203,7 +205,7 @@ class MainActivity : AppCompatActivity() {
                         textColor = Color.WHITE
 
                         // Build a dynamic string listing the caught items: "RED: BLACKLISTED MATCH (POTASSIUM)"
-                        val offenders = matchedBlacklist.joinToString(", ")
+                        val offenders = matchedBlacklist.joinToString(getString(R.string.comma))
                         finalGrade = getString(R.string.grade_red_blacklist_format, offenders)
                     }
                     // Priority 2: Static XML Red Rules
@@ -211,7 +213,7 @@ class MainActivity : AppCompatActivity() {
                         bgColor = (getString(R.string.red)).toColorInt()
                         textColor = Color.WHITE
 
-                        val offenders = matchedXmlRed.joinToString(", ")
+                        val offenders = matchedXmlRed.joinToString(getString(R.string.comma))
                         finalGrade = getString(R.string.grade_red_high_risk_format, offenders)
                     }
                     sodiumMg > sodiumModMax || sodiumDv >= 20 -> {
@@ -263,7 +265,7 @@ class MainActivity : AppCompatActivity() {
 
         // Build the comma-separated string based on what's in storage
         selectedConditionsString = if (savedProfileConditions.isNotEmpty()) {
-            savedProfileConditions.joinToString(", ")
+            savedProfileConditions.joinToString(getString(R.string.comma))
         } else {
             getString(R.string.standard_baseline)
         }
@@ -275,5 +277,46 @@ class MainActivity : AppCompatActivity() {
         } else {
             textExplanation.text = getString(R.string.active_profile_tracking, selectedConditionsString, sodiumModMax)
         }
+    }
+
+        /**
+     * Calculates the strictest sodium cap based on checked clinical profiles.
+     */
+    private fun getMaxSodium(conditions: Set<String>): Int {
+        var calculatedMax = 2300 // Baseline fallback
+
+        val sodiumConditionLimits = mapOf(
+            R.string.low_sodium_txt to 140,
+            R.string.ckd_txt        to 300,
+            R.string.glp_1_txt      to 400
+        )
+
+        for ((stringResId, limit) in sodiumConditionLimits) {
+            if (conditions.contains(getString(stringResId))) {
+                calculatedMax = minOf(calculatedMax, limit)
+            }
+        }
+        return calculatedMax
+    }
+
+    /**
+     * Scales max protein dynamically using target weight (lbs) converted to kg,
+     * enforcing the most restrictive clinical multiplier.
+     */
+    private fun getMaxProtein(weightLbs: Double, conditions: Set<String>): Int {
+        val weightKg = weightLbs * 0.45359237
+        var proteinMultiplier = 1.2 // Standard baseline adult multiplier
+
+        val proteinConditionLimits = mapOf(
+            R.string.ckd_txt   to 0.8, // Low protein restriction wins
+            R.string.glp_1_txt to 1.5  // High protein boost
+        )
+
+        for ((stringResId, multiplier) in proteinConditionLimits) {
+            if (conditions.contains(getString(stringResId))) {
+                proteinMultiplier = minOf(proteinMultiplier, multiplier)
+            }
+        }
+        return (weightKg * proteinMultiplier).toInt()
     }
 }

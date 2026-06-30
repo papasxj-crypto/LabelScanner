@@ -6,6 +6,22 @@
     android:padding="24dp">
 
     <TextView
+        android:id="@+id/textWeightLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Target Weight (lbs)"
+        android:textSize="16sp"
+        android:paddingTop="16dp"/>
+
+    <EditText
+        android:id="@+id/editUserWeight"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="numberDecimal"
+        android:hint="e.g., 190"
+        android:textSize="16sp"/>
+
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/title_dietary_thresholds"

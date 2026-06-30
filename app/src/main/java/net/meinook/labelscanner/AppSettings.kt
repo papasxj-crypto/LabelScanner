@@ -17,6 +17,7 @@ class AppSettings(private val context: Context) {
     companion object {
         const val KEY_SODIUM_LIMIT = "max_sodium_mg"
         const val KEY_CUSTOM_BLACKBOARD = "custom_blacklist_ingredients"
+        const val KEY_USER_WEIGHT = "user_target_weight_lbs"
     }
 
     // Default values if the user hasn't customized anything yet
@@ -166,5 +167,15 @@ class AppSettings(private val context: Context) {
         }
 
         return triggerList
+    }
+    fun getUserWeight(): Double {
+        val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
+        // Reads the saved weight as a Float and converts it back to a standard Double
+        return prefs.getFloat(KEY_USER_WEIGHT, 0.0f).toDouble()
+    }
+
+    fun setUserWeight(weight: Double) {
+        val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putFloat(KEY_USER_WEIGHT, weight.toFloat()).apply()
     }
 }
