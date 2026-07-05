@@ -18,6 +18,12 @@ class AppSettings(private val context: Context) {
         const val KEY_SODIUM_LIMIT = "max_sodium_mg"
         const val KEY_CUSTOM_BLACKBOARD = "custom_blacklist_ingredients"
         const val KEY_USER_WEIGHT = "user_target_weight_lbs"
+        const val KEY_CARB_LIMIT = "max_carbs_g"
+        const val KEY_TOTAL_SUGAR_LIMIT = "max_total_sugar_g"
+        const val KEY_ADDED_SUGAR_LIMIT = "max_added_sugar_g"
+        // New Fat Tracking Keys
+        const val KEY_TOTAL_FAT_LIMIT = "max_total_fat_g"
+        const val KEY_SAT_FAT_LIMIT = "max_sat_fat_g"
     }
 
     // Default values if the user hasn't customized anything yet
@@ -36,11 +42,9 @@ class AppSettings(private val context: Context) {
 
     fun getSelectedConditions(): Set<String> {
         val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
-        // Returns an empty set by default if nothing is selected yet
         return prefs.getStringSet("tracked_medical_conditions", emptySet()) ?: emptySet()
     }
 
-    // Read saved configuration from local storage
     private fun loadSettingsFromDisk() {
         if (settingsFile.exists()) {
             try {
@@ -52,7 +56,6 @@ class AppSettings(private val context: Context) {
         }
     }
 
-    // Write current state back to disk securely
     private fun saveSettingsToDisk() {
         try {
             settingsFile.writeText(cachedSettings.toString())
@@ -61,7 +64,7 @@ class AppSettings(private val context: Context) {
         }
     }
 
-    // --- GETTERS & SETTERS (The API for your layout to use) ---
+    // --- GETTERS & SETTERS ---
 
     fun getSodiumLimit(): Int {
         return cachedSettings.optInt(KEY_SODIUM_LIMIT, 140)
@@ -98,28 +101,36 @@ class AppSettings(private val context: Context) {
             saveSettingsToDisk()
         }
     }
-    /**
-     * Reads a specific nutrient's limits from the XML file.
-     * Returns a Pair containing (Low Limit Max, Moderate Limit Max)
-     */
 
-    fun getNutrientThresholds(nutrientName: String): Pair<Int, Int> {
-        val parser = context.resources.getXml(net.meinook.labelscanner.R.xml.ckd_triggers)
+    /**
+     * Dynamically reads a specific nutrient's profile limits and blacklist status from XML.
+     * Returns a Triple containing: (Low Max, Moderate Max, Is Blacklist Enforced)
+     */
+    fun getNutrientThresholds(nutrientKey: String): Triple<Int, Int, Boolean> {
+        val activeConditions = getSelectedConditions()
+        val isCKDActive = activeConditions.any { it.contains("CKD") || it.contains("Kidney") }
+
+        // Determine which XML profile configuration asset file to load
+        val xmlResource = if (isCKDActive) R.xml.ckd_triggers else R.xml.triggers
+
+        val parser = context.resources.getXml(xmlResource)
         var eventType = parser.eventType
 
-        // Default fallback limits if something goes wrong reading the file
-        var lowMax = 140
-        var modMax = 300
+        // Establish safe default fallbacks if parsing encounters anomalies
+        var lowMax = 0
+        var modMax = 0
+        var isBlacklist = false
 
         try {
             while (eventType != 1) { // 1 = END_DOCUMENT
                 val tagName = parser.name
                 if (eventType == 2 && tagName == "nutrient") { // 2 = START_TAG
-                    val name = parser.getAttributeValue(null, "name")
-                    if (name?.uppercase() == nutrientName.uppercase()) {
-                        lowMax = parser.getAttributeValue(null, "low_max")?.toIntOrNull() ?: 140
-                        modMax = parser.getAttributeValue(null, "moderate_max")?.toIntOrNull() ?: 300
-                        break // Found our target, exit loop
+                    val currentName = parser.getAttributeValue(null, "name")
+                    if (currentName?.lowercase() == nutrientKey.lowercase()) {
+                        lowMax = parser.getAttributeValue(null, "low_max")?.toIntOrNull() ?: 0
+                        modMax = parser.getAttributeValue(null, "moderate_max")?.toIntOrNull() ?: 0
+                        isBlacklist = parser.getAttributeValue(null, "is_blacklist")?.toBooleanStrictOrNull() ?: false
+                        break // Target matched, terminate parsing pipeline loop safely
                     }
                 }
                 eventType = parser.next()
@@ -129,7 +140,7 @@ class AppSettings(private val context: Context) {
         } finally {
             parser.close()
         }
-        return Pair(lowMax, modMax)
+        return Triple(lowMax, modMax, isBlacklist)
     }
 
     /**
@@ -137,21 +148,16 @@ class AppSettings(private val context: Context) {
      */
     fun loadTriggersFromAssets(categoryTarget: String): List<String> {
         val triggerList = mutableListOf<String>()
-
-        // Open the platform-indexed XML resource pipe
         val parser = context.resources.getXml(R.xml.ckd_triggers)
         var eventType = parser.eventType
 
         try {
-            while (eventType != 1) { // 1 corresponds to END_DOCUMENT
+            while (eventType != 1) {
                 val tagName = parser.name
-
-                if (eventType == 2 && tagName == "trigger") { // 2 corresponds to START_TAG
+                if (eventType == 2 && tagName == "trigger") {
                     val currentCategory = parser.getAttributeValue(null, "category")
-
-                    // Move directly to the text inside the tag
                     eventType = parser.next()
-                    if (eventType == 4) { // 4 corresponds to TEXT
+                    if (eventType == 4) {
                         val text = parser.text?.trim() ?: ""
                         if (text.isNotEmpty() && currentCategory == categoryTarget) {
                             triggerList.add(text.uppercase())
@@ -165,12 +171,11 @@ class AppSettings(private val context: Context) {
         } finally {
             parser.close()
         }
-
         return triggerList
     }
+
     fun getUserWeight(): Double {
         val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
-        // Reads the saved weight as a Float and converts it back to a standard Double
         return prefs.getFloat(KEY_USER_WEIGHT, 0.0f).toDouble()
     }
 

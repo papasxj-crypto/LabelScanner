@@ -30,13 +30,33 @@
     <TextView
         android:id="@+id/textExplanation"
         android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:typeface="monospace"
+        android:gravity="start|center_vertical"
+        android:padding="16dp"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"/>
+
+    <!--TextView
+        android:id="@+id/textExplanation"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:text="@string/ready_to_scan"
         android:textColor="#888888"
         android:textSize="18sp"
         android:gravity="center"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="24dp"/-->
+
+    <CheckBox
+        android:id="@+id/checkDisplayFullContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show Full Container Values"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp"/>
 
     <Button
         android:id="@+id/buttonScan"

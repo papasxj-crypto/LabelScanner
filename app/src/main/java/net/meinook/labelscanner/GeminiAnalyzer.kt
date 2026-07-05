@@ -17,31 +17,44 @@ object GeminiAnalyzer {
     suspend fun analyzeIngredientsImage(
         imageBitmap: Bitmap,
         condition: String,
-        apiKey: String // 1. Key enters the machine here
+        apiKey: String,
+        modelIdentifier: String// 1. Key enters the machine here
     ): String = withContext(Dispatchers.IO) {
 
         try {
             // 2. Build the model on-the-fly using the parameter key
             val model = GenerativeModel(
-                modelName = "gemini-2.5-flash",
+                modelName = modelIdentifier,
                 apiKey = apiKey,
                 generationConfig = strictConfig,
                 systemInstruction = content {
                     text("""
-                        You are a precise medical data extraction engine. Analyze the provided image of a food nutrition label and ingredients list.
-                        You must extract the data and return it strictly as a single JSON object matching this format exactly:
-                        {
-                          "detected_ingredients": ["INGREDIENT1", "INGREDIENT2"],
-                          "sodium_mg": 0,
-                          "sodium_dv_percent": 0,
-                          "servings_per_container": 1.0
-                        }
+                           You are a precise nutrition label scanning engine. Analyze the provided image of a nutrition facts label and ingredient list. 
 
-                        Guidelines for data extraction:
-                        1. Parse the entire ingredients list. Convert all ingredient names to uppercase text and place them in the "detected_ingredients" array.
-                        2. Locate the "Sodium" line in the nutrition facts panel. Extract the raw milligram count as a whole integer for "sodium_mg". If not found, enter 0.
-                        3. Extract the Daily Value percentage for sodium as a whole integer for "sodium_dv_percent". If not found, enter 0.
-                        4. Locate the "Servings Per Container" or "Servings Per Pack" value. Extract it as a decimal number for "servings_per_container". If it says something like "about 2.5", enter 2.5. If not found, default to 1.0.
+                           You MUST return your response as a strict, single JSON object. Do not wrap it in markdown code blocks like ```json. 
+
+                           The JSON structure must use these exact keys:
+                           {
+                             "di": ["INGREDIENT1", "INGREDIENT2"],
+                             "servings": 1.0
+                             "sodium": 0,
+                             "protein": 0,
+                             "carbs": 0,
+                             "sugar": 0,
+                             "added_sugar": 0,
+                             "total_fat": 0,
+                             "sat_fat": 0,
+                             "trans_fat": 0,
+                             "potassium": 0
+                           }
+                           
+                           Rules for values:
+                           1. If an item is missing or unreadable on the label, default its numeric value to 0.
+                           2. Only include ingredients in the "detected_ingredients" array.
+                           3. Extract exact whole numbers for the gram (g) and milligram (mg) values.
+                           4. If a macro is explicitly listed as 0g or Less than 1g on the label, you MUST return its value as 0.0. Do not round up or hallucinate values.
+                           5. Extract the "servings per container" value as a precise decimal number (e.g., 2.5). Look for the key "servings_per_container".
+                           6. CRITICAL ACCURACY RULE: Read the numerical values directly from the label text exactly as they are printed. Do not infer, estimate, or extrapolate numbers based on typical serving sizes or standard database items. If the label explicitly states 0g, you must return 0.
                     """.trimIndent())
                 }
             )

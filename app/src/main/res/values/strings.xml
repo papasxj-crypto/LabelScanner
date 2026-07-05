@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">LabelScanner</string>
+    <string name="model_identifier_txt">gemini-2.5-flash</string>
 
     <string-array name="medical_conditions_array">
         <item>Chronic Kidney Disease (CKD)</item>
@@ -82,12 +83,27 @@
     <string name="low_sodium_txt">Low Sodium</string>
     <string name="ckd_txt">CKD</string>
     <string name="glp_1_txt">GLP-1</string>
-    <string name="model_identifier_txt">gemini-1.5-flash</string>
-    <string name="detected_ingredients_txt">detected_ingredients</string>
-    <string name="sodium_mg_txt">sodium_mg</string>
-    <string name="sodium_dv_percent_txt">sodium_dv_percent</string>
     <string name="red_txt">RED</string>
     <string name="yellow_txt">YELLOW</string>
     <string name="sodium_txt">SODIUM</string>
     <string name="comma">", "</string>
+    <string name="analyzing_image_msg">Analyzing image... I\'m working on it.</string>
+    <string name="yellow_caution_msg">Yellow: Caution Threshold</string>
+    <string name="green_enjoy_msg">Green - Enjoy</string>
+    <string name="red_high_risk_msg">RED: HIGH RISK (%1$s)</string>
+    <string name="red_blacklist_matched_msg">RED: BLACKLIST MATCHED (%1$s)</string>
+
+    <!-- JASON Token Keys -->
+    <string name="detected_ingredients_txt">di</string>
+    <string name="servings_per_container_txt">servings</string>
+    <string name="sodium_mg_txt">sodium</string>
+    <string name="protein_g_txt">protein</string>
+    <string name="total_carbohydrates_g_txt">carbs</string>
+    <string name="total_sugar_g_txt">sugar</string>
+    <string name="added_sugar_g_txt">added_sugar</string>
+    <string name="total_fat_g_txt">total_fat</string>
+    <string name="saturated_fat_g_txt">sat_fat</string>
+    <string name="potassium_g_txt">potassium</string>
+    <string name="trans_fat_g_txt">trans_fat</string>
+
 </resources>

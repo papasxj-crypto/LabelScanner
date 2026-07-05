@@ -1,25 +1,35 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<triggers>
-    <nutrient name="SODIUM" low_max="140" moderate_max="300" />
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile name="Stage 3A CKD">
+    <nutrient name="sodium" low_max="140" moderate_max="300" is_blacklist="true" />
+    <nutrient name="protein" low_max="5" moderate_max="12" is_blacklist="true" />
+    <nutrient name="potassium" low_max="175" moderate_max="350" is_blacklist="true" />
+    <nutrient name="sat_fat" low_max="1" moderate_max="3" is_blacklist="true" />
+    <nutrient name="total_fat" low_max="3" moderate_max="10" is_blacklist="false" />
+    <nutrient name="sugar" low_max="5" moderate_max="10" is_blacklist="false" />
+    <nutrient name="added_sugar" low_max="2" moderate_max="5" is_blacklist="false" />
+    <nutrient name="carbs" low_max="15" moderate_max="30" is_blacklist="false" />
 
     <!-- RED Triggers -->
-    <trigger category="RED">PHOSPHORUS</trigger>
-    <trigger category="RED">CALCIUM PHOSPHATE</trigger>
-    <trigger category="RED">DISODIUM PHOSPHATE</trigger>
-    <trigger category="RED">PHOSPHORIC ACID</trigger>
-    <trigger category="RED">SODIUM HEXAMETAPHOSPHATE</trigger>
-    <trigger category="RED">POTASSIUM</trigger>
-    <trigger category="RED">POTASSIUM CHLORIDE</trigger>
-    <trigger category="RED">MONOSODIUM GLUTAMATE</trigger>
-    <trigger category="RED">MSG</trigger>
-    <trigger category="RED">SODIUM BICARBONATE</trigger>
-    <trigger category="RED">BRIM</trigger>
-    <trigger category="RED">HIGH FRUCTOSE CORN SYRUP</trigger>
-    <trigger category="RED">NSAID</trigger>
+    <trigger category="red">PHOSPHORUS</trigger>
+    <trigger category="red">CALCIUM PHOSPHATE</trigger>
+    <trigger category="red">DISODIUM PHOSPHATE</trigger>
+    <trigger category="red">PHOSPHORIC ACID</trigger>
+    <trigger category="red">SODIUM TRIPOLYPHOSPHATE</trigger>
+    <trigger category="red">SODIUM HEXAMETAPHOSPHATE</trigger>
+    <trigger category="red">SODIUM NITRITE</trigger>
+    <trigger category="red">POTASSIUM</trigger>
+    <trigger category="red">POTASSIUM CHLORIDE</trigger>
+    <trigger category="red">MONOSODIUM GLUTAMATE</trigger>
+    <trigger category="red">MSG</trigger>
+    <trigger category="red">SODIUM BICARBONATE</trigger>
+    <trigger category="red">BRIM</trigger>
+    <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
+    <trigger category="red">NSAID</trigger>
 
-    <!-- Example of how you can now expand the file -->
-    <trigger category="YELLOW">PROTEIN</trigger>
-    <trigger category="YELLOW">SUGAR</trigger>
-    <trigger category="YELLOW">SUCRALOSE</trigger>
-    <trigger category="YELLOW">ASPARTAME</trigger>
-</triggers>
+    <trigger category="yellow">PROTEIN</trigger>
+    <trigger category="yellow">SUGAR</trigger>
+    <trigger category="yellow">ADDED SUGAR</trigger>
+    <trigger category="yellow">SUCRALOSE</trigger>
+    <trigger category="yellow">ASPARTAME</trigger>
+
+</diet_profile>
