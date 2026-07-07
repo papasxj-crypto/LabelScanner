@@ -96,42 +96,10 @@
         android:textSize="16sp" />
 
     <LinearLayout
+        android:id="@+id/containerMedicalProfiles"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/title_tracked_conditions"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
-
-        <CheckBox
-            android:id="@+id/checkCKD"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/checkbox_ckd"
-            android:textColor="#FFFFFF"/>
-
-        <CheckBox
-            android:id="@+id/checkGLP1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/checkbox_glp1"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="4dp"/>
-
-        <CheckBox
-            android:id="@+id/checkLowSodium"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/checkbox_low_sodium"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="16dp"/>
-    </LinearLayout>
+        android:layout_marginTop="16dp" />
 
 </LinearLayout>

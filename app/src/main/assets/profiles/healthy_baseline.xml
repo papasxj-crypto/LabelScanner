@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="healthy_baseline" name="Healthy Adult Baseline" exclusivity_group="all">
+    <!-- Core Baseline Nutrition Filters (Standardized Keys) -->
+    <nutrient name="sodium" low_max="140" moderate_max="480" is_blacklist="false" />
+    <nutrient name="potassium" low_max="350" moderate_max="700" is_blacklist="false" />
+    <nutrient name="saturated_fat" low_max="2" moderate_max="5" is_blacklist="true" />
+    <nutrient name="total_fat" low_max="5" moderate_max="15" is_blacklist="false" />
+    <nutrient name="total_sugar" low_max="8" moderate_max="15" is_blacklist="false" />
+    <nutrient name="added_sugar" low_max="4" moderate_max="9" is_blacklist="true" />
+    <nutrient name="carbs" low_max="20" moderate_max="45" is_blacklist="false" />
+
+    <!--
+      Unified Protein Rules Matrix
+      Enforces a baseline floor for meals/snacks; ignores ceilings (999)
+    -->
+    <protein_rules snack_min="5" snack_max="999" meal_min="15" meal_max="999" target_ratio="0.10" />
+
+    <!-- Ingredient Substring Token Triggers -->
+    <trigger category="red">PARTIALLY HYDROGENATED OIL</trigger>
+    <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
+
+    <trigger category="yellow">ARTIFICIAL COLOR</trigger>
+    <trigger category="yellow">BHA</trigger>
+    <trigger category="yellow">BHT</trigger>
+</diet_profile>

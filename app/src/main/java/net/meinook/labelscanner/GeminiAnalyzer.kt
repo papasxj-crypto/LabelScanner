@@ -35,19 +35,20 @@ object GeminiAnalyzer {
 
                            The JSON structure must use these exact keys:
                            {
-                             "di": ["INGREDIENT1", "INGREDIENT2"],
-                             "servings": 1.0
+                             "servings": 1.0,
+                             "calories": 0,
                              "sodium": 0,
                              "protein": 0,
                              "carbs": 0,
+                             "fiber": 0,
                              "sugar": 0,
                              "added_sugar": 0,
                              "total_fat": 0,
                              "sat_fat": 0,
                              "trans_fat": 0,
-                             "potassium": 0
+                             "potassium": 0,
+                             "di": []
                            }
-                           
                            Rules for values:
                            1. If an item is missing or unreadable on the label, default its numeric value to 0.
                            2. Only include ingredients in the "detected_ingredients" array.

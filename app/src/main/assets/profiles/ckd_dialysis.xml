@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="ckd_dialysis" name="CKD Dialysis Support" exclusivity_group="ckd_renal_stage">
+    <!-- CKD Specific Target Metrics -->
+    <nutrient name="sodium" low_max="140" moderate_max="300" is_blacklist="true" />
+    <nutrient name="potassium" low_max="200" moderate_max="350" is_blacklist="true" />
+    <nutrient name="phosphorus" low_max="100" moderate_max="200" is_blacklist="true" />
+    <nutrient name="calcium" low_max="150" moderate_max="300" is_blacklist="false" />
+
+    <!-- Core Baseline Nutrition Filters -->
+    <nutrient name="saturated_fat" low_max="1" moderate_max="3" is_blacklist="true" />
+    <nutrient name="total_fat" low_max="3" moderate_max="10" is_blacklist="false" />
+    <nutrient name="total_sugar" low_max="5" moderate_max="10" is_blacklist="false" />
+    <nutrient name="added_sugar" low_max="2" moderate_max="5" is_blacklist="false" />
+    <nutrient name="carbs" low_max="15" moderate_max="30" is_blacklist="false" />
+
+    <!-- Flat Numeric Protein Evaluation Boundaries (Enforces Min Floor, Ignores Max Ceiling) -->
+    <protein_rules snack_min="10" snack_max="999" meal_min="25" meal_max="999" target_ratio="0.15" />
+
+    <!-- Ingredient Substring Token Triggers -->
+    <trigger category="red">PHOS</trigger>
+    <trigger category="red">SODIUM NITRITE</trigger>
+    <trigger category="red">POTASSIUM CHLORIDE</trigger>
+    <trigger category="red">MONOSODIUM GLUTAMATE</trigger>
+    <trigger category="red">MSG</trigger>
+    <trigger category="red">SODIUM BICARBONATE</trigger>
+    <trigger category="red">BRINE</trigger>
+    <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
+
+    <trigger category="yellow">SUCRALOSE</trigger>
+    <trigger category="yellow">ASPARTAME</trigger>
+</diet_profile>

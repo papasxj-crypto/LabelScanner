@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="glp_1" name="GLP-1 Support">
+    <nutrient name="sodium" low_max="140" moderate_max="400" is_blacklist="true" />
+    <nutrient name="calories" low_max="200" moderate_max="500" is_blacklist="false" />
+    <nutrient name="fiber" low_max="3" moderate_max="5" is_blacklist="false" />
+    <nutrient name="sat_fat" low_max="1" moderate_max="2" is_blacklist="true" custom_warning="Healthy Fat Profile Violation" />
+    <nutrient name="carbs" low_max="15" moderate_max="35" is_blacklist="false" />
+
+    <nutrient name="total_fat" low_max="3" moderate_max="5" is_blacklist="true" custom_warning="Slow Digestion / Reflux Warning" />
+    <nutrient name="added_sugar" low_max="2" moderate_max="5" is_blacklist="true" custom_warning="High Sugar / Nausea Warning" />
+    <nutrient name="sugar" low_max="4" moderate_max="10" is_blacklist="false" />
+
+    <protein_rules snack_min="10" meal_min="20" target_ratio="0.10" />
+
+    <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
+    <trigger category="red">ERYTHRITOL</trigger>
+
+    <trigger category="yellow">SUCRALOSE</trigger>
+    <trigger category="yellow">ASPARTAME</trigger>
+
+</diet_profile>

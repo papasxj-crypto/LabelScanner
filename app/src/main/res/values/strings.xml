@@ -96,14 +96,15 @@
     <!-- JASON Token Keys -->
     <string name="detected_ingredients_txt">di</string>
     <string name="servings_per_container_txt">servings</string>
+    <string name="calories_txt">calories</string>
     <string name="sodium_mg_txt">sodium</string>
     <string name="protein_g_txt">protein</string>
     <string name="total_carbohydrates_g_txt">carbs</string>
+    <string name="fiber_g_txt">fiber</string>
     <string name="total_sugar_g_txt">sugar</string>
     <string name="added_sugar_g_txt">added_sugar</string>
     <string name="total_fat_g_txt">total_fat</string>
     <string name="saturated_fat_g_txt">sat_fat</string>
-    <string name="potassium_g_txt">potassium</string>
     <string name="trans_fat_g_txt">trans_fat</string>
-
+    <string name="potassium_g_txt">potassium</string>
 </resources>

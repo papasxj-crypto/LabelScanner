@@ -27,9 +27,11 @@ class MainActivity : AppCompatActivity() {
     // 1. Global State Management (Enforces the absolute strictest limit if multiple boxes are checked)
     private var sodiumModMax: Int = 2300
     private var proteinModMax: Int = 80
+    private var proteinLowMax: Int = 80
     private var addedSugarModMax: Int = 5
     private var totalSugarModMax: Int = 10
     private var satFatModMax: Int = 3
+    private var transFatModMax: Int = 3
     private var totalFatModMax: Int = 10
     private var potassiumModMax: Int = 350
     private var carbsModMax: Int = 45
@@ -60,6 +62,9 @@ class MainActivity : AppCompatActivity() {
     private var lastScanServings: Float = 1.0f
     private var lastScanTotalFatGrams: Float = 0.0f
     private var lastScanSatFatGrams: Float = 0.0f
+    private var lastScanTransFatGrams: Float = 0.0f
+    private var lastScanCalories: Int = 0
+    private var lastScanFiberGrams: Float = 0.0f
     private var hasScanData: Boolean = false
 
     // 5. High-Resolution Camera Storage Callback (Balanced for Speed & Text Accuracy)
@@ -115,6 +120,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // ---> BOOT HOOK TRIGGERED <---
+        // Run the XML indexer immediately so our exclusivity group lookups work flawlessly
+        AppSettings.indexExclusivityGroups(this)
+
         // Initialize Native Core Views
         textExplanation = findViewById(R.id.textExplanation)
         buttonScan = findViewById(R.id.buttonScan)
@@ -138,6 +147,9 @@ class MainActivity : AppCompatActivity() {
                     lastScanPotassiumMg,
                     lastScanTotalFatGrams,
                     lastScanSatFatGrams,
+                    lastScanTransFatGrams,
+                    lastScanCalories,
+                    lastScanFiberGrams,
                     useFullContainerValues
                 )
                 textExplanation.text = freshlyCalculatedGrade
@@ -179,6 +191,9 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
 
+        // 1. Keeps your dashboard target header label perfectly synchronized
+        updateConditionText()
+
         val userSettings = AppSettings(this)
         val savedConditions = userSettings.getSelectedConditions()
 
@@ -187,19 +202,39 @@ class MainActivity : AppCompatActivity() {
 
         val userTargetWeightLbs = userSettings.getUserWeight().let { if (it > 0) it else 195.0 }
 
+        // 2. Keep your background threshold calculations running smoothly
         sodiumModMax = getMaxSodium(activeConditions)
         proteinModMax = getMaxProtein(userTargetWeightLbs, activeConditions)
 
-        if (!isAnalyzing) {
-            updateConditionText()
+        // 3. ---> ADDED: Clear out old scan cards on return so the screen resets <---
+        textExplanation.text = ""
+        textExplanation.setPadding(0, 0, 0, 0)
+        textExplanation.setBackgroundColor(Color.TRANSPARENT)
+
+        // Check if we just returned from a successful save
+        if (userSettings.getAndClearPendingSaveFlag()) {
+            val rootView = findViewById<android.view.View>(android.view.Window.ID_ANDROID_CONTENT)
+            com.google.android.material.snackbar.Snackbar
+                .make(
+                    rootView,
+                    getString(R.string.toast_settings_saved),
+                    com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                )
+                .show()
         }
+
+        // Reset your scan detection tracking flag
+        hasScanData = false
     }
 
     private fun runAnalysis(imageBitmap: Bitmap) {
         isAnalyzing = true
-        textExplanation.text = getString(R.string.analyzing_label_msg)
-        textExplanation.setTextColor(Color.WHITE)
-        textExplanation.setBackgroundColor(Color.TRANSPARENT)
+
+        runOnUiThread {
+            textExplanation.text = getString(R.string.analyzing_label_msg)
+            textExplanation.setTextColor(Color.WHITE)
+            textExplanation.setBackgroundColor(Color.TRANSPARENT)
+        }
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -207,16 +242,18 @@ class MainActivity : AppCompatActivity() {
                 val modelId = getString(R.string.model_identifier_txt)
 
                 val userSettings = AppSettings(this@MainActivity)
-                val savedProfileConditions = userSettings.getSelectedConditions()
+                val savedProfileIds = userSettings.getSelectedConditions()
 
-                val selectedConditionsString = if (savedProfileConditions.isNotEmpty()) {
-                    savedProfileConditions.joinToString(", ")
+                val selectedConditionsString = if (savedProfileIds.isNotEmpty()) {
+                    val availableProfiles = userSettings.getAvailableDietProfiles()
+                    savedProfileIds.map { id ->
+                        availableProfiles.find { it.id == id }?.displayName ?: id
+                    }.joinToString(", ")
                 } else {
                     getString(R.string.standard_baseline)
                 }
 
                 val rawResponseFromGemini = GeminiAnalyzer.analyzeIngredientsImage(imageBitmap, selectedConditionsString, secureApiKey, modelId)
-
                 val jsonResult = JSONObject(rawResponseFromGemini)
                 val jsonArray = jsonResult.getJSONArray(getString(R.string.detected_ingredients_txt))
                 val detectedIngredients = mutableListOf<String>()
@@ -232,7 +269,11 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                // --- 1. EXTRACT RAW NUTRITION FIELDS ---
                 val servingsPerContainer = jsonResult.optDouble(getString(R.string.servings_per_container_txt), 1.0).toFloat()
+                val rawCalories = jsonResult.optInt("calories", 0)
+                val rawFiber = jsonResult.optDouble("fiber", 0.0).toFloat()
+
                 val sodiumMg = jsonResult.optInt(getString(R.string.sodium_mg_txt), 0)
                 val proteinGrams = jsonResult.optDouble(getString(R.string.protein_g_txt), 0.0).toFloat()
                 val carbsGrams = jsonResult.optDouble(getString(R.string.total_carbohydrates_g_txt), 0.0).toFloat()
@@ -241,6 +282,8 @@ class MainActivity : AppCompatActivity() {
                 val totalFatGrams = jsonResult.optDouble(getString(R.string.total_fat_g_txt), 0.0).toFloat()
                 val satFatGrams = jsonResult.optDouble(getString(R.string.saturated_fat_g_txt), 0.0).toFloat()
                 val transFatGrams = jsonResult.optDouble(getString(R.string.trans_fat_g_txt), 0.0).toFloat()
+                val calories = jsonResult.optInt(getString(R.string.calories_txt), 0)
+                val fiberGrams = jsonResult.optDouble(getString(R.string.fiber_g_txt), 0.0).toFloat()
                 val potassiumRaw = jsonResult.optDouble(getString(R.string.potassium_g_txt), 0.0).toFloat()
 
                 val potassiumMg = if (potassiumRaw > 0.0 && potassiumRaw < 5.0) {
@@ -248,6 +291,13 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     potassiumRaw.toInt()
                 }.toFloat()
+
+                // --- 2. APPLY USER PORTION MODIFIER CEILING ---
+                val servingScaleFactor = 1.0f
+                val scaledCalories = rawCalories * servingScaleFactor
+                val scaledProtein = proteinGrams * servingScaleFactor
+                val scaledTotalFat = totalFatGrams * servingScaleFactor
+                val scaledAddedSugar = addedSugarGrams * servingScaleFactor
 
                 // Cache all values securely for instant layout redraws later
                 lastScanServings = servingsPerContainer
@@ -258,6 +308,9 @@ class MainActivity : AppCompatActivity() {
                 lastScanAddedSugarGrams = addedSugarGrams
                 lastScanTotalFatGrams = totalFatGrams
                 lastScanSatFatGrams = satFatGrams
+                lastScanTransFatGrams = transFatGrams
+                lastScanCalories = rawCalories
+                lastScanFiberGrams = rawFiber
                 lastScanPotassiumMg = potassiumMg
                 hasScanData = true
 
@@ -269,67 +322,45 @@ class MainActivity : AppCompatActivity() {
                 var textColor = Color.WHITE
                 var lastScanGradeTitle = ""
 
-                // 1. Extract dynamic clinical properties from your XML data layer
-                val sodiumTriple     = userSettings.getNutrientThresholds(getString(R.string.sodium_mg_txt))
-                val proteinTriple    = userSettings.getNutrientThresholds(getString(R.string.protein_g_txt))
-                val addedSugarTriple = userSettings.getNutrientThresholds(getString(R.string.added_sugar_g_txt))
-                val totalSugarTriple = userSettings.getNutrientThresholds(getString(R.string.total_sugar_g_txt))
-                val satFatTriple     = userSettings.getNutrientThresholds(getString(R.string.saturated_fat_g_txt))
-                val totalFatTriple   = userSettings.getNutrientThresholds(getString(R.string.total_fat_g_txt))
-                val potassiumTriple  = userSettings.getNutrientThresholds(getString(R.string.potassium_g_txt))
-                val carbsTriple      = userSettings.getNutrientThresholds(getString(R.string.total_carbohydrates_g_txt))
+                // Extract dynamic clinical properties from your XML data layer
+                val sodiumTriple     = userSettings.getNutrientThresholds("sodium")
+                val addedSugarTriple = userSettings.getNutrientThresholds("added_sugar")
+                val totalSugarTriple = userSettings.getNutrientThresholds("total_sugar")
+                val satFatTriple     = userSettings.getNutrientThresholds("saturated_fat")
+                val transFatTriple   = userSettings.getNutrientThresholds("trans_fat")
+                val totalFatTriple   = userSettings.getNutrientThresholds("total_fat")
+                val potassiumTriple  = userSettings.getNutrientThresholds("potassium")
+                val carbsTriple      = userSettings.getNutrientThresholds("carbs")
 
-                // Unpack limits for local rule checks
                 val (sodiumLowMax, sodiumModMax, sodiumIsBlacklist) = sodiumTriple
-                val (proteinLowMax, proteinModMax, proteinIsBlacklist) = proteinTriple
                 val (addedSugarLowMax, addedSugarModMax, addedSugarIsBlacklist) = addedSugarTriple
                 val (totalSugarLowMax, totalSugarModMax, totalSugarIsBlacklist) = totalSugarTriple
                 val (satFatLowMax, satFatModMax, satFatIsBlacklist) = satFatTriple
+                val (transFatLowMax, transFatModMax, transFatIsBlacklist) = transFatTriple
                 val (totalFatLowMax, totalFatModMax, totalFatIsBlacklist) = totalFatTriple
                 val (potassiumLowMax, potassiumModMax, potassiumIsBlacklist) = potassiumTriple
                 val (carbsLowMax, carbsModMax, carbsIsBlacklist) = carbsTriple
 
                 // Sync global limits to prevent layout-redraw variable shadowing
                 this@MainActivity.sodiumModMax = sodiumModMax
-                this@MainActivity.proteinModMax = proteinModMax
                 this@MainActivity.totalSugarModMax = totalSugarModMax
                 this@MainActivity.addedSugarModMax = addedSugarModMax
                 this@MainActivity.satFatModMax = satFatModMax
+                this@MainActivity.transFatModMax = transFatModMax
                 this@MainActivity.totalFatModMax = totalFatModMax
                 this@MainActivity.potassiumModMax = potassiumModMax
                 this@MainActivity.carbsModMax = carbsModMax
 
-                // Edge Case Override 1: The Plant Protein Exception Check
-                val plantProteinKeywords = listOf("LENTIL", "CHICKPEA", "TOFU", "PEA PROTEIN", "SOY", "BEAN")
-                val isPurelyPlantProtein = detectedIngredients.any { ingredient ->
-                    plantProteinKeywords.any { keyword -> ingredient.contains(keyword) }
-                }
-
-                var proteinViolatesRed = proteinGrams > proteinModMax
-                var proteinViolatesYellow = proteinGrams > proteinLowMax
-
-                if (proteinViolatesRed && isPurelyPlantProtein) {
-                    proteinViolatesRed = false
-                    proteinViolatesYellow = true
-                }
-
                 val redViolations = mutableListOf<String>()
                 val yellowViolations = mutableListOf<String>()
 
-                // 2. Clear Evaluation Engine with Dynamic Profile Isolation via if/else chains
+                // --- 3. EXECUTE STANDARD CEILING EVALUATION ENGINE ---
 
                 // Sodium
                 if (sodiumMg > sodiumModMax) {
                     if (sodiumIsBlacklist) redViolations.add(getString(R.string.sodium_mg_txt)) else yellowViolations.add(getString(R.string.sodium_mg_txt))
                 } else if (sodiumMg > sodiumLowMax) {
                     yellowViolations.add(getString(R.string.sodium_mg_txt))
-                }
-
-                // Protein
-                if (proteinViolatesRed) {
-                    if (proteinIsBlacklist) redViolations.add(getString(R.string.protein_g_txt)) else yellowViolations.add(getString(R.string.protein_g_txt))
-                } else if (proteinViolatesYellow) {
-                    yellowViolations.add(getString(R.string.protein_g_txt))
                 }
 
                 // Total Sugar
@@ -339,25 +370,31 @@ class MainActivity : AppCompatActivity() {
                     yellowViolations.add(getString(R.string.total_sugar_g_txt))
                 }
 
-                // Added Sugar
+                // Added Sugar (With GLP-1 Custom Clinical Warning Logic)
                 if (addedSugarGrams > addedSugarModMax) {
-                    if (addedSugarIsBlacklist) redViolations.add(getString(R.string.added_sugar_g_txt)) else yellowViolations.add(getString(R.string.added_sugar_g_txt))
+                    val label = if (savedProfileIds.contains("glp_1")) "High Sugar / Nausea Warning" else getString(R.string.added_sugar_g_txt)
+                    if (addedSugarIsBlacklist) redViolations.add(label) else yellowViolations.add(label)
                 } else if (addedSugarGrams > addedSugarLowMax) {
-                    yellowViolations.add(getString(R.string.added_sugar_g_txt))
+                    val label = if (savedProfileIds.contains("glp_1")) "Sugar Warning" else getString(R.string.added_sugar_g_txt)
+                    yellowViolations.add(label)
                 }
 
                 // Saturated Fat
                 if (satFatGrams > satFatModMax) {
-                    if (satFatIsBlacklist) redViolations.add(getString(R.string.saturated_fat_g_txt)) else yellowViolations.add(getString(R.string.saturated_fat_g_txt))
+                    val label = if (savedProfileIds.contains("glp_1")) "Healthy Fat Profile Violation" else getString(R.string.saturated_fat_g_txt)
+                    if (satFatIsBlacklist) redViolations.add(label) else yellowViolations.add(label)
                 } else if (satFatGrams > satFatLowMax) {
-                    yellowViolations.add(getString(R.string.saturated_fat_g_txt))
+                    val label = if (savedProfileIds.contains("glp_1")) "Saturated Fat Warning" else getString(R.string.saturated_fat_g_txt)
+                    yellowViolations.add(label)
                 }
 
-                // Total Fat
+                // Total Fat (With GLP-1 Custom Clinical Warning Logic)
                 if (totalFatGrams > totalFatModMax) {
-                    if (totalFatIsBlacklist) redViolations.add(getString(R.string.total_fat_g_txt)) else yellowViolations.add(getString(R.string.total_fat_g_txt))
+                    val label = if (savedProfileIds.contains("glp_1")) "Slow Digestion / Reflux Warning" else getString(R.string.total_fat_g_txt)
+                    if (totalFatIsBlacklist) redViolations.add(label) else yellowViolations.add(label)
                 } else if (totalFatGrams > totalFatLowMax) {
-                    yellowViolations.add(getString(R.string.total_fat_g_txt))
+                    val label = if (savedProfileIds.contains("glp_1")) "Fat Limit Warning" else getString(R.string.total_fat_g_txt)
+                    yellowViolations.add(label)
                 }
 
                 // Potassium
@@ -379,42 +416,76 @@ class MainActivity : AppCompatActivity() {
                     redViolations.add(getString(R.string.trans_fat_g_txt))
                 }
 
-                val matchedBlacklist = customBlacklist.filter { detectedIngredients.contains(it) }
-                val matchedXmlRed = xmlRedTriggers.filter { detectedIngredients.contains(it) }
+                // --- 4. UNIFIED PROTEIN AND FIBER EVALUATION ENGINE ---
+                val proteinRules = userSettings.getActiveProteinRules()
 
-                // 3. Core Decision Layout Engine
+                if (proteinRules.targetRatio > 0.0f) {
+                    val currentRatio = if (scaledCalories > 0) scaledProtein / scaledCalories else 0.0f
+                    if (currentRatio < proteinRules.targetRatio) {
+                        yellowViolations.add("Low Protein Ratio (${String.format("%.2f", currentRatio)} < ${proteinRules.targetRatio})")
+                    }
+
+                    val isMealWindow = scaledCalories >= 250f
+                    val activeMin = if (isMealWindow) proteinRules.mealMin else proteinRules.snackMin
+                    val activeMax = if (isMealWindow) proteinRules.mealMax else proteinRules.snackMax
+                    val contextLabel = if (isMealWindow) "Meal" else "Snack"
+
+                    if (activeMin > 0 && scaledProtein < activeMin) {
+                        yellowViolations.add("Low Protein for $contextLabel (<${activeMin}g)")
+                    }
+
+                    if (activeMax < 999 && scaledProtein > activeMax) {
+                        redViolations.add("High Protein for $contextLabel (>${activeMax}g)")
+                    }
+                }
+
+                // 3. Autonomous Fiber Enrichment Verification
+                val fiberNutrient = userSettings.getActiveNutrientRules().find { rule -> rule.name == "fiber" }
+                if (fiberNutrient != null) {
+                    if (rawFiber < fiberNutrient.lowMax) {
+                        yellowViolations.add("Low Dietary Fiber (<${fiberNutrient.lowMax}g)")
+                    }
+                }
+
+                // --- 5. COMPILING ARRAYS FOR CARD GENERATION WITH PHOS TEXT WILDCARDS ---
+                val matchedBlacklist = customBlacklist.filter { detectedIngredients.contains(it) }
+
+                // Matches explicit strings loaded from XML, OR catches any string containing "PHOS" if "PHOS" is active in rules
+                val matchedXmlRed = xmlRedTriggers.filter { trigger ->
+                    if (trigger == "PHOS") {
+                        detectedIngredients.any { it.contains("PHOS") }
+                    } else {
+                        detectedIngredients.contains(trigger)
+                    }
+                }
+
                 when {
-                    // Priority 1: Custom User Blacklist Match
                     matchedBlacklist.isNotEmpty() -> {
                         bgColor = (getString(R.string.red)).toColorInt()
                         textColor = Color.WHITE
                         val offenders = matchedBlacklist.joinToString(getString(R.string.comma))
                         lastScanGradeTitle = getString(R.string.red_blacklist_matched_msg, offenders)
                     }
-
-                    // Priority 2: Static Rule Warning Triggers
                     matchedXmlRed.isNotEmpty() -> {
                         bgColor = (getString(R.string.red)).toColorInt()
                         textColor = Color.WHITE
-                        val offenders = matchedXmlRed.joinToString(getString(R.string.comma))
-                        lastScanGradeTitle = getString(R.string.red_high_risk_msg, offenders)
-                    }
 
-                    // Priority 3: CRITICAL HIGH RISK TIERS (Only runs if a verified blacklist item fails)
+                        // Grab the actual matching item from packaging text to build a dynamic report card message
+                        val physicalOffender = detectedIngredients.find { it.contains("PHOS") } ?: "PHOSPHATE ADDITIVE"
+                        val displayName = if (xmlRedTriggers.contains("PHOS") && physicalOffender.contains("PHOS")) physicalOffender else matchedXmlRed.first()
+
+                        lastScanGradeTitle = getString(R.string.red_high_risk_msg, displayName)
+                    }
                     redViolations.isNotEmpty() -> {
                         bgColor = (getString(R.string.red)).toColorInt()
                         textColor = Color.WHITE
-                        lastScanGradeTitle = "Red - Avoid (High ${redViolations.joinToString(", ")})"
+                        lastScanGradeTitle = "Red - Avoid (${redViolations.joinToString(", ")})"
                     }
-
-                    // Priority 4: MODERATE RISK TIERS (Any item in the yellowViolations list)
                     yellowViolations.isNotEmpty() -> {
                         bgColor = (getString(R.string.yellow)).toColorInt()
                         textColor = Color.BLACK
                         lastScanGradeTitle = "Limit: ${yellowViolations.joinToString(", ")}"
                     }
-
-                    // Priority 5: COMPLIANT TARGET BASELINE
                     else -> {
                         bgColor = (getString(R.string.green)).toColorInt()
                         textColor = Color.WHITE
@@ -424,7 +495,6 @@ class MainActivity : AppCompatActivity() {
 
                 this@MainActivity.lastScanGradeTitle = lastScanGradeTitle
 
-                // Dynamically construct the layout output using the Monospace template rules
                 val finalGrade = buildMacroSummary(
                     lastScanGradeTitle,
                     servingsPerContainer,
@@ -436,6 +506,9 @@ class MainActivity : AppCompatActivity() {
                     potassiumMg,
                     totalFatGrams,
                     satFatGrams,
+                    transFatGrams,
+                    calories,
+                    fiberGrams,
                     useFullContainerValues
                 )
 
@@ -464,34 +537,27 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    private fun updateConditionText() {
-        val userSettings = AppSettings(this)
-        val savedProfileConditions = userSettings.getSelectedConditions()
 
-        selectedConditionsString = if (savedProfileConditions.isNotEmpty()) {
-            savedProfileConditions.joinToString(getString(R.string.comma))
+    private fun updateConditionText() {
+        val userSettings = AppSettings(this@MainActivity)
+        val savedProfileIds = userSettings.getSelectedConditions()
+
+        val selectedConditionsString = if (savedProfileIds.isNotEmpty()) {
+            val availableProfiles = userSettings.getAvailableDietProfiles()
+            savedProfileIds.map { id ->
+                availableProfiles.find { it.id == id }?.displayName ?: id
+            }.joinToString(", ")
         } else {
             getString(R.string.standard_baseline)
         }
 
-        textCondition.text = getString(R.string.selected_target_label, selectedConditionsString)
-
-        if (activeConditions.isEmpty()) {
-            textExplanation.text = getString(R.string.no_conditions_active)
-        } else {
-            textExplanation.text = getString(R.string.active_profile_tracking, selectedConditionsString, sodiumModMax)
-        }
+        val textProfileDisplay = findViewById<TextView>(R.id.textCondition)
+        textProfileDisplay?.text = "Selected Target: $selectedConditionsString"
     }
 
     private fun getMaxSodium(conditions: Set<String>): Int {
         val userSettings = AppSettings(this@MainActivity)
-
-        // Snag the explicit dynamic string key matching your strings.xml setup
-        val sodiumKey = getString(R.string.sodium_mg_txt)
-
-        // Pull the Triple from your XML processor. The second item (.second) is your Moderate Max.
-        val (_, dynamicModMax, _) = userSettings.getNutrientThresholds(sodiumKey)
-
+        val (_, dynamicModMax, _) = userSettings.getNutrientThresholds("sodium")
         return dynamicModMax
     }
 
@@ -500,17 +566,17 @@ class MainActivity : AppCompatActivity() {
         val weightKg = weightLbs * 0.45359237
 
         val activeConditions = userSettings.getSelectedConditions()
-        val isCKDActive = activeConditions.any { it.contains("CKD") || it.contains("Kidney") }
+        val isCKDActive = activeConditions.any { it.contains("ckd") || it.contains("Kidney") }
 
-        // If CKD is selected, we calculate based on the strict clinician multi-factor rule (0.6 - 0.8 g/kg)
         val proteinMultiplier = if (isCKDActive) {
-            0.8 // Upper bound target for Stage 3A
+            0.8
         } else {
-            1.2 // Healthy adult target weight maintenance default baseline multiplier
+            1.2
         }
 
         return (weightKg * proteinMultiplier).toInt()
     }
+
     private fun buildMacroSummary(
         gradeTitle: String,
         servings: Float,
@@ -522,6 +588,9 @@ class MainActivity : AppCompatActivity() {
         potassiumMg: Float,
         totalFatGrams: Float,
         satFatGrams: Float,
+        transFatGrams: Float,
+        calories: Int,
+        fiber: Float,
         showFullContainer: Boolean
     ): String {
         val multiplier = if (showFullContainer) servings else 1.0f
@@ -535,41 +604,35 @@ class MainActivity : AppCompatActivity() {
         val displayPotassium = (potassiumMg * multiplier).toInt()
         val displayTotalFat = (totalFatGrams * multiplier).toInt()
         val displaySatFat = (satFatGrams * multiplier).toInt()
+        val displayTransFat = (transFatGrams * multiplier).toInt()
+        val displayCalories = (calories * multiplier).toInt()
+        val displayFiber = (fiber * multiplier).toInt()
 
-        // Local helper to fetch thresholds and assign stars using resource lookups
-        fun getStatusStars(resId: Int, value: Float): String {
-            val stringKey = getString(resId)
+        fun getStatusStars(key: String, value: Float): String {
             val userSettings = AppSettings(this@MainActivity)
-
-            // Unpack the triple cleanly, discarding the boolean with an underscore since stars don't care about blacklist cards
-            val (lowMax, modMax, _) = userSettings.getNutrientThresholds(stringKey)
+            val (lowMax, modMax, _) = userSettings.getNutrientThresholds(key)
             return when {
-                value > modMax -> "xxxx" // Red Tier
-                value > lowMax -> "**"   // Yellow Tier (Swapped to double equal lines to look like small warning bars!)
-                else           -> ""     // Green Tier
+                value > modMax -> "xxxx"
+                value > lowMax -> "**"
+                else           -> ""
             }
         }
 
-        // Calculate stars cleanly by passing the string resource IDs directly
-        val sodiumStatus     = getStatusStars(R.string.sodium_mg_txt, displaySodium.toFloat())
-        val proteinStatus    = getStatusStars(R.string.protein_g_txt, displayProtein.toFloat())
-        val totalSugarStatus = getStatusStars(R.string.total_sugar_g_txt, displayTotalSugar.toFloat())
-        val addedSugarStatus = getStatusStars(R.string.added_sugar_g_txt, displayAddedSugar.toFloat())
-        val satFatStatus     = getStatusStars(R.string.saturated_fat_g_txt, displaySatFat.toFloat())
-        val totalFatStatus   = getStatusStars(R.string.total_fat_g_txt, displayTotalFat.toFloat())
-        val potassiumStatus  = getStatusStars(R.string.potassium_g_txt, displayPotassium.toFloat())
-        val carbsStatus      = getStatusStars(R.string.total_carbohydrates_g_txt, displayCarbs.toFloat())
+        val sodiumStatus     = getStatusStars("sodium", displaySodium.toFloat())
+        val proteinStatus    = getStatusStars("protein", displayProtein.toFloat())
+        val totalSugarStatus = getStatusStars("total_sugar", displayTotalSugar.toFloat())
+        val addedSugarStatus = getStatusStars("added_sugar", displayAddedSugar.toFloat())
+        val satFatStatus     = getStatusStars("saturated_fat", displaySatFat.toFloat())
+        val totalFatStatus   = getStatusStars("total_fat", displayTotalFat.toFloat())
+        val potassiumStatus  = getStatusStars("potassium", displayPotassium.toFloat())
+        val carbsStatus      = getStatusStars("carbs", displayCarbs.toFloat())
+        val caloriesStatus   = getStatusStars("calories", displayCalories.toFloat())
+        val fiberStatus      = getStatusStars("fiber", displayFiber.toFloat())
+        val transFatStatus   = getStatusStars("trans_fat", displayTransFat.toFloat())
 
-        // %-12s allocates exactly 12 characters of space, left-aligned
         val labelFormat = "%-12s"
-
-        // 1. Establish the maximum width of your card line (matching your 39 dashes)
         val maxLineWidth = 39
-
-        // 2. Calculate how much total blank space is left over, dividing by 2 for the left margin
         val leftPaddingCount = (maxLineWidth - gradeTitle.length) / 2
-
-        // 3. Generate a string of blank spaces matching that count (safely ensuring it doesn't drop below 0)
         val centeredGradeTitle = " ".repeat(leftPaddingCount.coerceAtLeast(0)) + gradeTitle
 
         return """
@@ -577,15 +640,17 @@ class MainActivity : AppCompatActivity() {
             ---------------------------------------
             Servings: $labelSuffix
             ---------------------------------------
-            ${String.format(labelFormat, "Sodium")} : ${displaySodium}mg $sodiumStatus
-            ${String.format(labelFormat, "Protein")} : ${displayProtein}g $proteinStatus
-            ${String.format(labelFormat, "Total Carbs")} : ${displayCarbs}g $carbsStatus
-            ${String.format(labelFormat, "Total Sugar")} : ${displayTotalSugar}g $totalSugarStatus
-            ${String.format(labelFormat, "Added Sugar")} : ${displayAddedSugar}g $addedSugarStatus
+            ${String.format(labelFormat, "Calories")} : $displayCalories $caloriesStatus
             ${String.format(labelFormat, "Total Fat")} : ${displayTotalFat}g $totalFatStatus
             ${String.format(labelFormat, "Sat Fat")} : ${displaySatFat}g $satFatStatus
+            ${String.format(labelFormat, "Trans Fat")} : ${displayTransFat}g $transFatStatus
+            ${String.format(labelFormat, "Sodium")} : ${displaySodium}mg $sodiumStatus
+            ${String.format(labelFormat, "Total Carbs")} : ${displayCarbs}g $carbsStatus
+            ${String.format(labelFormat, "Fiber")} : ${displayFiber}g $fiberStatus
+            ${String.format(labelFormat, "Total Sugar")} : ${displayTotalSugar}g $totalSugarStatus
+            ${String.format(labelFormat, "Added Sugar")} : ${displayAddedSugar}g $addedSugarStatus
+            ${String.format(labelFormat, "Protein")} : ${displayProtein}g $proteinStatus
             ${String.format(labelFormat, "Potassium")} : ${displayPotassium}mg $potassiumStatus
         """.trimIndent()
-
     }
 }
