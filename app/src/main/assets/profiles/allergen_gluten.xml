@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="allergen_gluten" name="Gluten &amp; Wheat Avoidance">
+
+    <!-- Ingredient triggers to scan for -->
+    <trigger category="ingredient">WHEAT</trigger>
+    <trigger category="ingredient">BARLEY</trigger>
+    <trigger category="ingredient">RYE</trigger>
+    <trigger category="ingredient">MALT</trigger>
+    <trigger category="ingredient">BREWER'S YEAST</trigger>
+    <trigger category="ingredient">WHEAT FLOUR</trigger>
+    <trigger category="ingredient">VITAL WHEAT GLUTEN</trigger>
+
+</diet_profile>

@@ -13,14 +13,8 @@ class AppSettings(private val context: Context) {
     private val settingsFile = File(context.filesDir, "user_diet_settings.json")
 
     companion object {
-        const val KEY_SODIUM_LIMIT = "max_sodium_mg"
         const val KEY_CUSTOM_BLACKBOARD = "custom_blacklist_ingredients"
         const val KEY_USER_WEIGHT = "user_target_weight_lbs"
-        const val KEY_CARB_LIMIT = "max_carbs_g"
-        const val KEY_TOTAL_SUGAR_LIMIT = "max_total_sugar_g"
-        const val KEY_ADDED_SUGAR_LIMIT = "max_added_sugar_g"
-        const val KEY_TOTAL_FAT_LIMIT = "max_total_fat_g"
-        const val KEY_SAT_FAT_LIMIT = "max_sat_fat_g"
 
         // Static map shared seamlessly by all activity contexts
         private val profileExclusivityMap = mutableMapOf<String, String>()
@@ -44,7 +38,6 @@ class AppSettings(private val context: Context) {
                             val group = parser.getAttributeValue(null, "exclusivity_group") ?: ""
                             if (group.isNotEmpty()) {
                                 profileExclusivityMap[id] = group
-                                android.util.Log.d("SCANNER_DEBUG", "Indexed profile ID: '$id' into Group: '$group'")
                             }
                             break
                         }
@@ -58,12 +51,30 @@ class AppSettings(private val context: Context) {
         }
     }
 
-    private var cachedSettings = JSONObject().apply {
-        put(KEY_SODIUM_LIMIT, 140)
+    // --- CUSTOM WATCHLIST STORAGE ENGINE ---
+
+    /**
+     * Saves a custom ingredient to a specific tier (RED or YELLOW)
+     */
+    fun saveCustomWatchlistItem(ingredient: String, tier: String) {
+        val sharedPrefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
+        val key = if (tier.uppercase() == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
+
+        val existingItems = sharedPrefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+        existingItems.add(ingredient.trim().uppercase())
+
+        sharedPrefs.edit().putStringSet(key, existingItems).apply()
     }
 
-    init {
-        loadSettingsFromDisk()
+    /**
+     * Retrieves the list of custom ingredients for a specific tier
+     */
+    fun getCustomWatchlist(tier: String): List<String> {
+        val sharedPrefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
+        val key = if (tier.uppercase() == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
+
+        val itemsSet = sharedPrefs.getStringSet(key, emptySet()) ?: emptySet()
+        return itemsSet.map { it.uppercase() }.sorted()
     }
 
     fun saveSelectedConditions(conditions: Set<String>) {
@@ -73,26 +84,9 @@ class AppSettings(private val context: Context) {
 
     fun getSelectedConditions(): Set<String> {
         val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
-        return prefs.getStringSet("tracked_medical_conditions", emptySet()) ?: emptySet()
-    }
 
-    private fun loadSettingsFromDisk() {
-        if (settingsFile.exists()) {
-            try {
-                val jsonString = settingsFile.readText()
-                cachedSettings = JSONObject(jsonString)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    private fun saveSettingsToDisk() {
-        try {
-            settingsFile.writeText(cachedSettings.toString())
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        // If "tracked_medical_conditions" does not exist yet (clean start), default to our baseline profile
+        return prefs.getStringSet("tracked_medical_conditions", null) ?: setOf("healthy_baseline")
     }
 
     fun setPendingSaveFlag(hasSaved: Boolean) {
@@ -109,39 +103,63 @@ class AppSettings(private val context: Context) {
         return currentFlagState
     }
 
-    fun getSodiumLimit(): Int {
-        return cachedSettings.optInt(KEY_SODIUM_LIMIT, 140)
-    }
+    // --- MODERNIZED DUAL-TIER CUSTOM INGREDIENT TRACKER ---
 
-    fun setSodiumLimit(mg: Int) {
-        cachedSettings.put(KEY_SODIUM_LIMIT, mg)
-        saveSettingsToDisk()
-    }
+    /**
+     * Fetches the complete list of custom ingredients assigned to a specific severity tier.
+     * @param tier Either "RED" or "YELLOW"
+     */
+//    fun getCustomWatchlist(tier: String): List<String> {
+//        val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
+//        val storageKey = if (tier.uppercase() == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
+//        val savedSet = prefs.getStringSet(storageKey, emptySet()) ?: emptySet()
+//        return savedSet.map { it.uppercase() }.sorted()
+//    }
 
-    fun getCustomBlacklist(): List<String> {
-        val jsonArray = cachedSettings.optJSONArray(KEY_CUSTOM_BLACKBOARD) ?: JSONArray()
-        val list = mutableListOf<String>()
-        for (i in 0 until jsonArray.length()) {
-            list.add(jsonArray.getString(i).uppercase())
-        }
-        return list
-    }
-
-    fun addBlacklistIngredient(ingredient: String) {
-        val currentList = getCustomBlacklist().toMutableList()
+    /**
+     * Adds an ingredient to a targeted severity watchlist and ensures it doesn't duplicate.
+     */
+    fun addWatchlistIngredient(ingredient: String, tier: String) {
+        val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
         val cleanName = ingredient.trim().uppercase()
-        if (cleanName.isNotEmpty() && !currentList.contains(cleanName)) {
-            currentList.add(cleanName)
-            cachedSettings.put(KEY_CUSTOM_BLACKBOARD, JSONArray(currentList))
-            saveSettingsToDisk()
+        if (cleanName.isEmpty()) return
+
+        val tierUpper = tier.uppercase()
+        val targetKey = if (tierUpper == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
+        val alternateKey = if (tierUpper == "RED") "custom_yellow_ingredients" else "custom_red_ingredients"
+
+        val targetSet = (prefs.getStringSet(targetKey, emptySet()) ?: emptySet()).toMutableSet()
+        val alternateSet = (prefs.getStringSet(alternateKey, emptySet()) ?: emptySet()).toMutableSet()
+
+        // Safety: If it's already in the other tier, migrate it over cleanly
+        alternateSet.remove(cleanName)
+        targetSet.add(cleanName)
+
+        prefs.edit {
+            putStringSet(targetKey, targetSet)
+            putStringSet(alternateKey, alternateSet)
         }
     }
 
-    fun removeBlacklistIngredient(ingredient: String) {
-        val currentList = getCustomBlacklist().toMutableList()
-        if (currentList.remove(ingredient.trim().uppercase())) {
-            cachedSettings.put(KEY_CUSTOM_BLACKBOARD, JSONArray(currentList))
-            saveSettingsToDisk()
+    /**
+     * Cleans an ingredient completely out of both custom tracking tiers.
+     */
+    fun removeWatchlistIngredient(ingredient: String) {
+        val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
+        val cleanName = ingredient.trim().uppercase()
+        if (cleanName.isEmpty()) return
+
+        val redSet = (prefs.getStringSet("custom_red_ingredients", emptySet()) ?: emptySet()).toMutableSet()
+        val yellowSet = (prefs.getStringSet("custom_yellow_ingredients", emptySet()) ?: emptySet()).toMutableSet()
+
+        val removedFromRed = redSet.remove(cleanName)
+        val removedFromYellow = yellowSet.remove(cleanName)
+
+        if (removedFromRed || removedFromYellow) {
+            prefs.edit {
+                putStringSet("custom_red_ingredients", redSet)
+                putStringSet("custom_yellow_ingredients", yellowSet)
+            }
         }
     }
 
@@ -155,16 +173,12 @@ class AppSettings(private val context: Context) {
     fun toggleConditionState(targetProfileId: String, isChecked: Boolean) {
         val selectedIds = getSelectedConditions().toMutableSet()
 
-        android.util.Log.d("SCANNER_DEBUG", "Toggling ID: '$targetProfileId' | Checked: $isChecked")
-
         if (isChecked) {
             val activeGroup = profileExclusivityMap[targetProfileId]
-            android.util.Log.d("SCANNER_DEBUG", "Profile '$targetProfileId' belongs to group: '$activeGroup'")
 
             if (activeGroup != null) {
                 if (activeGroup == "all") {
                     // Universal Reset Strategy: If Healthy Baseline is chosen, drop ALL other choices completely
-                    android.util.Log.d("SCANNER_DEBUG", "Universal baseline reset triggered. Clearing all selections.")
                     selectedIds.clear()
                 } else {
                     // Selective Reset Strategy: Drop matching group conditions (like a conflicting CKD stage)
@@ -172,7 +186,6 @@ class AppSettings(private val context: Context) {
                     val conflictingIds = selectedIds.filter { profileId: String ->
                         profileExclusivityMap[profileId] == activeGroup || profileExclusivityMap[profileId] == "all"
                     }
-                    android.util.Log.d("SCANNER_DEBUG", "Removing conflicting profiles: $conflictingIds")
                     selectedIds.removeAll(conflictingIds)
                 }
             } else {
@@ -196,6 +209,10 @@ class AppSettings(private val context: Context) {
             val fileList = context.assets.list("profiles") ?: emptyArray()
             for (fileName in fileList) {
                 if (fileName.endsWith(".xml")) {
+
+                    // 👉 ADD THIS LINE TO FILTER OUT ALLERGENS FROM SCREEN 1:
+                    if (fileName.startsWith("allergen_")) continue
+
                     val inputStream = context.assets.open("profiles/$fileName")
                     val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
                     var eventType = parser.eventType
@@ -220,6 +237,7 @@ class AppSettings(private val context: Context) {
     fun getNutrientThresholds(nutrientKey: String): Triple<Int, Int, Boolean> {
         val activeProfileIds = getSelectedConditions()
 
+        // If no custom medical profiles are checked, return healthy baseline standards
         if (activeProfileIds.isEmpty()) {
             return when (nutrientKey.lowercase()) {
                 "sodium"        -> Triple(140, 480, false)
@@ -227,8 +245,12 @@ class AppSettings(private val context: Context) {
                 "added_sugar"   -> Triple(5, 12, false)
                 "total_sugar"   -> Triple(10, 25, false)
                 "saturated_fat" -> Triple(2, 5, false)
+                "trans_fat"     -> Triple(0, 0, true) // Restored: Permanent binary restriction cap
                 "total_fat"     -> Triple(5, 15, false)
                 "potassium"     -> Triple(350, 700, false)
+                "carbs"         -> Triple(20, 45, false)
+                "calories"      -> Triple(0, 0, false)
+                "fiber"         -> Triple(0, 0, false)
                 else            -> Triple(0, 0, false)
             }
         }
@@ -280,6 +302,33 @@ class AppSettings(private val context: Context) {
 
         if (!profileMatched) return Triple(0, 0, false)
         return Triple(lowMax, modMax, isBlacklist)
+    }
+
+    fun getIngredientsFromAssetFile(fileName: String): List<String> {
+        val triggerList = mutableListOf<String>()
+        try {
+            val inputStream = context.assets.open("profiles/$fileName.xml")
+            val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
+            var eventType = parser.eventType
+
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                val tagName = parser.name
+                if (eventType == XmlPullParser.START_TAG && tagName == "trigger") {
+                    eventType = parser.next()
+                    if (eventType == XmlPullParser.TEXT) {
+                        val text = parser.text?.trim() ?: ""
+                        if (text.isNotEmpty()) {
+                            triggerList.add(text.uppercase())
+                        }
+                    }
+                }
+                eventType = parser.next()
+            }
+            inputStream.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return triggerList
     }
 
     fun loadTriggersFromAssets(categoryTarget: String): List<String> {

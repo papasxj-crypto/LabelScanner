@@ -21,6 +21,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LabelScanner">
         <activity android:name="net.meinook.labelscanner.SettingsActivity" android:exported="false" />
+        <activity android:name=".AllergenActivity" android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

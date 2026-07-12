@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header Block -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/allergen_command_center_txt"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp" />
+
+        <!-- SECTION A: CUSTOM INGREDIENT WATCHLIST -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/add_custom_ingredient_txt"
+            android:textColor="#888888"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <EditText
+            android:id="@+id/editCustomIngredient"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/e_g_msg_txt"
+            android:textColorHint="#666666"
+            android:textColor="#FFFFFF"
+            android:inputType="textCapCharacters"
+            android:background="#1E1E1E"
+            android:autofillHints="none"
+            android:padding="12dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:layout_marginBottom="12dp"/>
+
+        <!-- Tier Selection Row -->
+        <LinearLayout
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/buttonAddYellow"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/yellow_sensitivity_txt"
+                android:backgroundTint="#CAA100"
+                android:textColor="#000000"
+                android:layout_marginEnd="4dp" />
+
+            <Button
+                android:id="@+id/buttonAddRed"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/red_avoidance_txt"
+                android:backgroundTint="#A33B3B"
+                android:textColor="#FFFFFF"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#222222"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- SECTION B: COMMON CLINICAL ALLERGENS -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/common_clinical_triggers_txt"
+            android:textColor="#888888"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"/>
+
+        <!-- We will start with a few major ones to test layout binding -->
+        <!-- GLUTEN CARD CONTAINER -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#1E1E1E"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp">
+
+            <!-- Row 1: The Interactive Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <CheckBox
+                    android:id="@+id/checkAllergenGluten"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/gluten_wheat_txt"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+
+                <!-- Tap target to preview contents -->
+                <TextView
+                    android:id="@+id/textToggleGlutenPreview"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▼ View Included"
+                    android:textColor="#888888"
+                    android:textSize="12sp"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
+
+            <!-- Row 2: The Hidden Expandable Ingredient Display -->
+            <TextView
+                android:id="@+id/textGlutenIngredientsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#AAAAAA"
+                android:textSize="13sp"
+                android:lineSpacingMultiplier="1.2"
+                android:paddingTop="8dp"
+                android:paddingStart="32dp"
+                android:paddingEnd="16dp"
+                android:visibility="gone" /> <!-- Hidden by default 🔍 -->
+        </LinearLayout>
+
+        <!-- Dairy CARD CONTAINER -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#1E1E1E"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp">
+
+            <!-- Row 1: The Interactive Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <CheckBox
+                    android:id="@+id/checkAllergenDairy"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/dairy_milk_casein_txt"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+
+                <!-- Tap target to preview contents -->
+                <TextView
+                    android:id="@+id/textToggleDairyPreview"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▼ View Included"
+                    android:textColor="#888888"
+                    android:textSize="12sp"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
+
+            <!-- Row 2: The Hidden Expandable Ingredient Display -->
+            <TextView
+                android:id="@+id/textDairyIngredientsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#AAAAAA"
+                android:textSize="13sp"
+                android:lineSpacingMultiplier="1.2"
+                android:paddingTop="8dp"
+                android:paddingStart="32dp"
+                android:paddingEnd="16dp"
+                android:visibility="gone" /> <!-- Hidden by default 🔍 -->
+        </LinearLayout>
+
+        <!-- Soy CARD CONTAINER -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#1E1E1E"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp">
+
+            <!-- Row 1: The Interactive Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <CheckBox
+                    android:id="@+id/checkAllergenSoy"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/soy_products_txt"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+
+                <!-- Tap target to preview contents -->
+                <TextView
+                    android:id="@+id/textToggleSoyPreview"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▼ View Included"
+                    android:textColor="#888888"
+                    android:textSize="12sp"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
+
+            <!-- Row 2: The Hidden Expandable Ingredient Display -->
+            <TextView
+                android:id="@+id/textSoyIngredientsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#AAAAAA"
+                android:textSize="13sp"
+                android:lineSpacingMultiplier="1.2"
+                android:paddingTop="8dp"
+                android:paddingStart="32dp"
+                android:paddingEnd="16dp"
+                android:visibility="gone" /> <!-- Hidden by default 🔍 -->
+        </LinearLayout>
+
+        <!-- Nuts CARD CONTAINER -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#1E1E1E"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp">
+
+            <!-- Row 1: The Interactive Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <CheckBox
+                    android:id="@+id/checkAllergenNuts"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/peanuts_tree_nuts_txt"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+
+                <!-- Tap target to preview contents -->
+                <TextView
+                    android:id="@+id/textToggleNutsPreview"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="▼ View Included"
+                    android:textColor="#888888"
+                    android:textSize="12sp"
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
+
+            <!-- Row 2: The Hidden Expandable Ingredient Display -->
+            <TextView
+                android:id="@+id/textNutsIngredientsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#AAAAAA"
+                android:textSize="13sp"
+                android:lineSpacingMultiplier="1.2"
+                android:paddingTop="8dp"
+                android:paddingStart="32dp"
+                android:paddingEnd="16dp"
+                android:visibility="gone" /> <!-- Hidden by default 🔍 -->
+        </LinearLayout>
+
+        <!-- Dynamic Watchlist Container (Where typed items will appear) -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/active_custom_watchlist_txt"
+            android:textColor="#888888"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <!-- Add target to allow deleting -->
+        <LinearLayout
+            android:id="@+id/containerWatchlistItems"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="4dp" />
+
+        <!-- PREMIUM NAVIGATION EXIT BUTTON -->
+        <Button
+            android:id="@+id/buttonReturnToSettings"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Save &amp; Return to Settings"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="#1E1E1E"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp"/>
+    </LinearLayout>
+</ScrollView>

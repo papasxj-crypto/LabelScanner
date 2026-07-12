@@ -56,6 +56,8 @@
     <string name="green">#1B4D22</string>
     <!-- "#33FFFFFF" -->
     <string name="frost_white">#33FFFFFF</string>
+    <!-- "#FFFFFF" -->
+    <string name="white">#FFFFFF</string>
 
     <string name="grade_red_blacklist_format">RED: BLACKLISTED INGREDIENT DETECTED\n(%1$s)</string>
     <string name="grade_red_high_risk_format">RED: HIGH RISK INGREDIENT MATCH\n(%1$s)</string>
@@ -87,7 +89,7 @@
     <string name="yellow_txt">YELLOW</string>
     <string name="sodium_txt">SODIUM</string>
     <string name="comma">", "</string>
-    <string name="analyzing_image_msg">Analyzing image... I\'m working on it.</string>
+    <string name="analyzing_image_msg">Analyzing image… I\'m working on it.</string>
     <string name="yellow_caution_msg">Yellow: Caution Threshold</string>
     <string name="green_enjoy_msg">Green - Enjoy</string>
     <string name="red_high_risk_msg">RED: HIGH RISK (%1$s)</string>
@@ -107,4 +109,32 @@
     <string name="saturated_fat_g_txt">sat_fat</string>
     <string name="trans_fat_g_txt">trans_fat</string>
     <string name="potassium_g_txt">potassium</string>
+
+    <!-- activity_settings.xml strings -->
+    <string name="dietary_medical_profiles_txt"><![CDATA[Dietary & Medical Profiles]]></string>
+    <string name="user_target_weight_lbs_txt">User Target Weight (lbs)</string>
+    <string name="default_weight_txt">195</string>
+    <string name="allergens_amp_sensitivities_txt"><![CDATA[Allergens & Sensitivities]]></string>
+    <string name="manage_custom_watchlist_txt">Manage your custom watchlist and dietary flags</string>
+    <string name="arrow_img_txt">➔</string>
+    <string name="save_apply_changes_txt"><![CDATA[Save & Apply Changes]]></string>
+
+    <!-- activity_main.xml strings -->
+    <string name="show_full_container_values_txt">Show Full Container Values</string>
+
+    <!-- activity_allergens.xml strings -->
+    <string name="allergen_command_center_txt">Allergen Command Center</string>
+    <string name="add_custom_ingredient_txt">Add Custom Ingredient</string>
+    <string name="e_g_msg_txt">e.g., MSG, RED 40, PHOS</string>
+    <string name="yellow_sensitivity_txt">+ Yellow (Sensitivity)</string>
+    <string name="red_avoidance_txt">+ Red (Avoidance)</string>
+    <string name="common_clinical_triggers_txt">Common Clinical Triggers</string>
+    <string name="gluten_wheat_txt">🌾 Gluten / Wheat</string>
+    <string name="dairy_milk_casein_txt">🥛 Dairy (Milk Casein)</string>
+    <string name="soy_products_txt">🌱 Soy Products</string>
+    <string name="peanuts_tree_nuts_txt"><![CDATA[🥜 Peanuts & Tree Nuts]]></string>
+    <string name="active_custom_watchlist_txt">Active Custom Watchlist</string>
+    <string name="no_custom_filters_active_txt">No custom filters active.</string>
+
+
 </resources>

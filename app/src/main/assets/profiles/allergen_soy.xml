@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="allergen_soy" name="Soy Avoidance">
+
+    <trigger category="ingredient">SOY</trigger>
+    <trigger category="ingredient">SOYBEAN</trigger>
+    <trigger category="ingredient">SOY LECITHIN</trigger>
+    <trigger category="ingredient">TOFU</trigger>
+    <trigger category="ingredient">EDAMAME</trigger>
+    <trigger category="ingredient">TAMARI</trigger>
+
+</diet_profile>

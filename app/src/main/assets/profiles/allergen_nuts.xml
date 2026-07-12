@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="allergen_nuts" name="Peanut &amp; Tree Nut Avoidance">
+
+    <trigger category="ingredient">PEANUT</trigger>
+    <trigger category="ingredient">PEANUTS</trigger>
+    <trigger category="ingredient">ALMOND</trigger>
+    <trigger category="ingredient">WALNUT</trigger>
+    <trigger category="ingredient">CASHEW</trigger>
+    <trigger category="ingredient">PECAN</trigger>
+    <trigger category="ingredient">HAZELNUT</trigger>
+
+</diet_profile>

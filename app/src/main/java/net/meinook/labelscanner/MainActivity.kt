@@ -21,6 +21,7 @@ import org.json.JSONObject
 import androidx.core.graphics.toColorInt
 import com.google.ai.client.generativeai.GenerativeModel
 import java.io.File
+import androidx.core.graphics.scale
 
 class MainActivity : AppCompatActivity() {
 
@@ -92,7 +93,7 @@ class MainActivity : AppCompatActivity() {
                         } else {
                             Pair((maxDimension * srcRatio).toInt(), maxDimension)
                         }
-                        Bitmap.createScaledBitmap(fullSpaceBitmap, newWidth, newHeight, true)
+                        fullSpaceBitmap.scale(newWidth, newHeight)
                     } else {
                         fullSpaceBitmap
                     }
@@ -316,7 +317,10 @@ class MainActivity : AppCompatActivity() {
 
                 val xmlRedTriggers = userSettings.loadTriggersFromAssets(getString(R.string.red_txt))
                 val xmlYellowTriggers = userSettings.loadTriggersFromAssets(getString(R.string.yellow_txt))
-                val customBlacklist = userSettings.getCustomBlacklist()
+
+                // --- UPDATED: FETCH DUAL-TIER CUSTOM WATCHLISTS ---
+                val customRedWatchlist = userSettings.getCustomWatchlist("RED")
+                val customYellowWatchlist = userSettings.getCustomWatchlist("YELLOW")
 
                 var bgColor = (getString(R.string.green)).toColorInt()
                 var textColor = Color.WHITE
@@ -447,8 +451,9 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                // --- 5. COMPILING ARRAYS FOR CARD GENERATION WITH PHOS TEXT WILDCARDS ---
-                val matchedBlacklist = customBlacklist.filter { detectedIngredients.contains(it) }
+                // --- 5. COMPILING ARRAYS FOR CARD GENERATION VIA DUAL-TIER WATCHLIST ---
+                val matchedCustomRed = customRedWatchlist.filter { detectedIngredients.contains(it) }
+                val matchedCustomYellow = customYellowWatchlist.filter { detectedIngredients.contains(it) }
 
                 // Matches explicit strings loaded from XML, OR catches any string containing "PHOS" if "PHOS" is active in rules
                 val matchedXmlRed = xmlRedTriggers.filter { trigger ->
@@ -459,18 +464,18 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                // --- 6. UNIFIED PRIORITY EVALUATION WHEN BLOCK ---
                 when {
-                    matchedBlacklist.isNotEmpty() -> {
+                    matchedCustomRed.isNotEmpty() -> {
                         bgColor = (getString(R.string.red)).toColorInt()
                         textColor = Color.WHITE
-                        val offenders = matchedBlacklist.joinToString(getString(R.string.comma))
-                        lastScanGradeTitle = getString(R.string.red_blacklist_matched_msg, offenders)
+                        val offenders = matchedCustomRed.joinToString(getString(R.string.comma))
+                        lastScanGradeTitle = "Red - Avoid Custom Allergen ($offenders)"
                     }
                     matchedXmlRed.isNotEmpty() -> {
                         bgColor = (getString(R.string.red)).toColorInt()
                         textColor = Color.WHITE
 
-                        // Grab the actual matching item from packaging text to build a dynamic report card message
                         val physicalOffender = detectedIngredients.find { it.contains("PHOS") } ?: "PHOSPHATE ADDITIVE"
                         val displayName = if (xmlRedTriggers.contains("PHOS") && physicalOffender.contains("PHOS")) physicalOffender else matchedXmlRed.first()
 
@@ -480,6 +485,12 @@ class MainActivity : AppCompatActivity() {
                         bgColor = (getString(R.string.red)).toColorInt()
                         textColor = Color.WHITE
                         lastScanGradeTitle = "Red - Avoid (${redViolations.joinToString(", ")})"
+                    }
+                    matchedCustomYellow.isNotEmpty() -> {
+                        bgColor = (getString(R.string.yellow)).toColorInt()
+                        textColor = Color.BLACK
+                        val items = matchedCustomYellow.joinToString(getString(R.string.comma))
+                        lastScanGradeTitle = "Sensitivity Warning: $items"
                     }
                     yellowViolations.isNotEmpty() -> {
                         bgColor = (getString(R.string.yellow)).toColorInt()
@@ -519,8 +530,8 @@ class MainActivity : AppCompatActivity() {
                     textExplanation.setTextColor(textColor)
                     textExplanation.setPadding(32, 32, 32, 32)
 
-                    val premiumCardBackground = GradientDrawable().apply {
-                        shape = GradientDrawable.RECTANGLE
+                    val premiumCardBackground = android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                         setColor(bgColor)
                         cornerRadius = 24f
                         setStroke(2, getString(R.string.frost_white).toColorInt())

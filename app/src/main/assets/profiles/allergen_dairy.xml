@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="allergen_dairy" name="Dairy &amp; Casein Avoidance">
+
+    <trigger category="ingredient">MILK</trigger>
+    <trigger category="ingredient">CASEIN</trigger>
+    <trigger category="ingredient">WHEY</trigger>
+    <trigger category="ingredient">LACTOSE</trigger>
+    <trigger category="ingredient">BUTTER</trigger>
+    <trigger category="ingredient">CHEESE</trigger>
+    <trigger category="ingredient">SODIUM CASEINATE</trigger>
+
+</diet_profile>
