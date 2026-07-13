@@ -81,30 +81,24 @@ class MainActivity : AppCompatActivity() {
                 inputStream?.close()
 
                 if (fullSpaceBitmap != null) {
-                    // UPGRADED: Raise limit to 2000px to secure fine-print text fidelity
-                    val maxDimension = 2000
-                    val width = fullSpaceBitmap.width
-                    val height = fullSpaceBitmap.height
+                    // Scan the image for a barcode first using ML Kit
+                    val image = com.google.mlkit.vision.common.InputImage.fromBitmap(fullSpaceBitmap, 0)
+                    val scanner = com.google.mlkit.vision.barcode.BarcodeScanning.getClient()
 
-                    val optimizedBitmap = if (width > maxDimension || height > maxDimension) {
-                        val srcRatio = width.toFloat() / height.toFloat()
-                        val (newWidth, newHeight) = if (srcRatio > 1) {
-                            Pair(maxDimension, (maxDimension / srcRatio).toInt())
-                        } else {
-                            Pair((maxDimension * srcRatio).toInt(), maxDimension)
+                    scanner.process(image)
+                        .addOnSuccessListener { barcodes ->
+                            if (barcodes.isNotEmpty()) {
+                                // Barcode found! Pass it to the online lookup
+                                val upcCode = barcodes.first().rawValue ?: ""
+                                lookupBarcodeOnline(upcCode, fullSpaceBitmap)
+                            } else {
+                                // No barcode: Fall straight back to your original processing
+                                processAndRunJsonPipeline(fullSpaceBitmap)
+                            }
                         }
-                        fullSpaceBitmap.scale(newWidth, newHeight)
-                    } else {
-                        fullSpaceBitmap
-                    }
-
-                    // BALANCED: Write to disk at 75% compression to keep payload small
-                    val fileOutputStream = java.io.FileOutputStream(File(filesDir, getString(R.string.scan_capture_jpg)))
-                    optimizedBitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream)
-                    fileOutputStream.flush()
-                    fileOutputStream.close()
-
-                    runAnalysis(optimizedBitmap)
+                        .addOnFailureListener { e ->
+                            processAndRunJsonPipeline(fullSpaceBitmap)
+                        }
                 } else {
                     textExplanation.text = getString(R.string.error_loading_image)
                 }
@@ -115,6 +109,91 @@ class MainActivity : AppCompatActivity() {
         } else {
             textExplanation.text = getString(R.string.camera_cancelled)
         }
+    }
+
+    /**
+     * 🌐 THE ONLINE PATCH ENGINE
+     * Queries the public database on a separate background execution thread
+     */
+    private fun lookupBarcodeOnline(upcCode: String, fallbackBitmap: Bitmap) {
+        textExplanation.text = "UPC Found: $upcCode\nSearching grocery database..."
+
+        kotlin.concurrent.thread {
+            try {
+                val url = java.net.URL("https://world.openfoodfacts.org/api/v2/product/$upcCode.json")
+                val connection = url.openConnection() as java.net.HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("User-Agent", "LabelScanner/1.0 (steve@meinook.net)")
+
+                if (connection.responseCode == 200) {
+                    val responseText = connection.inputStream.bufferedReader().use { it.readText() }
+                    val jsonObject = org.json.JSONObject(responseText)
+
+                    if (jsonObject.optInt("status", 0) == 1) {
+                        val product = jsonObject.getJSONObject("product")
+                        val ingredientsText = product.optString("ingredients_text", "").trim()
+
+                        runOnUiThread {
+                            if (ingredientsText.isNotEmpty()) {
+                                // Print the ingredient text on screen
+                                textExplanation.text = "Product Verified Online!\nIngredients: $ingredientsText"
+                                // Run your original image calculation loop to compute the score
+                                processAndRunJsonPipeline(fallbackBitmap)
+                            } else {
+                                textExplanation.text = "Product lacks ingredient logs online.\nFalling back to text scan..."
+                                processAndRunJsonPipeline(fallbackBitmap)
+                            }
+                        }
+                    } else {
+                        runOnUiThread {
+                            textExplanation.text = "Item not found in online database.\nFalling back to text scan..."
+                            processAndRunJsonPipeline(fallbackBitmap)
+                        }
+                    }
+                } else {
+                    runOnUiThread { processAndRunJsonPipeline(fallbackBitmap) }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                runOnUiThread { processAndRunJsonPipeline(fallbackBitmap) }
+            }
+        }
+    }
+
+    /**
+     * Helper to feed text strings directly into your evaluation logic
+     */
+    private fun runAnalysisWithText(ingredientsText: String) {
+        // TODO: Connect this directly to the method that analyzes the string text.
+        // If your original runAnalysis() only accepts a Bitmap, we can look at adapting your
+        // engine method next so it takes a raw text block directly!
+    }
+
+    private fun processAndRunJsonPipeline(fullSpaceBitmap: Bitmap) {
+        val maxDimension = 2000
+        val width = fullSpaceBitmap.width
+        val height = fullSpaceBitmap.height
+
+        val optimizedBitmap = if (width > maxDimension || height > maxDimension) {
+            val srcRatio = width.toFloat() / height.toFloat()
+            val (newWidth, newHeight) = if (srcRatio > 1) {
+                Pair(maxDimension, (maxDimension / srcRatio).toInt())
+            } else {
+                Pair((maxDimension * srcRatio).toInt(), maxDimension)
+            }
+            // Scale utility method using standard Bitmap createScaledBitmap
+            Bitmap.createScaledBitmap(fullSpaceBitmap, newWidth, newHeight, true)
+        } else {
+            fullSpaceBitmap
+        }
+
+        val fileOutputStream = java.io.FileOutputStream(File(filesDir, getString(R.string.scan_capture_jpg)))
+        optimizedBitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream)
+        fileOutputStream.flush()
+        fileOutputStream.close()
+
+        // Call your original scoring network task directly
+        runAnalysis(optimizedBitmap)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

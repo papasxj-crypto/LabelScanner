@@ -11,6 +11,11 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- Required for barcode scanning -->
+    <uses-feature android:name="android.hardware.camera.any" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -20,6 +25,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.LabelScanner">
+        <activity android:name=".ScannerActivity" android:exported="false" />
         <activity android:name="net.meinook.labelscanner.SettingsActivity" android:exported="false" />
         <activity android:name=".AllergenActivity" android:exported="false" />
         <activity

@@ -64,4 +64,12 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     implementation(libs.google.generativeai)
     implementation("com.google.android.material:material:1.12.0")
+// ML Kit Barcode Scanning API
+    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
+
+    // 🟢 Upgraded to 1.4.2 for strict 16 KB hardware compatibility
+    implementation("androidx.camera:camera-core:1.4.2")
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
 }
