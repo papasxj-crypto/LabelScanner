@@ -8,24 +8,29 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.lifecycleScope
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import androidx.core.graphics.toColorInt
-import com.google.ai.client.generativeai.GenerativeModel
 import java.io.File
-import androidx.core.graphics.scale
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : AppCompatActivity() {
 
-    // 1. Global State Management (Enforces the absolute strictest limit if multiple boxes are checked)
+    // 1. Global State Management
     private var sodiumModMax: Int = 2300
     private var proteinModMax: Int = 80
     private var proteinLowMax: Int = 80
@@ -36,7 +41,6 @@ class MainActivity : AppCompatActivity() {
     private var totalFatModMax: Int = 10
     private var potassiumModMax: Int = 350
     private var carbsModMax: Int = 45
-    private var selectedConditionsString: String = ""
 
     // 2. View Element Declarations
     private lateinit var mainLayoutContainer: LinearLayout
@@ -44,15 +48,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textCondition: TextView
     private lateinit var buttonScan: Button
     private lateinit var buttonOpenSettings: Button
+    private lateinit var checkDisplayFullContainer: CheckBox
+
     private var isAnalyzing: Boolean = false
 
-    // 4. Data Streams and Storage Tracking
+    // 3. Data Streams and Storage Tracking
     private lateinit var tempPhotoUri: Uri
     private val activeConditions = mutableSetOf<String>()
     private var useFullContainerValues: Boolean = false
-    private lateinit var checkDisplayFullContainer: android.widget.CheckBox
 
-    // 6. Last Scan Cache Storage (For instant UI recalculations without re-scanning)
+    // 4. Last Scan Cache Storage
     private var lastScanGradeTitle: String = "Green - Enjoy"
     private var lastScanSodiumMg: Int = 0
     private var lastScanProteinGrams: Float = 0.0f
@@ -68,7 +73,7 @@ class MainActivity : AppCompatActivity() {
     private var lastScanFiberGrams: Float = 0.0f
     private var hasScanData: Boolean = false
 
-    // 5. High-Resolution Camera Storage Callback (Balanced for Speed & Text Accuracy)
+    // 5. Standard Camera Launcher (Barcode + Label OCR)
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
         if (success) {
             try {
@@ -81,22 +86,19 @@ class MainActivity : AppCompatActivity() {
                 inputStream?.close()
 
                 if (fullSpaceBitmap != null) {
-                    // Scan the image for a barcode first using ML Kit
-                    val image = com.google.mlkit.vision.common.InputImage.fromBitmap(fullSpaceBitmap, 0)
-                    val scanner = com.google.mlkit.vision.barcode.BarcodeScanning.getClient()
+                    val image = InputImage.fromBitmap(fullSpaceBitmap, 0)
+                    val scanner = BarcodeScanning.getClient()
 
                     scanner.process(image)
                         .addOnSuccessListener { barcodes ->
                             if (barcodes.isNotEmpty()) {
-                                // Barcode found! Pass it to the online lookup
                                 val upcCode = barcodes.first().rawValue ?: ""
                                 lookupBarcodeOnline(upcCode, fullSpaceBitmap)
                             } else {
-                                // No barcode: Fall straight back to your original processing
                                 processAndRunJsonPipeline(fullSpaceBitmap)
                             }
                         }
-                        .addOnFailureListener { e ->
+                        .addOnFailureListener {
                             processAndRunJsonPipeline(fullSpaceBitmap)
                         }
                 } else {
@@ -111,43 +113,71 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // 6. Produce Camera Launcher (Bypasses Barcode ML Kit)
+    private val produceCameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
+        if (success) {
+            try {
+                textExplanation.text = "Identifying Fresh Produce..."
+                textExplanation.setTextColor(Color.WHITE)
+                textExplanation.setBackgroundColor(Color.TRANSPARENT)
+
+                val inputStream = contentResolver.openInputStream(tempPhotoUri)
+                val fullSpaceBitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                if (fullSpaceBitmap != null) {
+                    runProduceAnalysis(fullSpaceBitmap)
+                } else {
+                    textExplanation.text = getString(R.string.error_loading_image)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                textExplanation.text = getString(R.string.error_processing_file)
+            }
+        } else {
+            textExplanation.text = getString(R.string.camera_cancelled)
+        }
+    }
+
     /**
      * 🌐 THE ONLINE PATCH ENGINE
-     * Queries the public database on a separate background execution thread
      */
     private fun lookupBarcodeOnline(upcCode: String, fallbackBitmap: Bitmap) {
         textExplanation.text = "UPC Found: $upcCode\nSearching grocery database..."
 
         kotlin.concurrent.thread {
             try {
-                val url = java.net.URL("https://world.openfoodfacts.org/api/v2/product/$upcCode.json")
-                val connection = url.openConnection() as java.net.HttpURLConnection
+                val url = URL("https://world.openfoodfacts.org/api/v2/product/$upcCode.json")
+                val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("User-Agent", "LabelScanner/1.0 (steve@meinook.net)")
 
                 if (connection.responseCode == 200) {
                     val responseText = connection.inputStream.bufferedReader().use { it.readText() }
-                    val jsonObject = org.json.JSONObject(responseText)
+                    val jsonObject = JSONObject(responseText)
 
                     if (jsonObject.optInt("status", 0) == 1) {
                         val product = jsonObject.getJSONObject("product")
                         val ingredientsText = product.optString("ingredients_text", "").trim()
+                        val nutriments = product.optJSONObject("nutriments")
+
+                        val calories = nutriments?.optDouble("energy-kcal_100g", 0.0) ?: 0.0
+                        val sodium = nutriments?.optDouble("sodium_100g", 0.0) ?: 0.0
+                        val protein = nutriments?.optDouble("proteins_100g", 0.0) ?: 0.0
+                        val fat = nutriments?.optDouble("fat_100g", 0.0) ?: 0.0
+                        val carbs = nutriments?.optDouble("carbohydrates_100g", 0.0) ?: 0.0
+
+                        val hasRealNutrientData = (calories + sodium + protein + fat + carbs) > 0.0
 
                         runOnUiThread {
-                            if (ingredientsText.isNotEmpty()) {
-                                // Print the ingredient text on screen
-                                textExplanation.text = "Product Verified Online!\nIngredients: $ingredientsText"
-                                // Run your original image calculation loop to compute the score
+                            if (ingredientsText.isNotEmpty() || hasRealNutrientData) {
+                                textExplanation.text = "Product Verified Online!"
                                 processAndRunJsonPipeline(fallbackBitmap)
                             } else {
-                                textExplanation.text = "Product lacks ingredient logs online.\nFalling back to text scan..."
+                                textExplanation.text = "⚠️ Online entry missing nutritional data.\nScanning photo label instead..."
+                                textExplanation.setTextColor(Color.YELLOW)
                                 processAndRunJsonPipeline(fallbackBitmap)
                             }
-                        }
-                    } else {
-                        runOnUiThread {
-                            textExplanation.text = "Item not found in online database.\nFalling back to text scan..."
-                            processAndRunJsonPipeline(fallbackBitmap)
                         }
                     }
                 } else {
@@ -158,15 +188,6 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread { processAndRunJsonPipeline(fallbackBitmap) }
             }
         }
-    }
-
-    /**
-     * Helper to feed text strings directly into your evaluation logic
-     */
-    private fun runAnalysisWithText(ingredientsText: String) {
-        // TODO: Connect this directly to the method that analyzes the string text.
-        // If your original runAnalysis() only accepts a Bitmap, we can look at adapting your
-        // engine method next so it takes a raw text block directly!
     }
 
     private fun processAndRunJsonPipeline(fullSpaceBitmap: Bitmap) {
@@ -181,18 +202,16 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Pair((maxDimension * srcRatio).toInt(), maxDimension)
             }
-            // Scale utility method using standard Bitmap createScaledBitmap
             Bitmap.createScaledBitmap(fullSpaceBitmap, newWidth, newHeight, true)
         } else {
             fullSpaceBitmap
         }
 
-        val fileOutputStream = java.io.FileOutputStream(File(filesDir, getString(R.string.scan_capture_jpg)))
+        val fileOutputStream = FileOutputStream(File(filesDir, getString(R.string.scan_capture_jpg)))
         optimizedBitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream)
         fileOutputStream.flush()
         fileOutputStream.close()
 
-        // Call your original scoring network task directly
         runAnalysis(optimizedBitmap)
     }
 
@@ -200,11 +219,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // ---> BOOT HOOK TRIGGERED <---
-        // Run the XML indexer immediately so our exclusivity group lookups work flawlessly
         AppSettings.indexExclusivityGroups(this)
 
-        // Initialize Native Core Views
         textExplanation = findViewById(R.id.textExplanation)
         buttonScan = findViewById(R.id.buttonScan)
         buttonOpenSettings = findViewById(R.id.buttonOpenSettings)
@@ -214,7 +230,6 @@ class MainActivity : AppCompatActivity() {
         checkDisplayFullContainer.setOnCheckedChangeListener { _, isChecked ->
             useFullContainerValues = isChecked
 
-            // If we have data from a previous scan on screen, recalculate and redraw immediately!
             if (hasScanData && !isAnalyzing) {
                 val freshlyCalculatedGrade = buildMacroSummary(
                     lastScanGradeTitle,
@@ -243,35 +258,49 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // Standard Click -> Label / Barcode Scan
         buttonScan.setOnClickListener {
-            textExplanation.text = getString(R.string.camera_msg_1)
-            textExplanation.setTextColor(Color.WHITE)
-            textExplanation.setBackgroundColor(Color.TRANSPARENT)
-            try {
-                val photoFile = File(this@MainActivity.filesDir,
-                    getString(R.string.scan_capture_jpg)).apply {
-                    if (exists()) delete()
-                    createNewFile()
-                }
+            launchCameraForScan(isProduce = false)
+        }
 
-                tempPhotoUri = FileProvider.getUriForFile(
-                    this@MainActivity,
-                    getString(R.string.fileprovider_id),
-                    photoFile
-                )
+        // Long Click -> Fresh Produce Scan
+        buttonScan.setOnLongClickListener {
+            Toast.makeText(this, "Scanning Fresh Produce...", Toast.LENGTH_SHORT).show()
+            launchCameraForScan(isProduce = true)
+            true
+        }
+    }
 
-                cameraLauncher.launch(tempPhotoUri)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                textExplanation.text = getString(R.string.storage_error_message, e.localizedMessage)
+    private fun launchCameraForScan(isProduce: Boolean) {
+        textExplanation.text = getString(R.string.camera_msg_1)
+        textExplanation.setTextColor(Color.WHITE)
+        textExplanation.setBackgroundColor(Color.TRANSPARENT)
+        try {
+            val photoFile = File(this@MainActivity.filesDir, getString(R.string.scan_capture_jpg)).apply {
+                if (exists()) delete()
+                createNewFile()
             }
+
+            tempPhotoUri = FileProvider.getUriForFile(
+                this@MainActivity,
+                getString(R.string.fileprovider_id),
+                photoFile
+            )
+
+            if (isProduce) {
+                produceCameraLauncher.launch(tempPhotoUri)
+            } else {
+                cameraLauncher.launch(tempPhotoUri)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            textExplanation.text = getString(R.string.storage_error_message, e.localizedMessage)
         }
     }
 
     override fun onResume() {
         super.onResume()
 
-        // 1. Keeps your dashboard target header label perfectly synchronized
         updateConditionText()
 
         val userSettings = AppSettings(this)
@@ -282,16 +311,13 @@ class MainActivity : AppCompatActivity() {
 
         val userTargetWeightLbs = userSettings.getUserWeight().let { if (it > 0) it else 195.0 }
 
-        // 2. Keep your background threshold calculations running smoothly
         sodiumModMax = getMaxSodium(activeConditions)
         proteinModMax = getMaxProtein(userTargetWeightLbs, activeConditions)
 
-        // 3. ---> ADDED: Clear out old scan cards on return so the screen resets <---
         textExplanation.text = ""
         textExplanation.setPadding(0, 0, 0, 0)
         textExplanation.setBackgroundColor(Color.TRANSPARENT)
 
-        // Check if we just returned from a successful save
         if (userSettings.getAndClearPendingSaveFlag()) {
             val rootView = findViewById<android.view.View>(android.view.Window.ID_ANDROID_CONTENT)
             com.google.android.material.snackbar.Snackbar
@@ -303,7 +329,6 @@ class MainActivity : AppCompatActivity() {
                 .show()
         }
 
-        // Reset your scan detection tracking flag
         hasScanData = false
     }
 
@@ -349,7 +374,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                // --- 1. EXTRACT RAW NUTRITION FIELDS ---
                 val servingsPerContainer = jsonResult.optDouble(getString(R.string.servings_per_container_txt), 1.0).toFloat()
                 val rawCalories = jsonResult.optInt("calories", 0)
                 val rawFiber = jsonResult.optDouble("fiber", 0.0).toFloat()
@@ -363,7 +387,6 @@ class MainActivity : AppCompatActivity() {
                 val satFatGrams = jsonResult.optDouble(getString(R.string.saturated_fat_g_txt), 0.0).toFloat()
                 val transFatGrams = jsonResult.optDouble(getString(R.string.trans_fat_g_txt), 0.0).toFloat()
                 val calories = jsonResult.optInt(getString(R.string.calories_txt), 0)
-                val fiberGrams = jsonResult.optDouble(getString(R.string.fiber_g_txt), 0.0).toFloat()
                 val potassiumRaw = jsonResult.optDouble(getString(R.string.potassium_g_txt), 0.0).toFloat()
 
                 val potassiumMg = if (potassiumRaw > 0.0 && potassiumRaw < 5.0) {
@@ -372,14 +395,6 @@ class MainActivity : AppCompatActivity() {
                     potassiumRaw.toInt()
                 }.toFloat()
 
-                // --- 2. APPLY USER PORTION MODIFIER CEILING ---
-                val servingScaleFactor = 1.0f
-                val scaledCalories = rawCalories * servingScaleFactor
-                val scaledProtein = proteinGrams * servingScaleFactor
-                val scaledTotalFat = totalFatGrams * servingScaleFactor
-                val scaledAddedSugar = addedSugarGrams * servingScaleFactor
-
-                // Cache all values securely for instant layout redraws later
                 lastScanServings = servingsPerContainer
                 lastScanSodiumMg = sodiumMg
                 lastScanProteinGrams = proteinGrams
@@ -395,195 +410,22 @@ class MainActivity : AppCompatActivity() {
                 hasScanData = true
 
                 val xmlRedTriggers = userSettings.loadTriggersFromAssets(getString(R.string.red_txt))
-                val xmlYellowTriggers = userSettings.loadTriggersFromAssets(getString(R.string.yellow_txt))
-
-                // --- UPDATED: FETCH DUAL-TIER CUSTOM WATCHLISTS ---
                 val customRedWatchlist = userSettings.getCustomWatchlist("RED")
                 val customYellowWatchlist = userSettings.getCustomWatchlist("YELLOW")
 
-                var bgColor = (getString(R.string.green)).toColorInt()
-                var textColor = Color.WHITE
-                var lastScanGradeTitle = ""
+                val evalResult = LabelEvaluator.evaluateScanData(
+                    jsonResult = jsonResult,
+                    detectedIngredients = detectedIngredients,
+                    savedProfileIds = savedProfileIds,
+                    userSettings = userSettings,
+                    xmlRedTriggers = xmlRedTriggers,
+                    customRedWatchlist = customRedWatchlist,
+                    customYellowWatchlist = customYellowWatchlist
+                )
 
-                // Extract dynamic clinical properties from your XML data layer
-                val sodiumTriple     = userSettings.getNutrientThresholds("sodium")
-                val addedSugarTriple = userSettings.getNutrientThresholds("added_sugar")
-                val totalSugarTriple = userSettings.getNutrientThresholds("total_sugar")
-                val satFatTriple     = userSettings.getNutrientThresholds("saturated_fat")
-                val transFatTriple   = userSettings.getNutrientThresholds("trans_fat")
-                val totalFatTriple   = userSettings.getNutrientThresholds("total_fat")
-                val potassiumTriple  = userSettings.getNutrientThresholds("potassium")
-                val carbsTriple      = userSettings.getNutrientThresholds("carbs")
-
-                val (sodiumLowMax, sodiumModMax, sodiumIsBlacklist) = sodiumTriple
-                val (addedSugarLowMax, addedSugarModMax, addedSugarIsBlacklist) = addedSugarTriple
-                val (totalSugarLowMax, totalSugarModMax, totalSugarIsBlacklist) = totalSugarTriple
-                val (satFatLowMax, satFatModMax, satFatIsBlacklist) = satFatTriple
-                val (transFatLowMax, transFatModMax, transFatIsBlacklist) = transFatTriple
-                val (totalFatLowMax, totalFatModMax, totalFatIsBlacklist) = totalFatTriple
-                val (potassiumLowMax, potassiumModMax, potassiumIsBlacklist) = potassiumTriple
-                val (carbsLowMax, carbsModMax, carbsIsBlacklist) = carbsTriple
-
-                // Sync global limits to prevent layout-redraw variable shadowing
-                this@MainActivity.sodiumModMax = sodiumModMax
-                this@MainActivity.totalSugarModMax = totalSugarModMax
-                this@MainActivity.addedSugarModMax = addedSugarModMax
-                this@MainActivity.satFatModMax = satFatModMax
-                this@MainActivity.transFatModMax = transFatModMax
-                this@MainActivity.totalFatModMax = totalFatModMax
-                this@MainActivity.potassiumModMax = potassiumModMax
-                this@MainActivity.carbsModMax = carbsModMax
-
-                val redViolations = mutableListOf<String>()
-                val yellowViolations = mutableListOf<String>()
-
-                // --- 3. EXECUTE STANDARD CEILING EVALUATION ENGINE ---
-
-                // Sodium
-                if (sodiumMg > sodiumModMax) {
-                    if (sodiumIsBlacklist) redViolations.add(getString(R.string.sodium_mg_txt)) else yellowViolations.add(getString(R.string.sodium_mg_txt))
-                } else if (sodiumMg > sodiumLowMax) {
-                    yellowViolations.add(getString(R.string.sodium_mg_txt))
-                }
-
-                // Total Sugar
-                if (totalSugarGrams > totalSugarModMax) {
-                    if (totalSugarIsBlacklist) redViolations.add(getString(R.string.total_sugar_g_txt)) else yellowViolations.add(getString(R.string.total_sugar_g_txt))
-                } else if (totalSugarGrams > totalSugarLowMax) {
-                    yellowViolations.add(getString(R.string.total_sugar_g_txt))
-                }
-
-                // Added Sugar (With GLP-1 Custom Clinical Warning Logic)
-                if (addedSugarGrams > addedSugarModMax) {
-                    val label = if (savedProfileIds.contains("glp_1")) "High Sugar / Nausea Warning" else getString(R.string.added_sugar_g_txt)
-                    if (addedSugarIsBlacklist) redViolations.add(label) else yellowViolations.add(label)
-                } else if (addedSugarGrams > addedSugarLowMax) {
-                    val label = if (savedProfileIds.contains("glp_1")) "Sugar Warning" else getString(R.string.added_sugar_g_txt)
-                    yellowViolations.add(label)
-                }
-
-                // Saturated Fat
-                if (satFatGrams > satFatModMax) {
-                    val label = if (savedProfileIds.contains("glp_1")) "Healthy Fat Profile Violation" else getString(R.string.saturated_fat_g_txt)
-                    if (satFatIsBlacklist) redViolations.add(label) else yellowViolations.add(label)
-                } else if (satFatGrams > satFatLowMax) {
-                    val label = if (savedProfileIds.contains("glp_1")) "Saturated Fat Warning" else getString(R.string.saturated_fat_g_txt)
-                    yellowViolations.add(label)
-                }
-
-                // Total Fat (With GLP-1 Custom Clinical Warning Logic)
-                if (totalFatGrams > totalFatModMax) {
-                    val label = if (savedProfileIds.contains("glp_1")) "Slow Digestion / Reflux Warning" else getString(R.string.total_fat_g_txt)
-                    if (totalFatIsBlacklist) redViolations.add(label) else yellowViolations.add(label)
-                } else if (totalFatGrams > totalFatLowMax) {
-                    val label = if (savedProfileIds.contains("glp_1")) "Fat Limit Warning" else getString(R.string.total_fat_g_txt)
-                    yellowViolations.add(label)
-                }
-
-                // Potassium
-                if (potassiumMg > potassiumModMax) {
-                    if (potassiumIsBlacklist) redViolations.add(getString(R.string.potassium_g_txt)) else yellowViolations.add(getString(R.string.potassium_g_txt))
-                } else if (potassiumMg > potassiumLowMax) {
-                    yellowViolations.add(getString(R.string.potassium_g_txt))
-                }
-
-                // Carbs
-                if (carbsGrams > carbsModMax) {
-                    if (carbsIsBlacklist) redViolations.add(getString(R.string.total_carbohydrates_g_txt)) else yellowViolations.add(getString(R.string.total_carbohydrates_g_txt))
-                } else if (carbsGrams > carbsLowMax) {
-                    yellowViolations.add(getString(R.string.total_carbohydrates_g_txt))
-                }
-
-                // Permanent Binary Red Override
-                if (transFatGrams > 0.0f) {
-                    redViolations.add(getString(R.string.trans_fat_g_txt))
-                }
-
-                // --- 4. UNIFIED PROTEIN AND FIBER EVALUATION ENGINE ---
-                val proteinRules = userSettings.getActiveProteinRules()
-
-                if (proteinRules.targetRatio > 0.0f) {
-                    val currentRatio = if (scaledCalories > 0) scaledProtein / scaledCalories else 0.0f
-                    if (currentRatio < proteinRules.targetRatio) {
-                        yellowViolations.add("Low Protein Ratio (${String.format("%.2f", currentRatio)} < ${proteinRules.targetRatio})")
-                    }
-
-                    val isMealWindow = scaledCalories >= 250f
-                    val activeMin = if (isMealWindow) proteinRules.mealMin else proteinRules.snackMin
-                    val activeMax = if (isMealWindow) proteinRules.mealMax else proteinRules.snackMax
-                    val contextLabel = if (isMealWindow) "Meal" else "Snack"
-
-                    if (activeMin > 0 && scaledProtein < activeMin) {
-                        yellowViolations.add("Low Protein for $contextLabel (<${activeMin}g)")
-                    }
-
-                    if (activeMax < 999 && scaledProtein > activeMax) {
-                        redViolations.add("High Protein for $contextLabel (>${activeMax}g)")
-                    }
-                }
-
-                // 3. Autonomous Fiber Enrichment Verification
-                val fiberNutrient = userSettings.getActiveNutrientRules().find { rule -> rule.name == "fiber" }
-                if (fiberNutrient != null) {
-                    if (rawFiber < fiberNutrient.lowMax) {
-                        yellowViolations.add("Low Dietary Fiber (<${fiberNutrient.lowMax}g)")
-                    }
-                }
-
-                // --- 5. COMPILING ARRAYS FOR CARD GENERATION VIA DUAL-TIER WATCHLIST ---
-                val matchedCustomRed = customRedWatchlist.filter { detectedIngredients.contains(it) }
-                val matchedCustomYellow = customYellowWatchlist.filter { detectedIngredients.contains(it) }
-
-                // Matches explicit strings loaded from XML, OR catches any string containing "PHOS" if "PHOS" is active in rules
-                val matchedXmlRed = xmlRedTriggers.filter { trigger ->
-                    if (trigger == "PHOS") {
-                        detectedIngredients.any { it.contains("PHOS") }
-                    } else {
-                        detectedIngredients.contains(trigger)
-                    }
-                }
-
-                // --- 6. UNIFIED PRIORITY EVALUATION WHEN BLOCK ---
-                when {
-                    matchedCustomRed.isNotEmpty() -> {
-                        bgColor = (getString(R.string.red)).toColorInt()
-                        textColor = Color.WHITE
-                        val offenders = matchedCustomRed.joinToString(getString(R.string.comma))
-                        lastScanGradeTitle = "Red - Avoid Custom Allergen ($offenders)"
-                    }
-                    matchedXmlRed.isNotEmpty() -> {
-                        bgColor = (getString(R.string.red)).toColorInt()
-                        textColor = Color.WHITE
-
-                        val physicalOffender = detectedIngredients.find { it.contains("PHOS") } ?: "PHOSPHATE ADDITIVE"
-                        val displayName = if (xmlRedTriggers.contains("PHOS") && physicalOffender.contains("PHOS")) physicalOffender else matchedXmlRed.first()
-
-                        lastScanGradeTitle = getString(R.string.red_high_risk_msg, displayName)
-                    }
-                    redViolations.isNotEmpty() -> {
-                        bgColor = (getString(R.string.red)).toColorInt()
-                        textColor = Color.WHITE
-                        lastScanGradeTitle = "Red - Avoid (${redViolations.joinToString(", ")})"
-                    }
-                    matchedCustomYellow.isNotEmpty() -> {
-                        bgColor = (getString(R.string.yellow)).toColorInt()
-                        textColor = Color.BLACK
-                        val items = matchedCustomYellow.joinToString(getString(R.string.comma))
-                        lastScanGradeTitle = "Sensitivity Warning: $items"
-                    }
-                    yellowViolations.isNotEmpty() -> {
-                        bgColor = (getString(R.string.yellow)).toColorInt()
-                        textColor = Color.BLACK
-                        lastScanGradeTitle = "Limit: ${yellowViolations.joinToString(", ")}"
-                    }
-                    else -> {
-                        bgColor = (getString(R.string.green)).toColorInt()
-                        textColor = Color.WHITE
-                        lastScanGradeTitle = "Green - Safe Baseline"
-                    }
-                }
-
-                this@MainActivity.lastScanGradeTitle = lastScanGradeTitle
+                val bgColor = evalResult.bgColor
+                val textColor = evalResult.textColor
+                lastScanGradeTitle = evalResult.gradeTitle
 
                 val finalGrade = buildMacroSummary(
                     lastScanGradeTitle,
@@ -598,7 +440,7 @@ class MainActivity : AppCompatActivity() {
                     satFatGrams,
                     transFatGrams,
                     calories,
-                    fiberGrams,
+                    rawFiber,
                     useFullContainerValues
                 )
 
@@ -609,8 +451,8 @@ class MainActivity : AppCompatActivity() {
                     textExplanation.setTextColor(textColor)
                     textExplanation.setPadding(32, 32, 32, 32)
 
-                    val premiumCardBackground = android.graphics.drawable.GradientDrawable().apply {
-                        shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                    val premiumCardBackground = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
                         setColor(bgColor)
                         cornerRadius = 24f
                         setStroke(2, getString(R.string.frost_white).toColorInt())
@@ -622,6 +464,92 @@ class MainActivity : AppCompatActivity() {
                 isAnalyzing = false
                 withContext(Dispatchers.Main) {
                     textExplanation.text = getString(R.string.error_processing_label_msg)
+                    textExplanation.setTextColor(Color.RED)
+                }
+            }
+        }
+    }
+
+    private fun runProduceAnalysis(imageBitmap: Bitmap) {
+        isAnalyzing = true
+
+        runOnUiThread {
+            textExplanation.text = "Identifying Fresh Produce..."
+            textExplanation.setTextColor(Color.WHITE)
+            textExplanation.setBackgroundColor(Color.TRANSPARENT)
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val secureApiKey = BuildConfig.GEMINI_API_KEY
+                val modelId = getString(R.string.model_identifier_txt)
+
+                val rawResponse = GeminiAnalyzer.analyzeProduceImage(imageBitmap, secureApiKey, modelId)
+
+                val cleanedResponse = rawResponse.replace("```json", "").replace("```", "").trim()
+                val jsonResult = JSONObject(cleanedResponse)
+
+                val itemName = jsonResult.optString("item_name", "Unknown Produce")
+                val detectedIngredients = listOf(itemName.uppercase())
+
+                val userSettings = AppSettings(this@MainActivity)
+                val savedProfileIds = userSettings.getSelectedConditions()
+                val xmlRedTriggers = userSettings.loadTriggersFromAssets(getString(R.string.red_txt))
+                val customRedWatchlist = userSettings.getCustomWatchlist("RED")
+                val customYellowWatchlist = userSettings.getCustomWatchlist("YELLOW")
+
+                val evalResult = LabelEvaluator.evaluateScanData(
+                    jsonResult = jsonResult,
+                    detectedIngredients = detectedIngredients,
+                    savedProfileIds = savedProfileIds,
+                    userSettings = userSettings,
+                    xmlRedTriggers = xmlRedTriggers,
+                    customRedWatchlist = customRedWatchlist,
+                    customYellowWatchlist = customYellowWatchlist
+                )
+
+                val calories = jsonResult.optInt("calories", 0)
+                val sodiumMg = jsonResult.optInt("sodium_mg", 0)
+                val proteinGrams = jsonResult.optDouble("protein_g", 0.0).toFloat()
+                val carbsGrams = jsonResult.optDouble("total_carbohydrates_g", 0.0).toFloat()
+                val totalSugarGrams = jsonResult.optDouble("total_sugar_g", 0.0).toFloat()
+                val potassiumRaw = jsonResult.optDouble("potassium_g", 0.0).toFloat()
+                val potassiumMg = if (potassiumRaw in 0.01f..5.0f) (potassiumRaw * 1000).toInt().toFloat() else potassiumRaw
+
+                isAnalyzing = false
+                withContext(Dispatchers.Main) {
+                    val produceSummary = """
+                    $itemName (per 100g)
+                    -------------------------
+                    Grade: ${evalResult.gradeTitle}
+                    
+                    Calories: $calories
+                    Protein: ${proteinGrams}g
+                    Carbs: ${carbsGrams}g
+                    Sugars: ${totalSugarGrams}g
+                    Sodium: ${sodiumMg}mg
+                    Potassium: ${potassiumMg}mg
+                """.trimIndent()
+
+                    textExplanation.typeface = android.graphics.Typeface.MONOSPACE
+                    textExplanation.text = produceSummary
+                    textExplanation.setTextColor(evalResult.textColor)
+                    textExplanation.setPadding(32, 32, 32, 32)
+
+                    val premiumCardBackground = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        setColor(evalResult.bgColor)
+                        cornerRadius = 24f
+                        setStroke(2, getString(R.string.frost_white).toColorInt())
+                    }
+                    textExplanation.background = premiumCardBackground
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                isAnalyzing = false
+                withContext(Dispatchers.Main) {
+                    textExplanation.text = "Error identifying produce. Please try again."
                     textExplanation.setTextColor(Color.RED)
                 }
             }
@@ -658,12 +586,7 @@ class MainActivity : AppCompatActivity() {
         val activeConditions = userSettings.getSelectedConditions()
         val isCKDActive = activeConditions.any { it.contains("ckd") || it.contains("Kidney") }
 
-        val proteinMultiplier = if (isCKDActive) {
-            0.8
-        } else {
-            1.2
-        }
-
+        val proteinMultiplier = if (isCKDActive) 0.8 else 1.2
         return (weightKg * proteinMultiplier).toInt()
     }
 

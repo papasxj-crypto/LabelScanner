@@ -67,6 +67,48 @@ class AppSettings(private val context: Context) {
     }
 
     /**
+     * Checks if a specific boolean flag (e.g. "enforce_protein_ratio")
+     * is set to true in ANY currently selected profile XML.
+     */
+    fun isFeatureFlagActive(flagName: String): Boolean {
+        val selectedIds = getSelectedConditions()
+
+        for (profileId in selectedIds) {
+            try {
+                // Check if profileId already ends with .xml; if not, append it
+                val fileName = if (profileId.endsWith(".xml")) profileId else "$profileId.xml"
+
+                // If your XML files are in a subfolder (e.g. "profiles/ckd_dialysis.xml"),
+                // prepend the folder path here: "profiles/$fileName"
+                val inputStream = context.assets.open("profiles/$fileName")
+
+                val factory = org.xmlpull.v1.XmlPullParserFactory.newInstance()
+                val parser = factory.newPullParser()
+                parser.setInput(inputStream, "UTF-8")
+
+                var eventType = parser.eventType
+                while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                    if (eventType == org.xmlpull.v1.XmlPullParser.START_TAG && parser.name == "flag") {
+                        val nameAttr = parser.getAttributeValue(null, "name")
+                        if (nameAttr == flagName) {
+                            val valueText = parser.nextText()
+                            if (valueText.trim().lowercase() == "true") {
+                                inputStream.close()
+                                return true
+                            }
+                        }
+                    }
+                    eventType = parser.next()
+                }
+                inputStream.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        return false
+    }
+
+    /**
      * Retrieves the list of custom ingredients for a specific tier
      */
     fun getCustomWatchlist(tier: String): List<String> {

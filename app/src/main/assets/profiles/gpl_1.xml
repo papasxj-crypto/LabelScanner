@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <diet_profile id="glp_1" name="GLP-1 Support">
+    <!-- Explicit feature flags -->
+    <flag name="enforce_protein_ratio">true</flag>
+    <flag name="enforce_protein_floor">true</flag>
+    <flag name="enforce_protein_ceiling">false</flag>
+
     <nutrient name="sodium" low_max="140" moderate_max="400" is_blacklist="true" />
     <nutrient name="calories" low_max="200" moderate_max="500" is_blacklist="false" />
     <nutrient name="fiber" low_max="3" moderate_max="5" is_blacklist="false" />

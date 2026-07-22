@@ -73,4 +73,46 @@ object GeminiAnalyzer {
             "{}" // Return an empty JSON block fallback on network error
         }
     }
+
+    suspend fun analyzeProduceImage(
+        bitmap: Bitmap,
+        apiKey: String,
+        modelId: String
+    ): String = withContext(Dispatchers.IO) {
+        val generativeModel = GenerativeModel(
+            modelName = modelId,
+            apiKey = apiKey
+        )
+
+        val prompt = """
+        You are a clinical nutrition database. Identify the single raw, fresh produce item in this image (e.g., Apple, Broccoli, Mango). 
+        Provide the standard USDA nutritional values for exactly 100 grams of this item.
+        Respond ONLY with a valid JSON object using this exact structure. Do not include markdown formatting or backticks.
+        {
+          "item_name": "Name of produce",
+          "servings_per_container": 1.0,
+          "calories": 0,
+          "sodium_mg": 0,
+          "protein_g": 0.0,
+          "total_carbohydrates_g": 0.0,
+          "total_sugar_g": 0.0,
+          "added_sugar_g": 0.0,
+          "total_fat_g": 0.0,
+          "saturated_fat_g": 0.0,
+          "trans_fat_g": 0.0,
+          "fiber": 0.0,
+          "potassium_g": 0.0,
+          "detected_ingredients": ["RAW PRODUCE"]
+        }
+    """.trimIndent()
+
+        val response = generativeModel.generateContent(
+            content {
+                image(bitmap)
+                text(prompt)
+            }
+        )
+
+        return@withContext response.text ?: "{}"
+    }
 }

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <diet_profile id="ckd_dialysis" name="CKD Dialysis Support" exclusivity_group="ckd_renal_stage">
+    <!-- Explicit feature flags -->
+    <flag name="enforce_protein_ratio">true</flag>
+    <flag name="enforce_protein_floor">true</flag>
+    <flag name="enforce_protein_ceiling">false</flag>
+
     <!-- CKD Specific Target Metrics -->
     <nutrient name="sodium" low_max="140" moderate_max="300" is_blacklist="true" />
     <nutrient name="potassium" low_max="200" moderate_max="350" is_blacklist="true" />
