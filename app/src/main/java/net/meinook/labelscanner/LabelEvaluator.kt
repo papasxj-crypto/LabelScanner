@@ -43,6 +43,10 @@ object LabelEvaluator {
         val carbsGrams = jsonResult.optDouble("total_carbohydrates_g", 0.0).toFloat()
         val potassiumRaw = jsonResult.optDouble("potassium_g", 0.0).toFloat()
         val potassiumMg = if (potassiumRaw in 0.01f..5.0f) (potassiumRaw * 1000).toInt().toFloat() else potassiumRaw
+        val totalCarbs = jsonResult.optDouble("total_carbohydrates_g", 0.0).toFloat()
+        val fiber = jsonResult.optDouble("fiber_g", 0.0).toFloat()
+        val sugarAlcohols = jsonResult.optDouble("sugar_alcohols_g", 0.0).toFloat()
+        val netCarbs = (totalCarbs - fiber - sugarAlcohols).coerceAtLeast(0.0f)
 
         // --- 2. THRESHOLDS EVALUATION ---
         val (sodiumLowMax, sodiumModMax, sodiumIsBlacklist) = userSettings.getNutrientThresholds("sodium")

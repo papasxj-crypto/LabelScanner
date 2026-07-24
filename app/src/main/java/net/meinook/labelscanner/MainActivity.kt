@@ -73,6 +73,20 @@ class MainActivity : AppCompatActivity() {
     private var lastScanFiberGrams: Float = 0.0f
     private var hasScanData: Boolean = false
 
+    // 🆕 New Card View Declarations
+    private lateinit var cardResult: com.google.android.material.card.MaterialCardView
+    private lateinit var textGradeTitle: TextView
+    private lateinit var textItemSubtitle: TextView
+    private lateinit var layoutViolations: LinearLayout
+    private lateinit var textViolationsList: TextView
+
+    private lateinit var chipCalories: TextView
+    private lateinit var chipProtein: TextView
+    private lateinit var chipSodium: TextView
+    private lateinit var chipPotassium: TextView
+    private lateinit var chipCarbs: TextView
+    private lateinit var chipSugar: TextView
+
     // 5. Standard Camera Launcher (Barcode + Label OCR)
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success: Boolean ->
         if (success) {
@@ -143,6 +157,17 @@ class MainActivity : AppCompatActivity() {
      * 🌐 THE ONLINE PATCH ENGINE
      */
     private fun lookupBarcodeOnline(upcCode: String, fallbackBitmap: Bitmap) {
+        // 🛑 1. CHECK FOR IN-STORE VARIABLE WEIGHT BARCODES (Starts with 2 or 02)
+        // Costco/Grocery deli scale barcodes embed the price and lack online ingredient data.
+        if (upcCode.startsWith("2") || upcCode.startsWith("02")) {
+            runOnUiThread {
+                textExplanation.text = "In-store prepared item detected.\nScanning label photo directly..."
+                textExplanation.setTextColor(Color.YELLOW)
+                processAndRunJsonPipeline(fallbackBitmap)
+            }
+            return
+        }
+
         textExplanation.text = "UPC Found: $upcCode\nSearching grocery database..."
 
         kotlin.concurrent.thread {
@@ -159,26 +184,24 @@ class MainActivity : AppCompatActivity() {
                     if (jsonObject.optInt("status", 0) == 1) {
                         val product = jsonObject.getJSONObject("product")
                         val ingredientsText = product.optString("ingredients_text", "").trim()
-                        val nutriments = product.optJSONObject("nutriments")
 
-                        val calories = nutriments?.optDouble("energy-kcal_100g", 0.0) ?: 0.0
-                        val sodium = nutriments?.optDouble("sodium_100g", 0.0) ?: 0.0
-                        val protein = nutriments?.optDouble("proteins_100g", 0.0) ?: 0.0
-                        val fat = nutriments?.optDouble("fat_100g", 0.0) ?: 0.0
-                        val carbs = nutriments?.optDouble("carbohydrates_100g", 0.0) ?: 0.0
-
-                        val hasRealNutrientData = (calories + sodium + protein + fat + carbs) > 0.0
-
-                        runOnUiThread {
-                            if (ingredientsText.isNotEmpty() || hasRealNutrientData) {
+                        // 🛑 2. STRICT CHECK: Must have actual ingredients text to be considered a valid online match!
+                        if (ingredientsText.length > 10) {
+                            runOnUiThread {
                                 textExplanation.text = "Product Verified Online!"
+                                // Send ingredients to your pipeline
                                 processAndRunJsonPipeline(fallbackBitmap)
-                            } else {
-                                textExplanation.text = "⚠️ Online entry missing nutritional data.\nScanning photo label instead..."
+                            }
+                        } else {
+                            // Empty ingredients: Fall back to OCR photo!
+                            runOnUiThread {
+                                textExplanation.text = "⚠️ Incomplete online data.\nScanning photo label instead..."
                                 textExplanation.setTextColor(Color.YELLOW)
                                 processAndRunJsonPipeline(fallbackBitmap)
                             }
                         }
+                    } else {
+                        runOnUiThread { processAndRunJsonPipeline(fallbackBitmap) }
                     }
                 } else {
                     runOnUiThread { processAndRunJsonPipeline(fallbackBitmap) }
@@ -227,6 +250,20 @@ class MainActivity : AppCompatActivity() {
         textCondition = findViewById(R.id.textCondition)
         checkDisplayFullContainer = findViewById(R.id.checkDisplayFullContainer)
 
+        // 🆕 Initialize Card Views
+        cardResult = findViewById(R.id.cardResult)
+        textGradeTitle = findViewById(R.id.textGradeTitle)
+        textItemSubtitle = findViewById(R.id.textItemSubtitle)
+        layoutViolations = findViewById(R.id.layoutViolations)
+        textViolationsList = findViewById(R.id.textViolationsList)
+
+        chipCalories = findViewById(R.id.chipCalories)
+        chipProtein = findViewById(R.id.chipProtein)
+        chipSodium = findViewById(R.id.chipSodium)
+        chipPotassium = findViewById(R.id.chipPotassium)
+        chipCarbs = findViewById(R.id.chipCarbs)
+        chipSugar = findViewById(R.id.chipSugar)
+
         checkDisplayFullContainer.setOnCheckedChangeListener { _, isChecked ->
             useFullContainerValues = isChecked
 
@@ -263,11 +300,9 @@ class MainActivity : AppCompatActivity() {
             launchCameraForScan(isProduce = false)
         }
 
-        // Long Click -> Fresh Produce Scan
-        buttonScan.setOnLongClickListener {
-            Toast.makeText(this, "Scanning Fresh Produce...", Toast.LENGTH_SHORT).show()
+        val buttonProduceScan = findViewById<Button>(R.id.buttonProduceScan)
+        buttonProduceScan.setOnClickListener {
             launchCameraForScan(isProduce = true)
-            true
         }
     }
 
@@ -377,6 +412,7 @@ class MainActivity : AppCompatActivity() {
                 val servingsPerContainer = jsonResult.optDouble(getString(R.string.servings_per_container_txt), 1.0).toFloat()
                 val rawCalories = jsonResult.optInt("calories", 0)
                 val rawFiber = jsonResult.optDouble("fiber", 0.0).toFloat()
+                val sugarAlcoholsGrams = jsonResult.optDouble("sugar_alcohols", 0.0).toFloat()
 
                 val sodiumMg = jsonResult.optInt(getString(R.string.sodium_mg_txt), 0)
                 val proteinGrams = jsonResult.optDouble(getString(R.string.protein_g_txt), 0.0).toFloat()
@@ -386,7 +422,7 @@ class MainActivity : AppCompatActivity() {
                 val totalFatGrams = jsonResult.optDouble(getString(R.string.total_fat_g_txt), 0.0).toFloat()
                 val satFatGrams = jsonResult.optDouble(getString(R.string.saturated_fat_g_txt), 0.0).toFloat()
                 val transFatGrams = jsonResult.optDouble(getString(R.string.trans_fat_g_txt), 0.0).toFloat()
-                val calories = jsonResult.optInt(getString(R.string.calories_txt), 0)
+                val calories = jsonResult.optInt(getString(R.string.calories_txt), rawCalories)
                 val potassiumRaw = jsonResult.optDouble(getString(R.string.potassium_g_txt), 0.0).toFloat()
 
                 val potassiumMg = if (potassiumRaw > 0.0 && potassiumRaw < 5.0) {
@@ -404,7 +440,7 @@ class MainActivity : AppCompatActivity() {
                 lastScanTotalFatGrams = totalFatGrams
                 lastScanSatFatGrams = satFatGrams
                 lastScanTransFatGrams = transFatGrams
-                lastScanCalories = rawCalories
+                lastScanCalories = calories
                 lastScanFiberGrams = rawFiber
                 lastScanPotassiumMg = potassiumMg
                 hasScanData = true
@@ -423,41 +459,35 @@ class MainActivity : AppCompatActivity() {
                     customYellowWatchlist = customYellowWatchlist
                 )
 
-                val bgColor = evalResult.bgColor
-                val textColor = evalResult.textColor
                 lastScanGradeTitle = evalResult.gradeTitle
-
-                val finalGrade = buildMacroSummary(
-                    lastScanGradeTitle,
-                    servingsPerContainer,
-                    sodiumMg,
-                    proteinGrams,
-                    carbsGrams,
-                    totalSugarGrams,
-                    addedSugarGrams,
-                    potassiumMg,
-                    totalFatGrams,
-                    satFatGrams,
-                    transFatGrams,
-                    calories,
-                    rawFiber,
-                    useFullContainerValues
-                )
-
                 isAnalyzing = false
-                withContext(Dispatchers.Main) {
-                    textExplanation.typeface = android.graphics.Typeface.MONOSPACE
-                    textExplanation.text = finalGrade
-                    textExplanation.setTextColor(textColor)
-                    textExplanation.setPadding(32, 32, 32, 32)
 
-                    val premiumCardBackground = GradientDrawable().apply {
-                        shape = GradientDrawable.RECTANGLE
-                        setColor(bgColor)
-                        cornerRadius = 24f
-                        setStroke(2, getString(R.string.frost_white).toColorInt())
-                    }
-                    textExplanation.background = premiumCardBackground
+// Net Carbs Math (Carbs - Fiber - Sugar Alcohols)
+                val calculatedNetCarbs = (carbsGrams - rawFiber - sugarAlcoholsGrams).coerceAtLeast(0.0f)
+                val isKetoActive = savedProfileIds.contains("keto")
+
+                // Combine red and yellow violations from EvaluationResult
+                val violationsList = evalResult.redViolations + evalResult.yellowViolations
+
+                val multiplier = if (useFullContainerValues) servingsPerContainer else 1.0f
+
+                withContext(Dispatchers.Main) {
+                    textExplanation.text = ""
+
+                    updateResultCard(
+                        gradeTitle = evalResult.gradeTitle,
+                        bgColor = evalResult.bgColor,
+                        subtitle = if (useFullContainerValues) "Nutrient Overview (Entire Package)" else "Nutrient Overview (Per Serving)",
+                        violations = violationsList,
+                        calories = (calories * multiplier).toInt(),
+                        proteinGrams = proteinGrams * multiplier,
+                        sodiumMg = (sodiumMg * multiplier).toInt(),
+                        potassiumMg = potassiumMg * multiplier,
+                        carbsGrams = carbsGrams * multiplier,
+                        netCarbsGrams = calculatedNetCarbs * multiplier,
+                        sugarGrams = totalSugarGrams * multiplier,
+                        isKetoActive = isKetoActive
+                    )
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -469,7 +499,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     private fun runProduceAnalysis(imageBitmap: Bitmap) {
         isAnalyzing = true
 
@@ -512,37 +541,34 @@ class MainActivity : AppCompatActivity() {
                 val sodiumMg = jsonResult.optInt("sodium_mg", 0)
                 val proteinGrams = jsonResult.optDouble("protein_g", 0.0).toFloat()
                 val carbsGrams = jsonResult.optDouble("total_carbohydrates_g", 0.0).toFloat()
+                val fiberGrams = jsonResult.optDouble("fiber_g", 0.0).toFloat()
+                val sugarAlcoholsGrams = jsonResult.optDouble("sugar_alcohols_g", 0.0).toFloat()
                 val totalSugarGrams = jsonResult.optDouble("total_sugar_g", 0.0).toFloat()
                 val potassiumRaw = jsonResult.optDouble("potassium_g", 0.0).toFloat()
                 val potassiumMg = if (potassiumRaw in 0.01f..5.0f) (potassiumRaw * 1000).toInt().toFloat() else potassiumRaw
 
+                val calculatedNetCarbs = (carbsGrams - fiberGrams - sugarAlcoholsGrams).coerceAtLeast(0.0f)
+                val isKetoActive = savedProfileIds.contains("keto")
+                val violationsList = evalResult.redViolations + evalResult.yellowViolations
+
                 isAnalyzing = false
                 withContext(Dispatchers.Main) {
-                    val produceSummary = """
-                    $itemName (per 100g)
-                    -------------------------
-                    Grade: ${evalResult.gradeTitle}
-                    
-                    Calories: $calories
-                    Protein: ${proteinGrams}g
-                    Carbs: ${carbsGrams}g
-                    Sugars: ${totalSugarGrams}g
-                    Sodium: ${sodiumMg}mg
-                    Potassium: ${potassiumMg}mg
-                """.trimIndent()
+                    textExplanation.text = ""
 
-                    textExplanation.typeface = android.graphics.Typeface.MONOSPACE
-                    textExplanation.text = produceSummary
-                    textExplanation.setTextColor(evalResult.textColor)
-                    textExplanation.setPadding(32, 32, 32, 32)
-
-                    val premiumCardBackground = GradientDrawable().apply {
-                        shape = GradientDrawable.RECTANGLE
-                        setColor(evalResult.bgColor)
-                        cornerRadius = 24f
-                        setStroke(2, getString(R.string.frost_white).toColorInt())
-                    }
-                    textExplanation.background = premiumCardBackground
+                    updateResultCard(
+                        gradeTitle = "$itemName — ${evalResult.gradeTitle}",
+                        bgColor = evalResult.bgColor,
+                        subtitle = "Nutrient Overview (per 100g)",
+                        violations = violationsList,
+                        calories = calories,
+                        proteinGrams = proteinGrams,
+                        sodiumMg = sodiumMg,
+                        potassiumMg = potassiumMg,
+                        carbsGrams = carbsGrams,
+                        netCarbsGrams = calculatedNetCarbs,
+                        sugarGrams = totalSugarGrams,
+                        isKetoActive = isKetoActive
+                    )
                 }
 
             } catch (e: Exception) {
@@ -588,6 +614,49 @@ class MainActivity : AppCompatActivity() {
 
         val proteinMultiplier = if (isCKDActive) 0.8 else 1.2
         return (weightKg * proteinMultiplier).toInt()
+    }
+
+    private fun updateResultCard(
+        gradeTitle: String,
+        bgColor: Int,
+        subtitle: String,
+        violations: List<String>,
+        calories: Int,
+        proteinGrams: Float,
+        sodiumMg: Int,
+        potassiumMg: Float,
+        carbsGrams: Float,
+        netCarbsGrams: Float,
+        sugarGrams: Float,
+        isKetoActive: Boolean = false
+    ) {
+        cardResult.visibility = android.view.View.VISIBLE
+        textGradeTitle.text = gradeTitle
+        textGradeTitle.setBackgroundColor(bgColor)
+        textItemSubtitle.text = subtitle
+
+        // Display violations container if any exist
+        if (violations.isNotEmpty()) {
+            layoutViolations.visibility = android.view.View.VISIBLE
+            textViolationsList.text = violations.joinToString("\n• ", prefix = "• ")
+        } else {
+            layoutViolations.visibility = android.view.View.GONE
+        }
+
+        // Populate chips
+        chipCalories.text = "Calories: $calories"
+        chipProtein.text = "Protein: ${proteinGrams.toInt()}g"
+        chipSodium.text = "Sodium: ${sodiumMg}mg"
+        chipPotassium.text = "Potassium: ${potassiumMg.toInt()}mg"
+
+        // Display Net Carbs if Keto is active, otherwise standard Carbs
+        if (isKetoActive) {
+            chipCarbs.text = "Net Carbs: ${netCarbsGrams.toInt()}g (${carbsGrams.toInt()}g Total)"
+        } else {
+            chipCarbs.text = "Carbs: ${carbsGrams.toInt()}g"
+        }
+
+        chipSugar.text = "Sugar: ${sugarGrams.toInt()}g"
     }
 
     private fun buildMacroSummary(

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="keto" name="Ketogenic / Low-Carb" exclusivity_group="dietary_pattern">
+
+    <!-- 1. NUTRIENT THRESHOLDS (Per Serving) -->
+    <!-- Net Carbs, Sugars, and Electrolytes -->
+    <nutrient name="carbs" low_max="5" moderate_max="10" is_blacklist="false" />
+    <nutrient name="total_sugar" low_max="2" moderate_max="5" is_blacklist="false" />
+    <nutrient name="added_sugar" low_max="0" moderate_max="1" is_blacklist="false" />
+
+    <!-- Electrolyte Guidance (Sodium/Potassium tracking) -->
+    <nutrient name="sodium" low_max="1500" moderate_max="2300" is_blacklist="false" />
+    <nutrient name="potassium" low_max="3500" moderate_max="4700" is_blacklist="false" />
+
+    <!-- 2. RED TRIGGERS (High Glycemic Sweeteners, Hidden Sugars & Carbs) -->
+    <trigger category="red">MALTITOL</trigger>
+    <trigger category="red">SORBITOL</trigger>
+    <trigger category="red">DEXTROSE</trigger>
+    <trigger category="red">MALTO DEXTRIN</trigger>
+    <trigger category="red">MALTODEXTRIN</trigger>
+    <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
+    <trigger category="red">CORN SYRUP</trigger>
+    <trigger category="red">AGAVE NECTAR</trigger>
+    <trigger category="red">CANE SUGAR</trigger>
+    <trigger category="red">RICE SYRUP</trigger>
+    <trigger category="red">HONEY</trigger>
+    <trigger category="red">MOLASSES</trigger>
+    <trigger category="red">WHEAT FLOUR</trigger>
+    <trigger category="red">ENRICHED FLOUR</trigger>
+    <trigger category="red">CORN STARCH</trigger>
+    <trigger category="red">MODIFIED CORN STARCH</trigger>
+    <trigger category="red">POTATO STARCH</trigger>
+    <trigger category="red">TAPIOCA STARCH</trigger>
+
+    <!-- 3. YELLOW TRIGGERS (Consume with caution / High-glycemic impact) -->
+    <trigger category="yellow">XYLITOL</trigger>
+    <trigger category="yellow">SUCRALOSE</trigger>
+    <trigger category="yellow">ASPARTAME</trigger>
+    <trigger category="yellow">OAT FIBER</trigger>
+
+</diet_profile>

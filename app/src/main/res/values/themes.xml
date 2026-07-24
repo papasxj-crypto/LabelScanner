@@ -1,8 +1,25 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.LabelScanner" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    <!-- Soft Glassy Primary Scan Button -->
+    <style name="Widget.LabelScanner.Button.Primary" parent="Widget.Material3.Button">
+        <item name="backgroundTint">#3B6E50</item> <!-- Soft Sage Green -->
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="elevation">2dp</item>
+    </style>
+
+    <!-- Outlined Secondary Settings Button -->
+    <style name="Widget.LabelScanner.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="strokeColor">#2E3545</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:textColor">#D1D7E0</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
     </style>
 
     <style name="Theme.LabelScanner" parent="Base.Theme.LabelScanner" />
