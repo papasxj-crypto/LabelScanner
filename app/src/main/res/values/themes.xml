@@ -24,4 +24,42 @@
 
     <style name="Theme.LabelScanner" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
 
+    <!-- Base style for the stylized rounded triangle buttons -->
+    <style name="StylizedScanButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:layout_gravity">end</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:paddingStart">24dp</item>
+        <item name="android:paddingEnd">24dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.05</item>
+        <!-- Rounded triangle/oval shape -->
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.ScanButton</item>
+    </style>
+
+    <!-- Specific color variations -->
+    <style name="StylizedScanButton.Green">
+        <item name="backgroundTint">#22DD55</item> <!-- Green -->
+        <item name="android:textColor">#FFFFFF</item>
+    </style>
+
+    <style name="StylizedScanButton.Yellow">
+        <item name="backgroundTint">#FFD700</item> <!-- Yellow -->
+        <item name="android:textColor">#333333</item>
+    </style>
+
+    <style name="StylizedScanButton.Blue">
+        <item name="backgroundTint">#3399FF</item> <!-- Blue -->
+        <item name="android:textColor">#FFFFFF</item>
+    </style>
+
+    <!-- Defines the "Schmancy" rounded triangle shape overlay -->
+    <style name="ShapeAppearanceOverlay.ScanButton" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopRight">20dp</item>
+        <item name="cornerSizeTopLeft">8dp</item>
+        <item name="cornerSizeBottomRight">8dp</item>
+        <item name="cornerSizeBottomLeft">20dp</item>
+    </style>
 </resources>

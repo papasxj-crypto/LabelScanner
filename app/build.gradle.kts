@@ -1,82 +1,96 @@
 import java.util.Properties
 
+// 1. Read API Key EARLY
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+val geminiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
+
 plugins {
-    alias(libs.plugins.android.application)
-    // The secrets plugin is removed here because we are handling the injection manually below
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "net.meinook.labelscanner"
-
-    // FIX: Replaced the broken block with the standard SDK assignment
     compileSdk = 34
 
     defaultConfig {
         applicationId = "net.meinook.labelscanner"
         minSdk = 24
-        targetSdk = 34 // Locked to match your compile SDK stable target
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // 1. Read your local.properties file manually
-        val localProperties = Properties()
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            localPropertiesFile.inputStream().use { localProperties.load(it) }
-        }
-
-        // 2. Fetch the key string safely
-        val apiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
-
-        // 3. Force Gradle to write this directly into your BuildConfig class
-        buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
     }
 
     buildFeatures {
         viewBinding = true
         buildConfig = true
+        compose = true
     }
 
     buildTypes {
         release {
-            // FIX: Simplified to the standard built-in minification tool string
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
 dependencies {
-    implementation(libs.androidx.activity.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.material)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.junit)
-    implementation(libs.google.generativeai)
+    // Core Android & UI
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.12.0")
-// ML Kit Barcode Scanning API
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.activity:activity-ktx:1.8.2")
+
+    // Gemini & AI
+    implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
+
+    // Barcode Scanning - ML Kit (Modern)
     implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
 
-    // 🟢 Upgraded to 1.4.2 for strict 16 KB hardware compatibility
+    // Barcode Scanning - ZXing (Restored journeyapps for CompoundBarcodeView)
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // CameraX
     implementation("androidx.camera:camera-core:1.4.2")
     implementation("androidx.camera:camera-camera2:1.4.2")
     implementation("androidx.camera:camera-lifecycle:1.4.2")
     implementation("androidx.camera:camera-view:1.4.2")
+
     // Navigation Components
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.7")
     implementation("androidx.navigation:navigation-ui-ktx:2.7.7")
 
-    // Material Components (Needed for BottomNavigationView)
-    implementation("com.google.android.material:material:1.11.0")
-    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    // Jetpack Compose (The Thumb Menu)
+    val composeBom = platform("androidx.compose:compose-bom:2024.04.01")
+    implementation(composeBom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.activity:activity-compose")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+    // Testing
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }

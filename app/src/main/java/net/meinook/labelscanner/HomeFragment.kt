@@ -6,13 +6,21 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -39,11 +47,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var tempPhotoUri: Uri
     private var isAnalyzing: Boolean = false
 
-    // --- STATE CACHE (The "Memory") ---
+    // State Cache
     private var cachedEval: EvaluationResult? = null
     private var cachedSub: String = ""
     private var cachedMacros: Bundle? = null
 
+    // --- Launchers ---
     private val labelCameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
             val inputStream = requireContext().contentResolver.openInputStream(tempPhotoUri)
@@ -78,16 +87,67 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         textSummaryGrade = view.findViewById(R.id.textSummaryGrade)
         textSummaryExplanation = view.findViewById(R.id.textSummaryExplanation)
 
-        view.findViewById<Button>(R.id.btnLabelScan).setOnClickListener { resetUI(); launchCameraExplicit(labelCameraLauncher) }
-        view.findViewById<Button>(R.id.btnBarcodeScan).setOnClickListener { resetUI(); barcodeScannerLauncher.launch(Intent(requireContext(), ScannerActivity::class.java)) }
-        view.findViewById<Button>(R.id.btnProduceScan).setOnClickListener { resetUI(); launchCameraExplicit(produceCameraLauncher) }
+        val composeView = view.findViewById<ComposeView>(R.id.composeViewMenu)
+        composeView.setContent {
+            VerticalThumbArchMenu(
+                isRightHanded = true,
+                onLabelClick = { resetUI(); launchCameraExplicit(labelCameraLauncher) },
+                onBarcodeClick = { resetUI(); barcodeScannerLauncher.launch(Intent(requireContext(), ScannerActivity::class.java)) },
+                onProduceClick = { resetUI(); launchCameraExplicit(produceCameraLauncher) }
+            )
+        }
 
-        // --- RESTORE UI IF RETURNING FROM DETAIL ---
         cachedEval?.let { eval ->
             displaySummaryCard(eval, cachedSub, 0, 0f, 0, 0f, 0f, 0f, 0f, false, isRestoring = true)
         }
 
         updateConditionText()
+    }
+
+    @Composable
+    fun VerticalThumbArchMenu(
+        isRightHanded: Boolean,
+        onLabelClick: () -> Unit,
+        onBarcodeClick: () -> Unit,
+        onProduceClick: () -> Unit
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize().padding(bottom = 100.dp, start = 16.dp, end = 16.dp),
+            contentAlignment = if (isRightHanded) Alignment.BottomEnd else Alignment.BottomStart
+        ) {
+            // High: PRODUCE
+            FloatingActionButton(
+                onClick = onProduceClick,
+                shape = CircleShape,
+                containerColor = androidx.compose.ui.graphics.Color(0xFF1B5E20),
+                contentColor = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier.offset(x = if (isRightHanded) (-25).dp else 25.dp, y = (-150).dp)
+            ) {
+                Icon(painterResource(id = R.drawable.ic_health), contentDescription = "Produce", modifier = Modifier.size(24.dp))
+            }
+
+            // Mid: BARCODE
+            FloatingActionButton(
+                onClick = onBarcodeClick,
+                shape = CircleShape,
+                containerColor = androidx.compose.ui.graphics.Color(0xFF2C3A47),
+                contentColor = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier.offset(x = if (isRightHanded) (-70).dp else 70.dp, y = (-75).dp)
+            ) {
+                Icon(painterResource(id = R.drawable.ic_home), contentDescription = "Barcode", modifier = Modifier.size(24.dp))
+            }
+
+            // Low: LABEL
+            FloatingActionButton(
+                onClick = onLabelClick,
+                shape = CircleShape,
+                containerColor = androidx.compose.ui.graphics.Color(0xFF4A148C),
+                contentColor = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier.offset(x = 0.dp, y = 0.dp)
+            ) {
+                Icon(painterResource(id = R.drawable.ic_home), contentDescription = "Label", modifier = Modifier.size(24.dp))
+            }
+        }
     }
 
     private fun launchCameraExplicit(launcher: androidx.activity.result.ActivityResultLauncher<Uri>) {
@@ -97,7 +157,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun lookupBarcodeOnline(upcCode: String) {
-        textExplanation.text = "Searching online..."
+        textExplanation.text = "Searching..."
         kotlin.concurrent.thread {
             try {
                 val url = URL("https://world.openfoodfacts.org/api/v2/product/$upcCode.json")
@@ -134,7 +194,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         }
                     }
                 }
-            } catch (e: Exception) { activity?.runOnUiThread { textExplanation.text = "Error." } }
+            } catch (e: Exception) { activity?.runOnUiThread { textExplanation.text = "Error" } }
         }
     }
 
@@ -158,7 +218,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     displaySummaryCard(evalResult, "Scan Result", json.optInt("calories"), json.optDouble("protein_g", 0.0).toFloat(),
                         json.optInt("sodium_mg", 0), 0f, carbs.toFloat(), (carbs - fiber).toFloat(), json.optDouble("total_sugar_g", 0.0).toFloat(), userSettings.getSelectedConditions().contains("keto"))
                 }
-            } catch (e: Exception) { withContext(Dispatchers.Main) { textExplanation.text = "Failed." } }
+            } catch (e: Exception) { withContext(Dispatchers.Main) { textExplanation.text = "Failed" } }
         }
     }
 
@@ -174,24 +234,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     isAnalyzing = false
                     displaySummaryCard(evalResult, name, json.optInt("calories"), 0f, 0, 0f, 0f, 0f, 0f, false)
                 }
-            } catch (e: Exception) { withContext(Dispatchers.Main) { textExplanation.text = "Failed." } }
+            } catch (e: Exception) { withContext(Dispatchers.Main) { textExplanation.text = "Failed" } }
         }
     }
 
-    private fun displaySummaryCard(
-        evaluation: EvaluationResult,
-        subtitle: String,
-        calories: Int,
-        protein: Float,
-        sodium: Int,
-        potassium: Float,
-        carbs: Float,
-        netCarbs: Float,
-        sugar: Float,
-        isKeto: Boolean,
-        isRestoring: Boolean = false // Flag to prevent infinite loops
-    ) {
-        // 1. Save to Memory
+    private fun displaySummaryCard(evaluation: EvaluationResult, subtitle: String, calories: Int, protein: Float, sodium: Int, potassium: Float, carbs: Float, netCarbs: Float, sugar: Float, isKeto: Boolean, isRestoring: Boolean = false) {
         if (!isRestoring) {
             cachedEval = evaluation
             cachedSub = subtitle
@@ -201,16 +248,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 putFloat("sug", sugar); putBoolean("is_keto", isKeto)
             }
         }
-
-        // 2. Show the Card
         cardSummary.visibility = View.VISIBLE
         cardSummary.setCardBackgroundColor(evaluation.bgColor)
         textSummaryGrade.text = evaluation.gradeTitle
         textSummaryGrade.setTextColor(evaluation.textColor)
-        textSummaryExplanation.text = if (evaluation.redViolations.isNotEmpty()) "Avoid: ${evaluation.redViolations.first()}" else "Tap for Details"
+        textSummaryExplanation.text = if (evaluation.redViolations.isNotEmpty()) "Avoid: ${evaluation.redViolations.first()}" else "Tap for Detail"
         textExplanation.text = ""
 
-        // 3. Set Navigation Click
         cardSummary.setOnClickListener {
             val bundle = Bundle().apply {
                 putSerializable("EVAL", evaluation)
@@ -225,18 +269,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private fun resetUI() {
         activity?.runOnUiThread {
             cardSummary.visibility = View.GONE
-            cachedEval = null // Clear the memory for a fresh scan
+            cachedEval = null
             textExplanation.text = "Ready..."
-            textExplanation.setTextColor(Color.WHITE)
+            textExplanation.setTextColor(android.graphics.Color.WHITE)
         }
     }
 
-    private fun updateConditionText() {
-        val userSettings = AppSettings(requireContext())
-        textCondition.text = "Target: ${getConditionsString(userSettings, userSettings.getSelectedConditions())}"
-    }
-
     private fun getConditionsString(s: AppSettings, ids: Set<String>) = if (ids.isNotEmpty()) ids.joinToString(", ") { id -> s.getAvailableDietProfiles().find { it.id == id }?.displayName ?: id } else "Standard"
-
+    private fun updateConditionText() { textCondition.text = "Target: ${getConditionsString(AppSettings(requireContext()), AppSettings(requireContext()).getSelectedConditions())}" }
     override fun onResume() { super.onResume(); updateConditionText() }
 }
