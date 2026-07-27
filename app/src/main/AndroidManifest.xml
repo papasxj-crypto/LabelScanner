@@ -13,7 +13,6 @@
 
     <!-- Required for barcode scanning -->
     <uses-feature android:name="android.hardware.camera.any" />
-    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -25,19 +24,35 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.LabelScanner">
-        <activity android:name=".ScannerActivity" android:exported="false" />
-        <activity android:name="net.meinook.labelscanner.SettingsActivity" android:exported="false" />
-        <activity android:name=".AllergenActivity" android:exported="false" />
+
+        <!-- 1. MAIN ACTIVITY (Home/Fragment Container) -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:windowSoftInputMode="adjustResize">
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 2. SCANNER ACTIVITY -->
+        <activity
+            android:name=".ScannerActivity"
+            android:exported="false" />
+
+        <!-- 3. RESULT DETAIL ACTIVITY (The Juicy Details) -->
+        <activity
+            android:name=".ResultDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LabelScanner"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout" />
+
+        <!-- 4. OTHER ACTIVITIES -->
+        <activity android:name=".SettingsActivity" android:exported="false" />
+        <activity android:name=".AllergenActivity" android:exported="false" />
+
+        <!-- FILE PROVIDER -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="net.meinook.labelscanner.fileprovider"
@@ -47,6 +62,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
     </application>
 
 </manifest>

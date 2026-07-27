@@ -2,6 +2,7 @@ package net.meinook.labelscanner
 
 import android.graphics.Color
 import androidx.core.graphics.toColorInt
+import android.util.Log
 import org.json.JSONObject
 
 data class EvaluationResult(
@@ -10,9 +11,44 @@ data class EvaluationResult(
     val gradeTitle: String,
     val redViolations: List<String>,
     val yellowViolations: List<String>
-)
+) : java.io.Serializable
 
 object LabelEvaluator {
+
+    private data class NutrientMap(
+        val xmlId: String,
+        val jsonKey: String,
+        val displayName: String,
+        val isScaleRequired: Boolean = false,
+        val useNetCarbs: Boolean = false
+    )
+
+    private val nutrientRegistry = listOf(
+        NutrientMap("calories", "calories", "Calories"),
+        NutrientMap("calories", "energy", "Calories"),
+        NutrientMap("calories", "energy-kcal_serving", "Calories"),
+        NutrientMap("sodium", "sodium_mg", "Sodium"),
+        NutrientMap("sodium", "sodium", "Sodium"),
+        NutrientMap("sodium", "sodium_serving", "Sodium"),
+        NutrientMap("protein", "protein_g", "Protein"),
+        NutrientMap("protein", "protein", "Protein"),
+        NutrientMap("protein", "proteins_serving", "Protein"),
+        NutrientMap("potassium", "potassium_mg", "Potassium", isScaleRequired = true),
+        NutrientMap("potassium", "potassium", "Potassium", isScaleRequired = true),
+        NutrientMap("potassium", "potassium_serving", "Potassium", isScaleRequired = true),
+        NutrientMap("carbs", "total_carbohydrates_g", "Carbs", useNetCarbs = true),
+        NutrientMap("carbs", "carbohydrates", "Carbs", useNetCarbs = true),
+        NutrientMap("carbs", "carbohydrates_serving", "Carbs", useNetCarbs = true),
+        NutrientMap("fiber", "fiber_g", "Fiber"),
+        NutrientMap("fiber", "fiber_serving", "Fiber"),
+        NutrientMap("total_sugar", "total_sugar_g", "Total Sugar"),
+        NutrientMap("total_sugar", "sugar_g", "Total Sugar"),
+        NutrientMap("total_sugar", "sugar", "Total Sugar"),
+        NutrientMap("total_sugar", "sugars_serving", "Total Sugar"),
+        NutrientMap("added_sugar", "added_sugar_g", "Added Sugar"),
+        NutrientMap("saturated_fat", "saturated_fat_g", "Saturated Fat"),
+        NutrientMap("total_fat", "total_fat_g", "Total Fat")
+    )
 
     fun evaluateScanData(
         jsonResult: JSONObject,
@@ -21,159 +57,78 @@ object LabelEvaluator {
         userSettings: AppSettings,
         xmlRedTriggers: List<String>,
         customRedWatchlist: List<String>,
-        customYellowWatchlist: List<String>
+        customYellowWatchlist: List<String>,
+        isProduce: Boolean = false
     ): EvaluationResult {
-
-        var bgColor = "#4CAF50".toColorInt() // Default Green
-        var textColor = Color.WHITE
-        var gradeTitle = ""
 
         val redViolations = mutableListOf<String>()
         val yellowViolations = mutableListOf<String>()
 
-        // --- 1. EXTRACT RAW NUTRITION FIELDS ---
-        val rawCalories = jsonResult.optInt("calories", 0)
-        val sodiumMg = jsonResult.optInt("sodium_mg", 0)
-        val proteinGrams = jsonResult.optDouble("protein_g", 0.0).toFloat()
-        val totalSugarGrams = jsonResult.optDouble("total_sugar_g", 0.0).toFloat()
-        val addedSugarGrams = jsonResult.optDouble("added_sugar_g", 0.0).toFloat()
-        val totalFatGrams = jsonResult.optDouble("total_fat_g", 0.0).toFloat()
-        val satFatGrams = jsonResult.optDouble("saturated_fat_g", 0.0).toFloat()
-        val transFatGrams = jsonResult.optDouble("trans_fat_g", 0.0).toFloat()
-        val carbsGrams = jsonResult.optDouble("total_carbohydrates_g", 0.0).toFloat()
-        val potassiumRaw = jsonResult.optDouble("potassium_g", 0.0).toFloat()
-        val potassiumMg = if (potassiumRaw in 0.01f..5.0f) (potassiumRaw * 1000).toInt().toFloat() else potassiumRaw
-        val totalCarbs = jsonResult.optDouble("total_carbohydrates_g", 0.0).toFloat()
-        val fiber = jsonResult.optDouble("fiber_g", 0.0).toFloat()
-        val sugarAlcohols = jsonResult.optDouble("sugar_alcohols_g", 0.0).toFloat()
-        val netCarbs = (totalCarbs - fiber - sugarAlcohols).coerceAtLeast(0.0f)
+        // 1. SMART ANCHOR CHECK
+        fun hasNutrient(xmlId: String): Boolean {
+            val validKeys = nutrientRegistry.filter { it.xmlId == xmlId }.map { it.jsonKey }
+            return validKeys.any { jsonResult.has(it) && !jsonResult.isNull(it) }
+        }
 
-        // --- 2. THRESHOLDS EVALUATION ---
-        val (sodiumLowMax, sodiumModMax, sodiumIsBlacklist) = userSettings.getNutrientThresholds("sodium")
-        val (addedSugarLowMax, addedSugarModMax, addedSugarIsBlacklist) = userSettings.getNutrientThresholds("added_sugar")
-        val (totalSugarLowMax, totalSugarModMax, totalSugarIsBlacklist) = userSettings.getNutrientThresholds("total_sugar")
-        val (satFatLowMax, satFatModMax, satFatIsBlacklist) = userSettings.getNutrientThresholds("saturated_fat")
-        val (_, totalFatModMax, totalFatIsBlacklist) = userSettings.getNutrientThresholds("total_fat")
-        val (potassiumLowMax, potassiumModMax, potassiumIsBlacklist) = userSettings.getNutrientThresholds("potassium")
-        val (carbsLowMax, carbsModMax, carbsIsBlacklist) = userSettings.getNutrientThresholds("carbs")
+        val hasCalories = hasNutrient("calories")
+        val hasSodium = hasNutrient("sodium")
 
-        // --- 0. ZERO DATA / SUSPICIOUS LABEL CHECK ---
-        val macroCheckSum = rawCalories + sodiumMg + proteinGrams + carbsGrams + totalFatGrams
-        if (macroCheckSum <= 0.0f && detectedIngredients.isEmpty()) {
+        // Relaxation: Mission Chips work if we have Calories and Sodium
+        if (!isProduce && (!hasCalories || !hasSodium)) {
             return EvaluationResult(
-                bgColor = "#FF9800".toColorInt(), // Orange / Caution
+                bgColor = "#607D8B".toColorInt(),
                 textColor = Color.WHITE,
-                gradeTitle = "Warning: Incomplete / Zero Nutrition Data Detected.\nPlease scan the physical Nutrition Facts label on the package.",
+                gradeTitle = "Incomplete Scan",
                 redViolations = emptyList(),
-                yellowViolations = listOf("No valid nutritional data found.")
+                yellowViolations = listOf("Missing core nutrition data (Calories/Sodium).")
             )
         }
 
-        if (sodiumMg > sodiumModMax) {
-            if (sodiumIsBlacklist) redViolations.add("Sodium") else yellowViolations.add("Sodium")
-        } else if (sodiumMg > sodiumLowMax) yellowViolations.add("Sodium")
-
-        if (totalSugarGrams > totalSugarModMax) {
-            if (totalSugarIsBlacklist) redViolations.add("Total Sugar") else yellowViolations.add("Total Sugar")
-        } else if (totalSugarGrams > totalSugarLowMax) yellowViolations.add("Total Sugar")
-
-        if (addedSugarGrams > addedSugarModMax) {
-            if (addedSugarIsBlacklist) redViolations.add("Added Sugar") else yellowViolations.add("Added Sugar")
-        } else if (addedSugarGrams > addedSugarLowMax) yellowViolations.add("Added Sugar")
-
-        if (satFatGrams > satFatModMax) {
-            if (satFatIsBlacklist) redViolations.add("Saturated Fat") else yellowViolations.add("Saturated Fat")
-        } else if (satFatGrams > satFatLowMax) yellowViolations.add("Saturated Fat")
-
-        if (totalFatGrams > totalFatModMax) {
-            if (totalFatIsBlacklist) redViolations.add("Total Fat") else yellowViolations.add("Total Fat")
+        // 2. MAIN EVALUATION LOOP
+        fun getVal(xmlId: String): Float {
+            val keys = nutrientRegistry.filter { it.xmlId == xmlId }.map { it.jsonKey }
+            for (k in keys) { if (jsonResult.has(k)) return jsonResult.optDouble(k, 0.0).toFloat() }
+            return 0.0f
         }
 
-        if (potassiumMg > potassiumModMax) {
-            if (potassiumIsBlacklist) redViolations.add("Potassium") else yellowViolations.add("Potassium")
-        } else if (potassiumMg > potassiumLowMax) yellowViolations.add("Potassium")
+        val totalCarbs = getVal("carbs")
+        val fiber = getVal("fiber")
+        val netCarbs = (totalCarbs - fiber).coerceAtLeast(0.0f)
 
-        if (carbsGrams > carbsModMax) {
-            if (carbsIsBlacklist) redViolations.add("Carbs") else yellowViolations.add("Carbs")
-        } else if (carbsGrams > carbsLowMax) yellowViolations.add("Carbs")
+        val processed = mutableSetOf<String>()
+        for (map in nutrientRegistry) {
+            if (processed.contains(map.xmlId)) continue
 
-        if (transFatGrams > 0.0f) redViolations.add("Trans Fat")
+            val (low, mod, blacklist) = userSettings.getNutrientThresholds(map.xmlId)
+            if (mod >= 999.0) continue
 
-        // --- 3. AGNOSTIC CLINICAL ENGINE (Driven 100% by AppSettings flags) ---
-        val proteinRules = userSettings.getActiveProteinRules()
+            var value = if (map.useNetCarbs && savedProfileIds.contains("keto")) netCarbs else getVal(map.xmlId)
+            if (map.isScaleRequired && value in 0.01f..5.0f) value *= 1000
 
-        val enforceRatio = userSettings.isFeatureFlagActive("enforce_protein_ratio")
-        val enforceFloor = userSettings.isFeatureFlagActive("enforce_protein_floor")
-        val enforceCeiling = userSettings.isFeatureFlagActive("enforce_protein_ceiling")
-
-        // Ratio Floor Rule
-        if (enforceRatio && proteinRules.targetRatio > 0.0f) {
-            val currentRatio = if (rawCalories > 0) proteinGrams / rawCalories else 0.0f
-            if (currentRatio < proteinRules.targetRatio) {
-                yellowViolations.add("Low Protein Ratio (${String.format("%.2f", currentRatio)})")
+            if (value > mod) {
+                val label = if (map.useNetCarbs && savedProfileIds.contains("keto")) "Net Carbs" else map.displayName
+                if (blacklist) redViolations.add(label) else yellowViolations.add(label)
+            } else if (value > low) {
+                val label = if (map.useNetCarbs && savedProfileIds.contains("keto")) "Net Carbs" else map.displayName
+                yellowViolations.add(label)
             }
+            processed.add(map.xmlId)
         }
 
-        // Meal/Snack Protein Floor Rule
-        if (enforceFloor) {
-            val isMealWindow = rawCalories >= 250
-            val activeMin = if (isMealWindow) proteinRules.mealMin else proteinRules.snackMin
-            val contextLabel = if (isMealWindow) "Meal" else "Snack"
-
-            if (activeMin > 0 && proteinGrams < activeMin) {
-                yellowViolations.add("Low Protein for $contextLabel (<${activeMin}g)")
-            }
+        // 3. TRIGGERS
+        val matchedReds = xmlRedTriggers.filter { t ->
+            if (t == "PHOS") detectedIngredients.any { it.contains("PHOS") } else detectedIngredients.contains(t)
         }
+        if (matchedReds.isNotEmpty()) redViolations.add("Risk Additive")
 
-        // Meal/Snack Protein Ceiling Rule
-        if (enforceCeiling || proteinRules.mealMax < 999) {
-            val isMealWindow = rawCalories >= 250
-            val activeMax = if (isMealWindow) proteinRules.mealMax else proteinRules.snackMax
-            val contextLabel = if (isMealWindow) "Meal" else "Snack"
+        return finalizeResult(redViolations, yellowViolations)
+    }
 
-            if (activeMax < 999 && proteinGrams > activeMax) {
-                redViolations.add("High Protein for $contextLabel (>${activeMax}g)")
-            }
+    private fun finalizeResult(reds: List<String>, yellows: List<String>): EvaluationResult {
+        return when {
+            reds.isNotEmpty() -> EvaluationResult("#F44336".toColorInt(), Color.WHITE, "Red - Avoid", reds.distinct(), yellows.distinct())
+            yellows.isNotEmpty() -> EvaluationResult("#FFEB3B".toColorInt(), Color.BLACK, "Yellow - Caution", emptyList(), yellows.distinct())
+            else -> EvaluationResult("#4CAF50".toColorInt(), Color.WHITE, "Green - Safe", emptyList(), emptyList())
         }
-
-        // --- 4. WATCHLIST & TRIGGER MATCHING ---
-        val matchedCustomRed = customRedWatchlist.filter { detectedIngredients.contains(it) }
-        val matchedCustomYellow = customYellowWatchlist.filter { detectedIngredients.contains(it) }
-        val matchedXmlRed = xmlRedTriggers.filter { trigger ->
-            if (trigger == "PHOS") detectedIngredients.any { it.contains("PHOS") } else detectedIngredients.contains(trigger)
-        }
-
-        // --- 5. RESULT RENDER ASSIGNMENT ---
-        when {
-            matchedCustomRed.isNotEmpty() -> {
-                bgColor = "#F44336".toColorInt()
-                gradeTitle = "Red - Avoid Custom Allergen (${matchedCustomRed.joinToString()})"
-            }
-            matchedXmlRed.isNotEmpty() -> {
-                bgColor = "#F44336".toColorInt()
-                val offender = detectedIngredients.find { it.contains("PHOS") } ?: matchedXmlRed.first()
-                gradeTitle = "Red - High Risk Additive ($offender)"
-            }
-            redViolations.isNotEmpty() -> {
-                bgColor = "#F44336".toColorInt()
-                gradeTitle = "Red - Limit Exceeded (${redViolations.joinToString()})"
-            }
-            matchedCustomYellow.isNotEmpty() -> {
-                bgColor = "#FFEB3B".toColorInt()
-                textColor = Color.BLACK
-                gradeTitle = "Sensitivity Warning: ${matchedCustomYellow.joinToString()}"
-            }
-            yellowViolations.isNotEmpty() -> {
-                bgColor = "#FFEB3B".toColorInt()
-                textColor = Color.BLACK
-                gradeTitle = "Limit Warning: ${yellowViolations.joinToString()}"
-            }
-            else -> {
-                bgColor = "#4CAF50".toColorInt()
-                gradeTitle = "Green - Safe Baseline"
-            }
-        }
-
-        return EvaluationResult(bgColor, textColor, gradeTitle, redViolations, yellowViolations)
     }
 }

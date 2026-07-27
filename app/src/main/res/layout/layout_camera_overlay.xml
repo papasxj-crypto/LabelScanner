@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Semi-transparent top shade -->
+    <View
+        android:id="@+id/topShade"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#80000000"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/viewfinderFrame"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- THE TARGET BOX: Where the user aims -->
+    <View
+        android:id="@+id/viewfinderFrame"
+        android:layout_width="280dp"
+        android:layout_height="180dp"
+        android:background="@drawable/bg_viewfinder_frame"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Semi-transparent bottom shade -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#80000000"
+        app:layout_constraintTop_toBottomOf="@+id/viewfinderFrame"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Side shades -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="180dp"
+        android:background="#80000000"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/viewfinderFrame"
+        app:layout_constraintTop_toTopOf="@+id/viewfinderFrame" />
+
+    <View
+        android:layout_width="0dp"
+        android:layout_height="180dp"
+        android:background="#80000000"
+        app:layout_constraintStart_toEndOf="@+id/viewfinderFrame"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/viewfinderFrame" />
+
+    <!-- MANUAL FALLBACK BUTTON -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnManualLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SCAN LABEL"
+        android:visibility="gone"
+        app:icon="@android:drawable/ic_menu_camera"
+        android:layout_marginBottom="24dp"
+        app:layout_constraintBottom_toBottomOf="@+id/viewfinderFrame"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

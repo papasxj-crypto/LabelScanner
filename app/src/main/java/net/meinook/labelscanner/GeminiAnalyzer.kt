@@ -12,6 +12,7 @@ object GeminiAnalyzer {
     // Define your configuration variables here at the top since they don't depend on the API key
     private val strictConfig = generationConfig {
         responseMimeType = "application/json"
+        temperature = 0.0f
     }
 
     suspend fun analyzeIngredientsImage(

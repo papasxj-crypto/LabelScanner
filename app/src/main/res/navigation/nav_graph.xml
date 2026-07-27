@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/navigation_home">
+
+    <!-- Home Screen Fragment -->
+    <fragment
+        android:id="@+id/navigation_home"
+        android:name="net.meinook.labelscanner.HomeFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_home">
+        <!-- MOVE THE ACTION HERE: This allows Home to find the Detail screen -->
+        <action
+            android:id="@+id/action_home_to_detail"
+            app:destination="@id/resultDetailFragment" />
+    </fragment>
+
+    <!-- 2. THE NEW DETAIL FRAGMENT -->
+    <fragment
+        android:id="@+id/resultDetailFragment"
+        android:name="net.meinook.labelscanner.ResultDetailFragment"
+        android:label="Result Detail"
+        tools:layout="@layout/fragment_result_detail" />
+
+    <!-- Health Profile Screen Fragment -->
+    <fragment
+        android:id="@+id/navigation_my_health"
+        android:name="net.meinook.labelscanner.HealthFragment"
+        android:label="My Health"
+        tools:layout="@layout/fragment_health" />
+
+    <!-- History Screen Fragment -->
+    <fragment
+        android:id="@+id/navigation_history"
+        android:name="net.meinook.labelscanner.HistoryFragment"
+        android:label="History"
+        tools:layout="@layout/fragment_history" />
+
+    <!-- Settings Screen Fragment -->
+    <activity
+        android:id="@+id/navigation_settings"
+        android:name="net.meinook.labelscanner.SettingsActivity"
+        android:label="Settings" />
+
+</navigation>
