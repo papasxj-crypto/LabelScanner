@@ -200,6 +200,7 @@ class RecipeFragment : Fragment() {
             conn.setRequestProperty("Content-Type", "application/json")
             conn.doOutput = true
 
+            // Prompt specifically mandates step-by-step numbered preparation and cooking steps
             val prompt = """
                 You are an expert culinary clinical dietitian. Analyze the following raw recipe text:
                 $recipeText
@@ -207,6 +208,7 @@ class RecipeFragment : Fragment() {
                 1. Calculate the total estimated nutritional facts of this entire recipe (sum of all ingredients combined).
                 2. Generate an adjusted, clinically safe version of the recipe tailored for the active clinical profiles: ${activeProfiles.joinToString(", ")}.
                    Substitute hazard items (like high sodium sauce, heavy salt, or high protein/potassium items in CKD, or carbs/sugars in Keto) with safe alternatives and adjust measurements cleanly.
+                   You must output the adjusted recipe with a complete list of rewritten ingredients followed by detailed, step-by-step numbered preparation and cooking instructions (e.g., Step 1: ..., Step 2: ...).
 
                 Return a raw JSON object following this schema exactly, do not add any markdown formatting, code blocks, or backticks:
                 {
@@ -220,7 +222,7 @@ class RecipeFragment : Fragment() {
                   "saturated_fat_g": 15.0,
                   "total_fat_g": 100.0,
                   "servings": 6,
-                  "adjusted_recipe": "complete adjusted recipe text here",
+                  "adjusted_recipe": "write the complete adjusted list of ingredients here followed by clear step-by-step numbered cooking instructions (e.g., Step 1: ..., Step 2: ...)",
                   "rationale": "short explanation of clinical changes made"
                 }
             """.trimIndent()
