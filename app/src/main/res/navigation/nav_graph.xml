@@ -41,12 +41,12 @@
         android:label="Custom Watchlist"
         tools:layout="@layout/fragment_custom_watchlist" />
 
-    <!-- History Screen Fragment -->
+    <!-- Recipe Screen Fragment -->
     <fragment
-        android:id="@+id/navigation_history"
-        android:name="net.meinook.labelscanner.HistoryFragment"
-        android:label="History"
-        tools:layout="@layout/fragment_history" />
+        android:id="@+id/navigation_recipe"
+        android:name="net.meinook.labelscanner.RecipeFragment"
+        android:label="Recipe"
+        tools:layout="@layout/fragment_recipe" />
 
     <!-- Settings Screen Fragment -->
     <activity
