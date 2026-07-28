@@ -115,7 +115,7 @@
     <string name="user_target_weight_lbs_txt">User Target Weight (lbs)</string>
     <string name="default_weight_txt">195</string>
     <string name="allergens_amp_sensitivities_txt"><![CDATA[Allergens & Sensitivities]]></string>
-    <string name="manage_custom_watchlist_txt">Manage your custom watchlist and dietary flags</string>
+    <string name="manage_custom_watchlist_txt">Manage Custom Watchlist</string>
     <string name="arrow_img_txt">➔</string>
     <string name="save_apply_changes_txt"><![CDATA[Save & Apply Changes]]></string>
 
@@ -135,6 +135,11 @@
     <string name="peanuts_tree_nuts_txt"><![CDATA[🥜 Peanuts & Tree Nuts]]></string>
     <string name="active_custom_watchlist_txt">Active Custom Watchlist</string>
     <string name="no_custom_filters_active_txt">No custom filters active.</string>
+    <string name="ideal_body_weight_txt">Ideal Body Weight (lbs)</string>
+    <string name="clinical_targets_txt">Clinical Targets</string>
+    <string name="allergen_watchlist_txt">Allergen Watchlist</string>
+    <string name="long_press_for_details_txt">Long press for details</string>
+    <string name="zero_txt">0</string>
 
 
 </resources>

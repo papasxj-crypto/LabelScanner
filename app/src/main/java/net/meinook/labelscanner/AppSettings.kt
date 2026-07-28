@@ -16,14 +16,16 @@ class AppSettings(private val context: Context) {
         const val KEY_CUSTOM_BLACKBOARD = "custom_blacklist_ingredients"
         const val KEY_USER_WEIGHT = "user_target_weight_lbs"
 
-        // Static map shared seamlessly by all activity contexts
+        // Dynamic maps populated during boot index
         private val profileExclusivityMap = mutableMapOf<String, String>()
+        private val profileConflictsMap = mutableMapOf<String, MutableSet<String>>()
 
         /**
-         * Global Boot Hook: Indexes profile assets for group metadata evaluation.
+         * Global Boot Hook: Indexes profile assets for group metadata and dynamic conflicts.
          */
         fun indexExclusivityGroups(context: Context) {
             profileExclusivityMap.clear()
+            profileConflictsMap.clear()
             try {
                 val fileList = context.assets.list("profiles") ?: emptyArray()
                 for (fileName in fileList) {
@@ -32,14 +34,25 @@ class AppSettings(private val context: Context) {
                     val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
 
                     var eventType = parser.eventType
+                    var currentProfileId = ""
+
                     while (eventType != XmlPullParser.END_DOCUMENT) {
-                        if (eventType == XmlPullParser.START_TAG && parser.name == "diet_profile") {
-                            val id = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
-                            val group = parser.getAttributeValue(null, "exclusivity_group") ?: ""
-                            if (group.isNotEmpty()) {
-                                profileExclusivityMap[id] = group
+                        val tagName = parser.name
+                        if (eventType == XmlPullParser.START_TAG) {
+                            if (tagName == "diet_profile") {
+                                currentProfileId = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
+                                val group = parser.getAttributeValue(null, "exclusivity_group") ?: ""
+                                if (group.isNotEmpty()) {
+                                    profileExclusivityMap[currentProfileId] = group
+                                }
+                            } else if (tagName == "conflict" && currentProfileId.isNotEmpty()) {
+                                val target = parser.getAttributeValue(null, "target") ?: ""
+                                if (target.isNotEmpty()) {
+                                    // Bidirectional conflict registration (If A conflicts with B, B conflicts with A)
+                                    profileConflictsMap.getOrPut(currentProfileId) { mutableSetOf() }.add(target)
+                                    profileConflictsMap.getOrPut(target) { mutableSetOf() }.add(currentProfileId)
+                                }
                             }
-                            break
                         }
                         eventType = parser.next()
                     }
@@ -49,6 +62,18 @@ class AppSettings(private val context: Context) {
                 e.printStackTrace()
             }
         }
+    }
+
+    // --- USER HANDEDNESS CONFIGURATION ---
+
+    fun isRightHanded(): Boolean {
+        val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
+        return prefs.getBoolean("is_right_handed", true)
+    }
+
+    fun setRightHanded(right: Boolean) {
+        val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("is_right_handed", right).apply()
     }
 
     // --- CUSTOM WATCHLIST STORAGE ENGINE ---
@@ -78,8 +103,7 @@ class AppSettings(private val context: Context) {
                 // Check if profileId already ends with .xml; if not, append it
                 val fileName = if (profileId.endsWith(".xml")) profileId else "$profileId.xml"
 
-                // If your XML files are in a subfolder (e.g. "profiles/ckd_dialysis.xml"),
-                // prepend the folder path here: "profiles/$fileName"
+                // Prepend the folder path here: "profiles/$fileName"
                 val inputStream = context.assets.open("profiles/$fileName")
 
                 val factory = org.xmlpull.v1.XmlPullParserFactory.newInstance()
@@ -148,17 +172,6 @@ class AppSettings(private val context: Context) {
     // --- MODERNIZED DUAL-TIER CUSTOM INGREDIENT TRACKER ---
 
     /**
-     * Fetches the complete list of custom ingredients assigned to a specific severity tier.
-     * @param tier Either "RED" or "YELLOW"
-     */
-//    fun getCustomWatchlist(tier: String): List<String> {
-//        val prefs = context.getSharedPreferences("app_settings_prefs", android.content.Context.MODE_PRIVATE)
-//        val storageKey = if (tier.uppercase() == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
-//        val savedSet = prefs.getStringSet(storageKey, emptySet()) ?: emptySet()
-//        return savedSet.map { it.uppercase() }.sorted()
-//    }
-
-    /**
      * Adds an ingredient to a targeted severity watchlist and ensures it doesn't duplicate.
      */
     fun addWatchlistIngredient(ingredient: String, tier: String) {
@@ -207,9 +220,6 @@ class AppSettings(private val context: Context) {
 
     /**
      * Managed Instance-Level Toggle Engine: Restores explicit scope binding to getSelectedConditions()
-     */
-    /**
-     * Managed Instance-Level Toggle Engine: Restores explicit scope binding to getSelectedConditions()
      * Supports a universal clear action if a profile belongs to group "all".
      */
     fun toggleConditionState(targetProfileId: String, isChecked: Boolean) {
@@ -237,6 +247,12 @@ class AppSettings(private val context: Context) {
                 }
                 selectedIds.removeAll(baselineConflictingIds)
             }
+
+            // --- RUN DYNAMIC DATA-DRIVEN SAFETY INTERLOCKS ---
+            // Remove any active profiles that are registered as conflicts in your XML configuration files
+            val dynamicConflicts = profileConflictsMap[targetProfileId] ?: emptySet()
+            selectedIds.removeAll(dynamicConflicts)
+
             selectedIds.add(targetProfileId)
         } else {
             selectedIds.remove(targetProfileId)
@@ -245,15 +261,15 @@ class AppSettings(private val context: Context) {
         saveSelectedConditions(selectedIds)
     }
 
-    fun getAvailableDietProfiles(): List<DietProfile> {
+    fun getAvailableDietProfiles(includeAllergens: Boolean = true): List<DietProfile> {
         val profileList = mutableListOf<DietProfile>()
         try {
             val fileList = context.assets.list("profiles") ?: emptyArray()
             for (fileName in fileList) {
                 if (fileName.endsWith(".xml")) {
 
-                    // 👉 ADD THIS LINE TO FILTER OUT ALLERGENS FROM SCREEN 1:
-                    if (fileName.startsWith("allergen_")) continue
+                    // Clean filter logic using the boolean parameter
+                    if (!includeAllergens && fileName.startsWith("allergen_")) continue
 
                     val inputStream = context.assets.open("profiles/$fileName")
                     val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
@@ -287,7 +303,7 @@ class AppSettings(private val context: Context) {
                 "added_sugar"   -> Triple(5, 12, false)
                 "total_sugar"   -> Triple(10, 25, false)
                 "saturated_fat" -> Triple(2, 5, false)
-                "trans_fat"     -> Triple(0, 0, true) // Restored: Permanent binary restriction cap
+                "trans_fat"     -> Triple(0, 0, true) // Permanent binary restriction cap
                 "total_fat"     -> Triple(5, 15, false)
                 "potassium"     -> Triple(350, 700, false)
                 "carbs"         -> Triple(20, 45, false)
@@ -348,14 +364,65 @@ class AppSettings(private val context: Context) {
 
     fun getIngredientsFromAssetFile(fileName: String): List<String> {
         val triggerList = mutableListOf<String>()
+        var inputStream: java.io.InputStream? = null
+
+        // 1. Try common filename combinations directly
+        val possibleNames = listOf(
+            "profiles/$fileName.xml",
+            "profiles/allergen_$fileName.xml",
+            "profiles/${fileName.removePrefix("allergen_")}.xml"
+        )
+        for (name in possibleNames) {
+            try {
+                inputStream = context.assets.open(name)
+                if (inputStream != null) break
+            } catch (e: Exception) {
+                // Try next pattern
+            }
+        }
+
+        // 2. Fallback: Scan XML headers to find the one matching the id attribute
+        if (inputStream == null) {
+            try {
+                val files = context.assets.list("profiles") ?: emptyArray()
+                for (file in files) {
+                    if (file.endsWith(".xml")) {
+                        val tempStream = context.assets.open("profiles/$file")
+                        val parser = Xml.newPullParser().apply { setInput(tempStream, null) }
+                        var eventType = parser.eventType
+                        var matchFound = false
+                        while (eventType != XmlPullParser.END_DOCUMENT) {
+                            if (eventType == XmlPullParser.START_TAG && parser.name == "diet_profile") {
+                                val id = parser.getAttributeValue(null, "id") ?: file.removeSuffix(".xml")
+                                if (id == fileName) {
+                                    matchFound = true
+                                    break
+                                }
+                            }
+                            eventType = parser.next()
+                        }
+                        tempStream.close()
+                        if (matchFound) {
+                            inputStream = context.assets.open("profiles/$file")
+                            break
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        if (inputStream == null) return emptyList()
+
         try {
-            val inputStream = context.assets.open("profiles/$fileName.xml")
             val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
             var eventType = parser.eventType
 
             while (eventType != XmlPullParser.END_DOCUMENT) {
                 val tagName = parser.name
-                if (eventType == XmlPullParser.START_TAG && tagName == "trigger") {
+                // Parse both 'trigger' and 'ingredient' tags for maximum flexibility
+                if (eventType == XmlPullParser.START_TAG && (tagName == "trigger" || tagName == "ingredient")) {
                     eventType = parser.next()
                     if (eventType == XmlPullParser.TEXT) {
                         val text = parser.text?.trim() ?: ""

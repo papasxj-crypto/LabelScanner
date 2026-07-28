@@ -11,7 +11,6 @@
         android:name="net.meinook.labelscanner.HomeFragment"
         android:label="Home"
         tools:layout="@layout/fragment_home">
-        <!-- MOVE THE ACTION HERE: This allows Home to find the Detail screen -->
         <action
             android:id="@+id/action_home_to_detail"
             app:destination="@id/resultDetailFragment" />
@@ -29,7 +28,18 @@
         android:id="@+id/navigation_my_health"
         android:name="net.meinook.labelscanner.HealthFragment"
         android:label="My Health"
-        tools:layout="@layout/fragment_health" />
+        tools:layout="@layout/fragment_health">
+        <action
+            android:id="@+id/action_health_to_custom_watchlist"
+            app:destination="@id/customWatchlistFragment" />
+    </fragment>
+
+    <!-- NEW Custom Watchlist Fragment -->
+    <fragment
+        android:id="@+id/customWatchlistFragment"
+        android:name="net.meinook.labelscanner.CustomWatchlistFragment"
+        android:label="Custom Watchlist"
+        tools:layout="@layout/fragment_custom_watchlist" />
 
     <!-- History Screen Fragment -->
     <fragment

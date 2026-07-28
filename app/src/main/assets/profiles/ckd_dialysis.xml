@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <diet_profile id="ckd_dialysis" name="CKD Dialysis Support" exclusivity_group="ckd_renal_stage">
+    <!-- Restrict keto diets from being co-selected -->
+    <conflict target="keto" />
+
     <!-- Explicit feature flags -->
     <flag name="enforce_protein_ratio">true</flag>
     <flag name="enforce_protein_floor">true</flag>

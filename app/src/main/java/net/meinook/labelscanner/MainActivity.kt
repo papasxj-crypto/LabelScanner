@@ -12,6 +12,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Global Boot Hook: Parse and load dynamic profile exclusivity groups and conflicts
+        AppSettings.indexExclusivityGroups(applicationContext)
+
         // 1. Get the NavHostFragment instance from activity_main.xml
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment

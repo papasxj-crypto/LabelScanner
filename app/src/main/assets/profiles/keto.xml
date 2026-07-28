@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <diet_profile id="keto" name="Ketogenic / Low-Carb" exclusivity_group="dietary_pattern">
+    <conflict target="ckd_pre_dialysis" />
+    <conflict target="ckd_dialysis" />
 
     <!-- 1. NUTRIENT THRESHOLDS (Per Serving) -->
     <!-- Net Carbs, Sugars, and Electrolytes -->

@@ -1,72 +1,164 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#141218"
-    android:fillViewport="true">
+    android:background="#121212"
+    android:orientation="vertical"
+    android:padding="16dp">
 
+    <!-- 1. Ideal Body Weight Row (Fixed at the absolute top) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
 
         <TextView
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Health &amp; Dietary Profiles"
-            android:textColor="#E6E1E5"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:paddingBottom="4dp" />
+            android:layout_weight="1"
+            android:text="@string/ideal_body_weight_txt"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="match_parent"
+        <EditText
+            android:id="@+id/etIdealWeight"
+            android:layout_width="85dp"
             android:layout_height="wrap_content"
-            android:text="Select your active medical and dietary conditions. LabelScanner evaluates ingredients and macros against these rules."
-            android:textColor="#CAC4D0"
-            android:textSize="14sp"
-            android:paddingBottom="16dp" />
+            android:background="#1E1E1E"
+            android:textColor="#FFFFFF"
+            android:inputType="numberDecimal"
+            android:gravity="center"
+            android:padding="10dp"
+            android:maxLength="5"
+            android:hint="0"
+            android:textColorHint="#808080" />
+    </LinearLayout>
 
-        <!-- Dynamic Conditions Checkbox Container -->
-        <com.google.android.material.card.MaterialCardView
+    <!-- Visual Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#333333"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 2. Clinical Targets Header (Fixed) -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/clinical_targets_txt"
+        android:textColor="#4CAF50"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- 3. Scroll Box Wrapper with Dynamic Arrow Overlays -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="16dp">
+
+        <!-- Scrollable Clinical Targets Box -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/scrollConditionSwitches"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="#1D1B20"
-            app:cardCornerRadius="12dp"
-            app:strokeColor="#49454F"
-            app:strokeWidth="1dp"
-            android:layout_marginBottom="16dp">
+            android:layout_height="match_parent"
+            android:background="#1E1E1E"
+            android:padding="8dp"
+            android:fillViewport="true">
 
             <LinearLayout
-                android:id="@+id/containerConditions"
+                android:id="@+id/layoutConditionSwitches"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:orientation="vertical" />
+        </androidx.core.widget.NestedScrollView>
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Active Dietary Targets"
-                    android:textColor="#D0BCFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:paddingBottom="8dp" />
+        <!-- Up Scroll Arrow (Aligned to Top-Right) -->
+        <ImageView
+            android:id="@+id/ivScrollUpIndicator"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:background="#B3000000"
+            android:padding="4dp"
+            android:src="@android:drawable/arrow_up_float"
+            android:visibility="gone"
+            app:tint="#FFFFFF"
+            android:contentDescription="Scroll Up Indicator" />
 
-                <!-- Programmatically populated checkboxes go here -->
+        <!-- Down Scroll Arrow (Aligned to Bottom-Right) -->
+        <ImageView
+            android:id="@+id/ivScrollDownIndicator"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginBottom="8dp"
+            android:layout_marginEnd="16dp"
+            android:background="#B3000000"
+            android:padding="4dp"
+            android:src="@android:drawable/arrow_down_float"
+            android:visibility="gone"
+            app:tint="#FFFFFF"
+            android:contentDescription="Scroll Down Indicator" />
+    </RelativeLayout>
 
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+    <!-- Visual Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#333333"
+        android:layout_marginBottom="16dp" />
 
-        <!-- Save Profile Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSaveHealthProfiles"
-            style="@style/Widget.Material3.Button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Save Health Profile" />
+    <!-- 4. Allergen Watchlist Section (Fixed at bottom-middle) -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/allergen_watchlist_txt"
+        android:textColor="#F44336"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="4dp"/>
 
-    </LinearLayout>
-</ScrollView>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/long_press_for_details_txt"
+        android:textColor="#808080"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textAllCaps="false"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Container for Allergen List (Stays static on screen) -->
+    <LinearLayout
+        android:id="@+id/layoutAllergenSwitches"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="16dp" />
+
+    <!-- 5. Navigation Button (Fixed at the absolute bottom) -->
+    <Button
+        android:id="@+id/btnManageCustomWatchlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/manage_custom_watchlist_txt"
+        android:backgroundTint="#F44336"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="8dp"/>
+
+</LinearLayout>

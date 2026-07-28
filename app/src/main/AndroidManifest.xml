@@ -50,7 +50,6 @@
 
         <!-- 4. OTHER ACTIVITIES -->
         <activity android:name=".SettingsActivity" android:exported="false" />
-        <activity android:name=".AllergenActivity" android:exported="false" />
 
         <!-- FILE PROVIDER -->
         <provider

@@ -40,10 +40,6 @@ class SettingsActivity : AppCompatActivity() {
         editUserWeight.setText(if (savedWeight > 0) savedWeight.toString() else "195")
 
         // 2. Wire up the premium Allergen Page Sub-Navigation Row
-        layoutManageAllergens.setOnClickListener {
-            val intent = Intent(this, AllergenActivity::class.java)
-            startActivity(intent)
-        }
 
         // 3. Render dynamic medical profile checkboxes from app asset files
         setupDynamicProfileCheckboxes()
