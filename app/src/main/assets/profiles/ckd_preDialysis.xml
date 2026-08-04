@@ -25,7 +25,13 @@
     <protein_rules snack_min="0" snack_max="5" meal_min="0" meal_max="15" target_ratio="0.01" />
 
     <!-- Ingredient Substring Token Triggers -->
-    <trigger category="red">PHOS</trigger>
+    <trigger category="red">SODIUM PHOSPHATE</trigger>
+    <trigger category="red">DISODIUM PHOSPHATE</trigger>
+    <trigger category="red">TRISODIUM PHOSPHATE</trigger>
+    <trigger category="red">DICALCIUM PHOSPHATE</trigger>
+    <trigger category="red">HEXAMETAPHOSPHATE</trigger>
+    <trigger category="red">PYROPHOSPHATE</trigger>
+    <trigger category="red">POLYPHOSPHATE</trigger>
     <trigger category="red">SODIUM NITRITE</trigger>
     <trigger category="red">POTASSIUM CHLORIDE</trigger>
     <trigger category="red">MONOSODIUM GLUTAMATE</trigger>
@@ -35,6 +41,11 @@
     <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
     <trigger category="red">NSAID</trigger>
 
+    <!-- Current Yellow Triggers -->
     <trigger category="yellow">SUCRALOSE</trigger>
     <trigger category="yellow">ASPARTAME</trigger>
+
+    <!-- New Yellow Additions -->
+    <trigger category="yellow">SODIUM ACETATE</trigger>
+    <trigger category="yellow">DISODIUM INOSINATE</trigger>
 </diet_profile>

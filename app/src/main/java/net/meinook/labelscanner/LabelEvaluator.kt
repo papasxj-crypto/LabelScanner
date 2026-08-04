@@ -8,6 +8,7 @@ import org.json.JSONObject
 data class EvaluationResult(
     val bgColor: Int,
     val textColor: Int,
+    val subtextColor: Int,
     val gradeTitle: String,
     val redViolations: List<String>,
     val yellowViolations: List<String>
@@ -64,7 +65,78 @@ object LabelEvaluator {
         val redViolations = mutableListOf<String>()
         val yellowViolations = mutableListOf<String>()
 
-        // 1. SMART ANCHOR CHECK
+        // 1. SANITIZE AND NORMALIZE STRINGS (Strip non-breaking spaces, collapse double spaces, handle nulls)
+        val cleanIngredients = detectedIngredients.map { ingredient ->
+            ingredient?.replace("\u00A0", " ")
+                ?.replace("\\s+".toRegex(), " ")
+                ?.uppercase()
+                ?.trim() ?: ""
+        }.filter { it.isNotEmpty() }
+
+        val cleanRedTriggers = xmlRedTriggers.map { trigger ->
+            trigger?.replace("\u00A0", " ")
+                ?.replace("\\s+".toRegex(), " ")
+                ?.uppercase()
+                ?.trim() ?: ""
+        }.filter { it.isNotEmpty() }
+
+        val cleanCustomReds = customRedWatchlist.map { item ->
+            item?.replace("\u00A0", " ")
+                ?.replace("\\s+".toRegex(), " ")
+                ?.uppercase()
+                ?.trim() ?: ""
+        }.filter { it.isNotEmpty() }
+
+        val cleanCustomYellows = customYellowWatchlist.map { item ->
+            item?.replace("\u00A0", " ")
+                ?.replace("\\s+".toRegex(), " ")
+                ?.uppercase()
+                ?.trim() ?: ""
+        }.filter { it.isNotEmpty() }
+
+        Log.d("LabelEvaluator", "evaluateScanData: Cleaned Ingredients count = ${cleanIngredients.size}, values = $cleanIngredients")
+        Log.d("LabelEvaluator", "evaluateScanData: Cleaned Profile Triggers count = ${cleanRedTriggers.size}, values = $cleanRedTriggers")
+
+        // 2. PROFILE TRIGGERS CHECK (Robust Substring Matching)
+        val matchedReds = cleanRedTriggers.filter { t ->
+            if (t == "PHOS") {
+                cleanIngredients.any { it.contains("PHOS") }
+            } else {
+                cleanIngredients.any { it.contains(t) }
+            }
+        }
+        if (matchedReds.isNotEmpty()) {
+            val matchedItems = cleanIngredients.filter { ingredient ->
+                cleanRedTriggers.any { t ->
+                    if (t == "PHOS") ingredient.contains("PHOS") else ingredient.contains(t)
+                }
+            }.distinct()
+
+            val matchText = if (matchedItems.isNotEmpty()) matchedItems.joinToString(", ") else matchedReds.joinToString(", ")
+            redViolations.add("Blacklisted profile ingredient matched: $matchText")
+        }
+
+        // 3. CUSTOM WATCHLISTS EVALUATION (Robust Substring Matching)
+        val matchedCustomReds = cleanCustomReds.filter { upperItem ->
+            cleanIngredients.any { it.contains(upperItem) }
+        }
+        if (matchedCustomReds.isNotEmpty()) {
+            redViolations.add("Your Watchlist (Avoid): matched ${matchedCustomReds.distinct().joinToString(", ")}")
+        }
+
+        val matchedCustomYellows = cleanCustomYellows.filter { upperItem ->
+            cleanIngredients.any { it.contains(upperItem) }
+        }
+        if (matchedCustomYellows.isNotEmpty()) {
+            yellowViolations.add("Your Watchlist (Caution): matched ${matchedCustomYellows.distinct().joinToString(", ")}")
+        }
+
+        // 4. IMMEDIATE HAZARD ESCAPE: Sound the alarm immediately on blacklisted additives
+        if (redViolations.isNotEmpty()) {
+            return finalizeResult(redViolations, yellowViolations)
+        }
+
+        // 5. SMART ANCHOR NUTRITION CHECK
         fun hasNutrient(xmlId: String): Boolean {
             val validKeys = nutrientRegistry.filter { it.xmlId == xmlId }.map { it.jsonKey }
             return validKeys.any { jsonResult.has(it) && !jsonResult.isNull(it) }
@@ -73,24 +145,54 @@ object LabelEvaluator {
         val hasCalories = hasNutrient("calories")
         val hasSodium = hasNutrient("sodium")
 
-        // Relaxation: Mission Chips work if we have Calories and Sodium
         if (!isProduce && (!hasCalories || !hasSodium)) {
             return EvaluationResult(
-                bgColor = "#607D8B".toColorInt(),
-                textColor = Color.WHITE,
+                bgColor = "#1E2027".toColorInt(),
+                textColor = "#90A4AE".toColorInt(),
+                subtextColor = "#CFD8DC".toColorInt(),
                 gradeTitle = "Incomplete Scan",
                 redViolations = emptyList(),
-                yellowViolations = listOf("Missing core nutrition data (Calories/Sodium).")
+                yellowViolations = listOf("Missing core nutrition data (Calories/Sodium).") + yellowViolations
             )
         }
 
-        // 2. MAIN EVALUATION LOOP
+        // Helper to extract values dynamically
         fun getVal(xmlId: String): Float {
             val keys = nutrientRegistry.filter { it.xmlId == xmlId }.map { it.jsonKey }
             for (k in keys) { if (jsonResult.has(k)) return jsonResult.optDouble(k, 0.0).toFloat() }
             return 0.0f
         }
 
+        // 6. CLINICAL DYNAMIC PROTEIN RULES ENGINE
+        val proteinRules = userSettings.getActiveProteinRules()
+        val enforceFloor = userSettings.isFeatureFlagActive("enforce_protein_floor")
+        val enforceCeiling = userSettings.isFeatureFlagActive("enforce_protein_ceiling")
+
+        if (enforceFloor || enforceCeiling) {
+            val proteinVal = getVal("protein")
+            val caloriesVal = getVal("calories")
+
+            // Classify snack vs. meal based on 250 calorie baseline
+            val isMeal = caloriesVal > 250.0f
+
+            if (isMeal) {
+                if (enforceCeiling && proteinVal > proteinRules.mealMax) {
+                    redViolations.add("Protein exceeds meal limit: found ${proteinVal.toInt()}g (limit: ${proteinRules.mealMax}g)")
+                }
+                if (enforceFloor && proteinVal < proteinRules.mealMin) {
+                    yellowViolations.add("Protein is below meal requirement: found ${proteinVal.toInt()}g (needs: ${proteinRules.mealMin}g)")
+                }
+            } else {
+                if (enforceCeiling && proteinVal > proteinRules.snackMax) {
+                    redViolations.add("Protein exceeds snack limit: found ${proteinVal.toInt()}g (limit: ${proteinRules.snackMax}g)")
+                }
+                if (enforceFloor && proteinVal < proteinRules.snackMin) {
+                    yellowViolations.add("Protein is below snack requirement: found ${proteinVal.toInt()}g (needs: ${proteinRules.snackMin}g)")
+                }
+            }
+        }
+
+        // 7. MAIN NUTRIENT EVALUATION LOOP (Static Fallbacks)
         val totalCarbs = getVal("carbs")
         val fiber = getVal("fiber")
         val netCarbs = (totalCarbs - fiber).coerceAtLeast(0.0f)
@@ -99,36 +201,75 @@ object LabelEvaluator {
         for (map in nutrientRegistry) {
             if (processed.contains(map.xmlId)) continue
 
+            // Skip protein static loop if advanced XML protein rule flags are actively enforcing it
+            if (map.xmlId == "protein" && (enforceFloor || enforceCeiling)) {
+                processed.add(map.xmlId)
+                continue
+            }
+
             val (low, mod, blacklist) = userSettings.getNutrientThresholds(map.xmlId)
             if (mod >= 999.0) continue
 
             var value = if (map.useNetCarbs && savedProfileIds.contains("keto")) netCarbs else getVal(map.xmlId)
             if (map.isScaleRequired && value in 0.01f..5.0f) value *= 1000
 
+            val actualValFormatted = when (map.xmlId) {
+                "calories" -> "${value.toInt()} kcal"
+                "sodium", "potassium" -> "${value.toInt()} mg"
+                else -> String.format(java.util.Locale.US, "%.1f g", value.toDouble())
+            }
+            val modFormatted = when (map.xmlId) {
+                "calories" -> "${mod.toInt()} kcal"
+                "sodium", "potassium" -> "${mod.toInt()} mg"
+                else -> String.format(java.util.Locale.US, "%.1f g", mod.toDouble())
+            }
+            val lowFormatted = when (map.xmlId) {
+                "calories" -> "${low.toInt()} kcal"
+                "sodium", "potassium" -> "${low.toInt()} mg"
+                else -> String.format(java.util.Locale.US, "%.1f g", low.toDouble())
+            }
+
             if (value > mod) {
                 val label = if (map.useNetCarbs && savedProfileIds.contains("keto")) "Net Carbs" else map.displayName
-                if (blacklist) redViolations.add(label) else yellowViolations.add(label)
+                val message = "$label exceeds target limit: found $actualValFormatted (limit: $modFormatted)"
+                if (blacklist) redViolations.add(message) else yellowViolations.add(message)
             } else if (value > low) {
                 val label = if (map.useNetCarbs && savedProfileIds.contains("keto")) "Net Carbs" else map.displayName
-                yellowViolations.add(label)
+                val message = "$label is high: found $actualValFormatted (caution limit: $lowFormatted)"
+                yellowViolations.add(message)
             }
             processed.add(map.xmlId)
         }
-
-        // 3. TRIGGERS
-        val matchedReds = xmlRedTriggers.filter { t ->
-            if (t == "PHOS") detectedIngredients.any { it.contains("PHOS") } else detectedIngredients.contains(t)
-        }
-        if (matchedReds.isNotEmpty()) redViolations.add("Risk Additive")
 
         return finalizeResult(redViolations, yellowViolations)
     }
 
     private fun finalizeResult(reds: List<String>, yellows: List<String>): EvaluationResult {
         return when {
-            reds.isNotEmpty() -> EvaluationResult("#F44336".toColorInt(), Color.WHITE, "Red - Avoid", reds.distinct(), yellows.distinct())
-            yellows.isNotEmpty() -> EvaluationResult("#FFEB3B".toColorInt(), Color.BLACK, "Yellow - Caution", emptyList(), yellows.distinct())
-            else -> EvaluationResult("#4CAF50".toColorInt(), Color.WHITE, "Green - Safe", emptyList(), emptyList())
+            reds.isNotEmpty() -> EvaluationResult(
+                bgColor = "#321414".toColorInt(),
+                textColor = "#E57373".toColorInt(),
+                subtextColor = "#FFCDD2".toColorInt(),
+                gradeTitle = "Red - Avoid",
+                redViolations = reds.distinct(),
+                yellowViolations = yellows.distinct()
+            )
+            yellows.isNotEmpty() -> EvaluationResult(
+                bgColor = "#332500".toColorInt(),
+                textColor = "#FFD54F".toColorInt(),
+                subtextColor = "#FFF9C4".toColorInt(),
+                gradeTitle = "Yellow - Caution",
+                redViolations = emptyList(),
+                yellowViolations = yellows.distinct()
+            )
+            else -> EvaluationResult(
+                bgColor = "#14321A".toColorInt(),
+                textColor = "#81C784".toColorInt(),
+                subtextColor = "#C8E6C9".toColorInt(),
+                gradeTitle = "Green - Safe",
+                redViolations = emptyList(),
+                yellowViolations = emptyList()
+            )
         }
     }
 }

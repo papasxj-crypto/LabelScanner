@@ -307,9 +307,9 @@ class AppSettings(private val context: Context) {
                 "total_fat"     -> Triple(5, 15, false)
                 "potassium"     -> Triple(350, 700, false)
                 "carbs"         -> Triple(20, 45, false)
-                "calories"      -> Triple(0, 0, false)
-                "fiber"         -> Triple(0, 0, false)
-                else            -> Triple(0, 0, false)
+                "calories"      -> Triple(0, 999, false) // 999 maps to unlimited, skipping static validation
+                "fiber"         -> Triple(0, 999, false)
+                else            -> Triple(0, 999, false)
             }
         }
 
@@ -358,7 +358,8 @@ class AppSettings(private val context: Context) {
             e.printStackTrace()
         }
 
-        if (!profileMatched) return Triple(0, 0, false)
+        // Return 999 (unlimited) instead of 0 if the nutrient element is omitted in active xml files
+        if (!profileMatched) return Triple(0, 999, false)
         return Triple(lowMax, modMax, isBlacklist)
     }
 

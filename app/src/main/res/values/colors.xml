@@ -2,4 +2,33 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Premium Dark Theme Palette -->
+    <color name="backgroundColor">#111216</color>
+    <color name="surfaceColor">#1A1D24</color>
+    <color name="surfaceStrokeColor">#2C313C</color>
+    <color name="textPrimary">#F4F5FC</color>
+    <color name="textSecondary">#99A1B3</color>
+    <color name="textMuted">#6E7585</color>
+
+    <!-- Balanced Dynamic Dark-Mode Status Colors -->
+    <!-- Safe (Green) -->
+    <color name="safeBg">#14321A</color>
+    <color name="safeAccent">#81C784</color>
+    <color name="safeText">#C8E6C9</color>
+
+    <!-- Caution (Yellow) -->
+    <color name="cautionBg">#332500</color>
+    <color name="cautionAccent">#FFD54F</color>
+    <color name="cautionText">#FFF9C4</color>
+
+    <!-- Avoid (Red) -->
+    <color name="avoidBg">#321414</color>
+    <color name="avoidAccent">#E57373</color>
+    <color name="avoidText">#FFCDD2</color>
+
+    <!-- Incomplete/Neutral (Grey) -->
+    <color name="neutralBg">#1E2027</color>
+    <color name="neutralAccent">#90A4AE</color>
+    <color name="neutralText">#CFD8DC</color>
 </resources>

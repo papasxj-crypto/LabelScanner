@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212">
+    android:background="@color/backgroundColor">
 
     <!-- Scrollable Content Layer -->
     <androidx.core.widget.NestedScrollView
@@ -28,7 +28,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:text="Selected Target: Standard Baseline"
-                android:textColor="@color/white"
+                android:textColor="@color/textPrimary"
                 android:textSize="16sp" />
 
             <TextView
@@ -37,7 +37,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:padding="8dp"
-                android:textColor="@android:color/white"
+                android:textColor="@color/textSecondary"
                 android:textSize="14sp" />
 
             <!-- THE SUMMARY SCORE CARD -->
@@ -75,17 +75,16 @@
                         android:layout_marginTop="4dp"
                         android:text="Enjoy your meal"
                         android:textSize="16sp"
-                        android:textColor="#FFFFFF"
-                        android:alpha="0.9" />
+                        android:textColor="#FFFFFF" />
 
                     <TextView
+                        android:id="@+id/textTapPrompt"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:text="Tap for details ➔"
                         android:textSize="12sp"
-                        android:textColor="#FFFFFF"
-                        android:alpha="0.7" />
+                        android:textColor="#FFFFFF" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

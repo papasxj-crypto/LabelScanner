@@ -43,10 +43,10 @@
 
     <!-- History Screen Fragment -->
     <fragment
-        android:id="@+id/navigation_history"
-        android:name="net.meinook.labelscanner.HistoryFragment"
-        android:label="History"
-        tools:layout="@layout/fragment_history" />
+        android:id="@+id/recipeFragment"
+        android:name="net.meinook.labelscanner.RecipeFragment"
+        android:label="Recipe Adjuster"
+        tools:layout="@layout/fragment_recipe" />
 
     <!-- Settings Screen Fragment -->
     <activity

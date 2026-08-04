@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,7 +44,6 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-// Inline custom vector icons to replace missing drawables
 private val CameraPlaceholderIcon: ImageVector by lazy {
     ImageVector.Builder(
         name = "CameraPlaceholder",
@@ -83,7 +83,6 @@ private val BarcodePlaceholderIcon: ImageVector by lazy {
         viewportWidth = 24f,
         viewportHeight = 24f
     ).path(fill = SolidColor(Color.White)) {
-        // Parallel barcode line paths
         moveTo(2f, 4f); horizontalLineTo(4f); verticalLineTo(20f); horizontalLineTo(2f); close()
         moveTo(5f, 4f); horizontalLineTo(6f); verticalLineTo(20f); horizontalLineTo(5f); close()
         moveTo(8f, 4f); horizontalLineTo(11f); verticalLineTo(20f); horizontalLineTo(8f); close()
@@ -101,7 +100,6 @@ private val ProducePlaceholderIcon: ImageVector by lazy {
         viewportWidth = 24f,
         viewportHeight = 24f
     ).path(fill = SolidColor(Color.White)) {
-        // Leaf/Droplet silhouette representing healthy/produce products
         moveTo(12f, 2f)
         curveTo(12f, 2f, 4f, 6f, 4f, 13f)
         curveTo(4f, 18f, 8f, 22f, 12f, 22f)
@@ -176,7 +174,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         cachedEval?.let { eval ->
             displaySummaryCard(eval, cachedSub, 0, 0f, 0, 0f, 0f, 0f, 0f, false, isRestoring = true)
         }
-       updateConditionText()
+        updateConditionText()
     }
 
     @Composable
@@ -192,7 +190,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 .padding(bottom = 100.dp, start = 16.dp, end = 16.dp),
             contentAlignment = if (isRightHanded) Alignment.BottomEnd else Alignment.BottomStart
         ) {
-            // 1. Top Button (Fresh Produce)
             ThumbMenuButton(
                 isRightHanded = isRightHanded,
                 text = "Fresh Produce",
@@ -203,7 +200,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 onClick = onProduceClick
             )
 
-            // 2. Middle Button (Barcode Lookup)
             ThumbMenuButton(
                 isRightHanded = isRightHanded,
                 text = "Barcode Lookup",
@@ -214,7 +210,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 onClick = onBarcodeClick
             )
 
-            // 3. Base Button (Camera Scan)
             ThumbMenuButton(
                 isRightHanded = isRightHanded,
                 text = "Camera Scan",
@@ -242,10 +237,9 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (isRightHanded) {
-                // Right-Handed layout: Text pill on the left, button on the right
                 Surface(
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                    color = Color(0xCC000000), // Semi-transparent black for legibility
+                    color = Color(0xCC000000),
                     modifier = Modifier.padding(end = 8.dp)
                 ) {
                     Text(
@@ -261,27 +255,26 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     shape = CircleShape,
                     containerColor = containerColor,
                     contentColor = Color.White,
-                    modifier = Modifier.size(96.dp) // Enlarged touch target
+                    modifier = Modifier.size(96.dp)
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = text,
-                        modifier = Modifier.size(32.dp) // Enlarged icon
+                        modifier = Modifier.size(32.dp)
                     )
                 }
             } else {
-                // Left-Handed layout: Button on the left, text pill on the right
                 FloatingActionButton(
                     onClick = onClick,
                     shape = CircleShape,
                     containerColor = containerColor,
                     contentColor = Color.White,
-                    modifier = Modifier.size(96.dp) // Enlarged touch target
+                    modifier = Modifier.size(96.dp)
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = text,
-                        modifier = Modifier.size(32.dp) // Enlarged icon
+                        modifier = Modifier.size(32.dp)
                     )
                 }
                 Surface(
@@ -322,14 +315,45 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         val product = json.getJSONObject("product")
                         val nutriments = product.optJSONObject("nutriments") ?: JSONObject()
                         val ingredients = product.optString("ingredients_text", "").split(",").map { it.trim().uppercase() }
+
+                        // Robust schema mapper that strictly writes keys ONLY if they are populated [1]
                         val evalJson = JSONObject().apply {
-                            put("calories", nutriments.optInt("energy-kcal_serving", 0))
-                            put("sodium", (nutriments.optDouble("sodium_serving", 0.0) * 1000).toInt())
-                            put("protein", nutriments.optDouble("proteins_serving", 0.0))
-                            put("carbs", nutriments.optDouble("carbohydrates_serving", 0.0))
-                            put("fiber", nutriments.optDouble("fiber_serving", 0.0))
-                            put("sugar", nutriments.optDouble("sugars_serving", 0.0))
+                            fun hasVal(vararg keys: String): Boolean {
+                                return keys.any { nutriments.has(it) && !nutriments.isNull(it) }
+                            }
+
+                            // Check for Calories keys (serving, then 100g fallback) [1]
+                            if (hasVal("energy-kcal_serving")) {
+                                put("calories", nutriments.optInt("energy-kcal_serving", 0))
+                            } else if (hasVal("energy-kcal_100g")) {
+                                put("calories", nutriments.optInt("energy-kcal_100g", 0))
+                            } else if (hasVal("energy-kcal")) {
+                                put("calories", nutriments.optInt("energy-kcal", 0))
+                            }
+
+                            // Check for Sodium keys (serving, then 100g fallback) [1]
+                            if (hasVal("sodium_serving")) {
+                                put("sodium", (nutriments.optDouble("sodium_serving", 0.0) * 1000).toInt())
+                            } else if (hasVal("sodium_100g")) {
+                                put("sodium", (nutriments.optDouble("sodium_100g", 0.0) * 1000).toInt())
+                            } else if (hasVal("sodium")) {
+                                put("sodium", (nutriments.optDouble("sodium", 0.0) * 1000).toInt())
+                            }
+
+                            // Optional macronutrient schema checking
+                            if (hasVal("proteins_serving")) put("protein", nutriments.optDouble("proteins_serving", 0.0))
+                            else if (hasVal("proteins_100g")) put("protein", nutriments.optDouble("proteins_100g", 0.0))
+
+                            if (hasVal("carbohydrates_serving")) put("carbs", nutriments.optDouble("carbohydrates_serving", 0.0))
+                            else if (hasVal("carbohydrates_100g")) put("carbs", nutriments.optDouble("carbohydrates_100g", 0.0))
+
+                            if (hasVal("fiber_serving")) put("fiber", nutriments.optDouble("fiber_serving", 0.0))
+                            else if (hasVal("fiber_100g")) put("fiber", nutriments.optDouble("fiber_100g", 0.0))
+
+                            if (hasVal("sugars_serving")) put("sugar", nutriments.optDouble("sugars_serving", 0.0))
+                            else if (hasVal("sugars_100g")) put("sugar", nutriments.optDouble("sugars_100g", 0.0))
                         }
+
                         val userSettings = AppSettings(requireContext())
                         val evalResult = LabelEvaluator.evaluateScanData(
                             evalJson,
@@ -344,22 +368,55 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             displaySummaryCard(
                                 evalResult,
                                 product.optString("product_name", "Product"),
-                                evalJson.getInt("calories"),
-                                evalJson.getDouble("protein").toFloat(),
-                                evalJson.getInt("sodium"),
+                                evalJson.optInt("calories", 0),
+                                evalJson.optDouble("protein", 0.0).toFloat(),
+                                evalJson.optInt("sodium", 0),
                                 0f,
-                                evalJson.getDouble("carbs").toFloat(),
-                                (evalJson.getDouble("carbs") - evalJson.getDouble("fiber")).toFloat(),
-                                evalJson.getDouble("sugar").toFloat(),
+                                evalJson.optDouble("carbs", 0.0).toFloat(),
+                                (evalJson.optDouble("carbs", 0.0) - evalJson.optDouble("fiber", 0.0)).toFloat(),
+                                evalJson.optDouble("sugar", 0.0).toFloat(),
                                 userSettings.getSelectedConditions().contains("keto")
                             )
                         }
                     }
                 }
             } catch (e: Exception) {
-                activity?.runOnUiThread { textExplanation.text = "Error" }
+                Log.e("LabelScanner", "Barcode lookup background error", e)
+                activity?.runOnUiThread {
+                    textExplanation.text = "Error: ${e.localizedMessage ?: "Unknown connection failure"}"
+                }
             }
         }
+    }
+
+    private fun extractIngredientsFromJson(json: JSONObject): List<String> {
+        val keys = listOf(
+            "di", "detected_ingredients", "ingredients", "ingredients_list",
+            "ingredient_list", "detected_ingredients_list"
+        )
+        for (key in keys) {
+            if (!json.has(key)) continue
+
+            val arr = json.optJSONArray(key)
+            if (arr != null) {
+                val list = mutableListOf<String>()
+                for (i in 0 until arr.length()) {
+                    val item = arr.optString(i, "")
+                    if (item.isNotEmpty()) {
+                        list.add(item.uppercase().trim())
+                    }
+                }
+                if (list.isNotEmpty()) return list
+            }
+
+            val str = json.optString(key, "")
+            if (str.isNotEmpty()) {
+                return str.split(",")
+                    .map { it.uppercase().trim() }
+                    .filter { it.isNotEmpty() }
+            }
+        }
+        return emptyList()
     }
 
     private fun runAnalysis(imageBitmap: Bitmap) {
@@ -374,16 +431,23 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     BuildConfig.GEMINI_API_KEY,
                     getString(R.string.model_identifier_txt)
                 )
+
+                Log.d("LabelScanner", "HomeFragment: Raw Gemini Response = $rawResponse")
+
                 val json = JSONObject(rawResponse.replace("```json", "").replace("```", "").trim())
-                val ingredients = (json.optJSONArray("detected_ingredients") ?: json.optJSONArray("ingredients"))?.let { arr ->
-                    (0 until arr.length()).map { arr.getString(it).uppercase() }
-                } ?: emptyList()
+
+                val ingredients = extractIngredientsFromJson(json)
+                val loadedRedTriggers = userSettings.loadTriggersFromAssets("red")
+
+                Log.d("LabelScanner", "HomeFragment: Loaded red triggers = $loadedRedTriggers")
+                Log.d("LabelScanner", "HomeFragment: Safely Extracted Ingredients = $ingredients")
+
                 val evalResult = LabelEvaluator.evaluateScanData(
                     json,
                     ingredients,
                     userSettings.getSelectedConditions(),
                     userSettings,
-                    userSettings.loadTriggersFromAssets("red"),
+                    loadedRedTriggers,
                     userSettings.getCustomWatchlist("RED"),
                     userSettings.getCustomWatchlist("YELLOW")
                 )
@@ -405,7 +469,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     )
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { textExplanation.text = "Failed" }
+                Log.e("LabelScanner", "Camera Scan analysis error", e)
+                withContext(Dispatchers.Main) {
+                    textExplanation.text = "Failed: ${e.localizedMessage ?: "Analysis error"}"
+                }
             }
         }
     }
@@ -419,11 +486,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     BuildConfig.GEMINI_API_KEY,
                     getString(R.string.model_identifier_txt)
                 )
+                Log.d("LabelScanner", "HomeFragment: Raw Produce Response = $rawResponse")
+
                 val json = JSONObject(rawResponse.replace("```json", "").replace("```", "").trim())
                 val name = json.optString("item_name", "Produce")
                 val evalResult = LabelEvaluator.evaluateScanData(
                     json,
-                    listOf(name.uppercase()),
+                    listOf(name.uppercase().trim()),
                     AppSettings(requireContext()).getSelectedConditions(),
                     AppSettings(requireContext()),
                     emptyList(),
@@ -436,7 +505,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     displaySummaryCard(evalResult, name, json.optInt("calories"), 0f, 0, 0f, 0f, 0f, 0f, false)
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { textExplanation.text = "Failed" }
+                Log.e("LabelScanner", "Produce analysis error", e)
+                withContext(Dispatchers.Main) {
+                    textExplanation.text = "Failed: ${e.localizedMessage ?: "Produce error"}"
+                }
             }
         }
     }
@@ -464,14 +536,30 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
         }
         cardSummary.visibility = View.VISIBLE
+
         cardSummary.setCardBackgroundColor(evaluation.bgColor)
+        cardSummary.strokeColor = evaluation.textColor
+        cardSummary.strokeWidth = (2 * resources.displayMetrics.density).toInt()
+
         textSummaryGrade.text = evaluation.gradeTitle
         textSummaryGrade.setTextColor(evaluation.textColor)
-        textSummaryExplanation.text = if (evaluation.redViolations.isNotEmpty()) {
-            "Avoid: ${evaluation.redViolations.first()}"
+
+        val explanationText = if (evaluation.redViolations.isNotEmpty()) {
+            val first = evaluation.redViolations.first()
+            if (first.contains(":")) "Avoid: ${first.substringBefore(":")}" else "Avoid: $first"
+        } else if (evaluation.yellowViolations.isNotEmpty()) {
+            val first = evaluation.yellowViolations.first()
+            if (first.contains(":")) "Caution: ${first.substringBefore(":")}" else "Caution: $first"
         } else {
-            "Tap for detail"
+            "Enjoy your meal"
         }
+
+        textSummaryExplanation.text = explanationText
+        textSummaryExplanation.setTextColor(evaluation.subtextColor)
+
+        val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
+        textTapPrompt?.setTextColor(evaluation.textColor)
+
         textExplanation.text = ""
 
         cardSummary.setOnClickListener {

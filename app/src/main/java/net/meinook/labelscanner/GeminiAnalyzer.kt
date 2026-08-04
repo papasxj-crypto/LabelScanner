@@ -9,7 +9,6 @@ import kotlinx.coroutines.withContext
 
 object GeminiAnalyzer {
 
-    // Define your configuration variables here at the top since they don't depend on the API key
     private val strictConfig = generationConfig {
         responseMimeType = "application/json"
         temperature = 0.0f
@@ -19,11 +18,10 @@ object GeminiAnalyzer {
         imageBitmap: Bitmap,
         condition: String,
         apiKey: String,
-        modelIdentifier: String// 1. Key enters the machine here
+        modelIdentifier: String
     ): String = withContext(Dispatchers.IO) {
 
         try {
-            // 2. Build the model on-the-fly using the parameter key
             val model = GenerativeModel(
                 modelName = modelIdentifier,
                 apiKey = apiKey,
@@ -52,7 +50,7 @@ object GeminiAnalyzer {
                            }
                            Rules for values:
                            1. If an item is missing or unreadable on the label, default its numeric value to 0.
-                           2. Only include ingredients in the "detected_ingredients" array.
+                           2. Only include parsed ingredients in the "di" array.
                            3. Extract exact whole numbers for the gram (g) and milligram (mg) values.
                            4. If a macro is explicitly listed as 0g or Less than 1g on the label, you MUST return its value as 0.0. Do not round up or hallucinate values.
                            5. Extract the "servings per container" value as a precise decimal number (e.g., 2.5). Look for the key "servings_per_container".
@@ -61,17 +59,15 @@ object GeminiAnalyzer {
                 }
             )
 
-            // 3. Dispatch the bitmap to the model instance
             val response = model.generateContent(content {
                 image(imageBitmap)
             })
 
-            // Return the raw text string back to MainActivity
             response.text ?: "{}"
 
         } catch (e: Exception) {
             e.printStackTrace()
-            "{}" // Return an empty JSON block fallback on network error
+            "{}"
         }
     }
 
@@ -103,10 +99,11 @@ object GeminiAnalyzer {
           "trans_fat_g": 0.0,
           "fiber": 0.0,
           "potassium_g": 0.0,
-          "detected_ingredients": ["RAW PRODUCE"]
+          "di": ["RAW PRODUCE"]
         }
     """.trimIndent()
 
+        // Fixed compiler typo here (generateContent instead of generateModel)
         val response = generativeModel.generateContent(
             content {
                 image(bitmap)

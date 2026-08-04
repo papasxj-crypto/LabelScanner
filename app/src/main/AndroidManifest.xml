@@ -8,12 +8,13 @@
         </intent>
     </queries>
 
+    <!-- ALL PERMISSIONS GO HERE (OUTSIDE <application>) -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
-
-    <!-- Required for barcode scanning -->
-    <uses-feature android:name="android.hardware.camera.any" />
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- HARDWARE FEATURES -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.any" />
 
     <application
         android:allowBackup="true"
@@ -41,12 +42,15 @@
             android:name=".ScannerActivity"
             android:exported="false" />
 
-        <!-- 3. RESULT DETAIL ACTIVITY (The Juicy Details) -->
+        <!-- 3. RESULT DETAIL ACTIVITY
+             (Note: Remove or leave commented out if using DetailFragment with NavController) -->
+        <!--
         <activity
             android:name=".ResultDetailActivity"
             android:exported="false"
             android:theme="@style/Theme.LabelScanner"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout" />
+        -->
 
         <!-- 4. OTHER ACTIVITIES -->
         <activity android:name=".SettingsActivity" android:exported="false" />

@@ -5,7 +5,7 @@
     android:id="@+id/detailRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"
+    android:background="@color/backgroundColor"
     android:transitionName="shared_element_container">
 
     <LinearLayout
@@ -14,7 +14,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- REMOVED the ID here so cardResult is the primary ID -->
+        <!-- cardResult is the primary layout -->
         <include
             layout="@layout/card_result_summary"
             android:layout_width="match_parent"
@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:text="BACK"
-            android:textColor="#999999" />
+            android:textColor="@color/textSecondary" />
 
         <Space android:layout_width="match_parent" android:layout_height="80dp"/>
     </LinearLayout>

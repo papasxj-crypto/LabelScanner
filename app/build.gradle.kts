@@ -61,6 +61,9 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.activity:activity-ktx:1.8.2")
 
+    // Google ML Kit Text Recognition (On-Device OCR)
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
+
     // Gemini & AI
     implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
 
@@ -88,6 +91,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.activity:activity-compose")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+    // OkHttp for Web Scraping / HTTP requests
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
