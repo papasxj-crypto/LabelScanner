@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/backgroundColor">
+    android:background="@drawable/bg_vintage_parchment"> <!-- Vintage parchment background applied! -->
 
     <!-- Scrollable Content Layer -->
     <androidx.core.widget.NestedScrollView
@@ -83,7 +83,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:text="Tap for details ➔"
-                        android:textSize="12sp"
+                        android:textSize="15sp"
                         android:textColor="#FFFFFF" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -95,6 +95,19 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- Floating Settings Gear in the Top Right [2] -->
+    <ImageButton
+        android:id="@+id/btnSettings"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_settings"
+        android:contentDescription="Settings"
+        app:tint="@color/textPrimary" />
 
     <!-- The Floating Bridge for our Thumb-Friendly Compose Menu -->
     <androidx.compose.ui.platform.ComposeView

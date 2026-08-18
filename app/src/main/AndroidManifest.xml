@@ -8,7 +8,7 @@
         </intent>
     </queries>
 
-    <!-- ALL PERMISSIONS GO HERE (OUTSIDE <application>) -->
+    <!-- ALL PERMISSIONS GO HERE -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -26,14 +26,22 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LabelScanner">
 
-        <!-- 1. MAIN ACTIVITY (Home/Fragment Container) -->
+        <!-- 1. MAIN ACTIVITY (Now handles both launcher and incoming share intents) [1.1.1] -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Shared Intent Filter: Targets web browser share sheets [1.1.1] -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
 
@@ -42,17 +50,7 @@
             android:name=".ScannerActivity"
             android:exported="false" />
 
-        <!-- 3. RESULT DETAIL ACTIVITY
-             (Note: Remove or leave commented out if using DetailFragment with NavController) -->
-        <!--
-        <activity
-            android:name=".ResultDetailActivity"
-            android:exported="false"
-            android:theme="@style/Theme.LabelScanner"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout" />
-        -->
-
-        <!-- 4. OTHER ACTIVITIES -->
+        <!-- 3. OTHER ACTIVITIES -->
         <activity android:name=".SettingsActivity" android:exported="false" />
 
         <!-- FILE PROVIDER -->

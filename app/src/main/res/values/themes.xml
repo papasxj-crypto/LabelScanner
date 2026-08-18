@@ -22,7 +22,31 @@
         <item name="android:paddingBottom">12dp</item>
     </style>
 
-    <style name="Theme.LabelScanner" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+    <!-- Base Application Theme -->
+    <style name="Theme.LabelScanner" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Global Bottom Navigation Style Override -->
+        <item name="bottomNavigationStyle">@style/Widget.LabelScanner.BottomNavigationView</item>
+
+        <!-- Global Theme Colors [1] -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorSecondary">@color/colorSecondary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Toggle Button Checked States (Overrides purple check background) [1] -->
+        <item name="colorPrimaryContainer">#2B1F16</item> <!-- Cocoa-brown active background -->
+        <item name="colorOnPrimaryContainer">#E5C158</item> <!-- Warm gold active text -->
+
+        <!-- System-wide Touch Ripple / Pulse (Overrides purple ripple globally!) [2] -->
+        <item name="colorControlHighlight">#40E5C158</item> <!-- 25% transparent gold ripple instead of purple -->
+    </style>
+
+    <!-- Bottom Navigation Custom Styling -->
+    <style name="Widget.LabelScanner.BottomNavigationView" parent="Widget.MaterialComponents.BottomNavigationView">
+        <item name="backgroundTint">#2B1F16</item> <!-- Dark tan / lite brown background -->
+        <item name="itemIconTint">@color/bottom_nav_color_state</item> <!-- Fills state selector -->
+        <item name="itemTextColor">@color/bottom_nav_color_state</item>
+    </style>
 
     <!-- Base style for the stylized rounded triangle buttons -->
     <style name="StylizedScanButton" parent="Widget.MaterialComponents.Button">

@@ -10,7 +10,7 @@
 
     <!-- CKD Specific Target Metrics -->
     <nutrient name="sodium" low_max="140" moderate_max="300" is_blacklist="true" />
-    <nutrient name="potassium" low_max="200" moderate_max="350" is_blacklist="true" />
+    <nutrient name="potassium" low_max="200" moderate_max="550" is_blacklist="true" />
     <nutrient name="phosphorus" low_max="100" moderate_max="200" is_blacklist="true" />
     <nutrient name="calcium" low_max="200" moderate_max="400" is_blacklist="false" />
 

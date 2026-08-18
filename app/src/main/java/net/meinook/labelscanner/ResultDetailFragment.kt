@@ -15,26 +15,26 @@ class ResultDetailFragment : Fragment(R.layout.fragment_result_detail) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Iris expansion transition setup
         sharedElementEnterTransition = MaterialContainerTransform().apply {
             drawingViewId = R.id.nav_host_fragment
             duration = 400
             scrimColor = Color.TRANSPARENT
-            setAllContainerColors(Color.parseColor("#111216")) // Match our premium background
+            setAllContainerColors(Color.parseColor("#111216"))
         }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 1. Unpack data from transition Bundle
+        // 1. Unpack Data from the Arguments Bundle
         val eval = arguments?.getSerializable("EVAL") as? EvaluationResult
         val sub = arguments?.getString("SUB") ?: ""
         val macros = arguments?.getBundle("MACROS") ?: return
+        val suggestions = arguments?.getSerializable("SUGGESTIONS") as? ArrayList<ProductAlternative>
 
         if (eval == null) return
 
-        // 2. Map view elements from the included layout structure
+        // 2. Find Views directly from the included layout
         val card = view.findViewById<MaterialCardView>(R.id.cardResult)
         val textTitle = view.findViewById<TextView>(R.id.textGradeTitle)
         val textSub = view.findViewById<TextView>(R.id.textItemSubtitle)
@@ -49,36 +49,41 @@ class ResultDetailFragment : Fragment(R.layout.fragment_result_detail) {
         val chipCarb = view.findViewById<TextView>(R.id.chipCarbs)
         val chipSug = view.findViewById<TextView>(R.id.chipSugar)
 
-        // 3. Force card container visibility
+        // 3. CRITICAL: Force Visibility (because XML is set to 'gone')
         card?.visibility = View.VISIBLE
 
-        // 4. Set Header Banner dynamically to match evaluated status color while keeping the rest of the card clean
+        // 4. Apply Evaluation Visuals
         textTitle?.setBackgroundColor(eval.bgColor)
         textTitle?.text = eval.gradeTitle
         textTitle?.setTextColor(eval.textColor)
         textSub?.text = sub
 
-        // 5. Populate structured explanations ("Why" detailed metrics)
-        val allVio = eval.redViolations + eval.yellowViolations
-        if (allVio.isNotEmpty()) {
-            layoutVio?.visibility = View.VISIBLE
-            textVioList?.text = allVio.joinToString("\n• ", prefix = "• ")
+        // 5. Populate Violations (Filtered presentation: 2-3 of the worst category) [1]
+        val isRedActive = eval.redViolations.isNotEmpty()
+        val displayVioList = if (isRedActive) {
+            eval.redViolations.distinct().take(3) // Limit to top 3 RED violations [1]
+        } else {
+            eval.yellowViolations.distinct().take(3) // Fall back to top 3 YELLOW cautions if RED is empty [1]
+        }
 
-            // Dynamic theme layout highlighting
-            if (eval.redViolations.isNotEmpty()) {
+        if (displayVioList.isNotEmpty()) {
+            layoutVio?.visibility = View.VISIBLE
+            textVioList?.text = displayVioList.joinToString("\n• ", prefix = "• ")
+
+            if (isRedActive) {
                 textVioHeader?.text = "Profile Violations (Avoid):"
-                textVioHeader?.setTextColor(eval.textColor) // Muted light-red alert color
-                layoutVio?.setBackgroundColor(Color.parseColor("#2A1215")) // Soft dark red tint
+                textVioHeader?.setTextColor(eval.textColor)
+                layoutVio?.setBackgroundColor(Color.parseColor("#2A1215")) // Deep red alert tint
             } else {
                 textVioHeader?.text = "Profile Cautions (Keep in mind):"
-                textVioHeader?.setTextColor(eval.textColor) // Muted light-yellow alert color
-                layoutVio?.setBackgroundColor(Color.parseColor("#2A2212")) // Soft dark amber tint
+                textVioHeader?.setTextColor(eval.textColor)
+                layoutVio?.setBackgroundColor(Color.parseColor("#2A2212")) // Deep yellow caution tint
             }
         } else {
             layoutVio?.visibility = View.GONE
         }
 
-        // 6. Populate Macros
+        // 6. Populate Macros using the exact keys from HomeFragment
         chipCal?.text = "Calories: ${macros.getInt("cal")}"
         chipPro?.text = "Protein: ${macros.getFloat("pro").toInt()}g"
         chipSod?.text = "Sodium: ${macros.getInt("sod")}mg"
@@ -95,7 +100,44 @@ class ResultDetailFragment : Fragment(R.layout.fragment_result_detail) {
         }
         chipSug?.text = "Sugar: ${macros.getFloat("sug").toInt()}g"
 
-        // 7. Handle back navigation
+        // 7. Dynamic Alternatives Binding Block
+        val layoutAltSection = view.findViewById<LinearLayout>(R.id.layoutAlternativesSection)
+
+        if (suggestions != null && suggestions.isNotEmpty()) {
+            layoutAltSection?.visibility = View.VISIBLE
+
+            val cardsList = listOf(
+                view.findViewById<MaterialCardView>(R.id.cardAlt1) to (view.findViewById<TextView>(R.id.textAlt1Name) to view.findViewById<TextView>(R.id.textAlt1Brand)),
+                view.findViewById<MaterialCardView>(R.id.cardAlt2) to (view.findViewById<TextView>(R.id.textAlt2Name) to view.findViewById<TextView>(R.id.textAlt2Brand)),
+                view.findViewById<MaterialCardView>(R.id.cardAlt3) to (view.findViewById<TextView>(R.id.textAlt3Name) to view.findViewById<TextView>(R.id.textAlt3Brand))
+            )
+
+            // Hide cards initially to prevent leftover layouts from drawing
+            cardsList.forEach { it.first?.visibility = View.GONE }
+
+            // Display up to 3 parsed safe options
+            for (i in 0 until minOf(suggestions.size, cardsList.size)) {
+                val suggestion = suggestions[i]
+                val (cardView, textViews) = cardsList[i]
+                val (nameTextView, brandTextView) = textViews
+
+                cardView?.visibility = View.VISIBLE
+                nameTextView?.text = suggestion.name
+                brandTextView?.text = if (suggestion.brand.isNotEmpty()) suggestion.brand else "Brand Unlisted"
+
+                val strokeColor = if (suggestion.gradeTitle.startsWith("Yellow")) {
+                    Color.parseColor("#FFD54F") // Soft Amber Accent
+                } else {
+                    Color.parseColor("#81C784") // Soft Green Accent
+                }
+
+                cardView?.strokeColor = strokeColor
+            }
+        } else {
+            layoutAltSection?.visibility = View.GONE
+        }
+
+        // 8. Back Navigation
         view.findViewById<View>(R.id.btnBack)?.setOnClickListener {
             findNavController().navigateUp()
         }

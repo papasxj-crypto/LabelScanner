@@ -1,24 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- 1. Home Tab -->
     <item
         android:id="@+id/navigation_home"
         android:icon="@drawable/ic_home"
         android:title="Home" />
 
+    <!-- 2. Health Profile Tab -->
     <item
         android:id="@+id/navigation_my_health"
         android:icon="@drawable/ic_health"
         android:title="My Health" />
 
+    <!-- 3. Recipe Adjuster Tab (Now using your custom Chef Hat!) -->
     <item
         android:id="@+id/recipeFragment"
-        android:icon="@drawable/ic_home"
+        android:icon="@drawable/ic_recipe"
         android:title="Recipe" />
 
+    <!-- 4. History Tab (Replaced Settings) [1, 2] -->
     <item
-        android:id="@+id/navigation_settings"
-        android:icon="@drawable/ic_settings"
-        android:title="Settings" />
+        android:id="@+id/navigation_history"
+        android:icon="@drawable/ic_history"
+        android:title="History" />
 
 </menu>

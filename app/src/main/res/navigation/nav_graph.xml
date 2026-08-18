@@ -16,7 +16,7 @@
             app:destination="@id/resultDetailFragment" />
     </fragment>
 
-    <!-- 2. THE NEW DETAIL FRAGMENT -->
+    <!-- Results Detail Fragment -->
     <fragment
         android:id="@+id/resultDetailFragment"
         android:name="net.meinook.labelscanner.ResultDetailFragment"
@@ -34,21 +34,28 @@
             app:destination="@id/customWatchlistFragment" />
     </fragment>
 
-    <!-- NEW Custom Watchlist Fragment -->
+    <!-- Custom Watchlist Fragment -->
     <fragment
         android:id="@+id/customWatchlistFragment"
         android:name="net.meinook.labelscanner.CustomWatchlistFragment"
         android:label="Custom Watchlist"
         tools:layout="@layout/fragment_custom_watchlist" />
 
-    <!-- History Screen Fragment -->
+    <!-- Recipe Adjuster Screen Fragment -->
     <fragment
         android:id="@+id/recipeFragment"
         android:name="net.meinook.labelscanner.RecipeFragment"
         android:label="Recipe Adjuster"
         tools:layout="@layout/fragment_recipe" />
 
-    <!-- Settings Screen Fragment -->
+    <!-- New History Log Screen Fragment [1] -->
+    <fragment
+        android:id="@+id/navigation_history"
+        android:name="net.meinook.labelscanner.HistoryFragment"
+        android:label="History"
+        tools:layout="@layout/fragment_history" />
+
+    <!-- Settings Screen Activity -->
     <activity
         android:id="@+id/navigation_settings"
         android:name="net.meinook.labelscanner.SettingsActivity"

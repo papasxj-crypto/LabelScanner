@@ -1,113 +1,53 @@
 package net.meinook.labelscanner
 
-import android.Manifest
 import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.Manifest
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.material3.Surface
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.FragmentNavigatorExtras
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.FragmentNavigatorExtras
 import com.google.android.material.card.MaterialCardView
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
-
-private val CameraPlaceholderIcon: ImageVector by lazy {
-    ImageVector.Builder(
-        name = "CameraPlaceholder",
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = 24f,
-        viewportHeight = 24f
-    ).path(fill = SolidColor(Color.White)) {
-        moveTo(9f, 2f)
-        lineTo(7.17f, 4f)
-        horizontalLineTo(4f)
-        curveTo(2.9f, 4f, 2f, 4.9f, 2f, 6f)
-        verticalLineTo(18f)
-        curveTo(2f, 19.1f, 2.9f, 20f, 4f, 20f)
-        horizontalLineTo(20f)
-        curveTo(21.1f, 20f, 22f, 19.1f, 22f, 18f)
-        verticalLineTo(6f)
-        curveTo(22f, 4.9f, 21.1f, 4f, 20f, 4f)
-        horizontalLineTo(16.83f)
-        lineTo(15f, 2f)
-        horizontalLineTo(9f)
-        close()
-        moveTo(12f, 17f)
-        curveTo(9.24f, 17f, 7f, 14.76f, 7f, 12f)
-        curveTo(7f, 9.24f, 9.24f, 7f, 12f, 7f)
-        curveTo(14.76f, 7f, 17f, 9.24f, 17f, 12f)
-        curveTo(17f, 14.76f, 14.76f, 17f, 12f, 17f)
-        close()
-    }.build()
-}
-
-private val BarcodePlaceholderIcon: ImageVector by lazy {
-    ImageVector.Builder(
-        name = "BarcodePlaceholder",
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = 24f,
-        viewportHeight = 24f
-    ).path(fill = SolidColor(Color.White)) {
-        moveTo(2f, 4f); horizontalLineTo(4f); verticalLineTo(20f); horizontalLineTo(2f); close()
-        moveTo(5f, 4f); horizontalLineTo(6f); verticalLineTo(20f); horizontalLineTo(5f); close()
-        moveTo(8f, 4f); horizontalLineTo(11f); verticalLineTo(20f); horizontalLineTo(8f); close()
-        moveTo(12f, 4f); horizontalLineTo(14f); verticalLineTo(20f); horizontalLineTo(12f); close()
-        moveTo(15f, 4f); horizontalLineTo(16f); verticalLineTo(20f); horizontalLineTo(15f); close()
-        moveTo(18f, 4f); horizontalLineTo(21f); verticalLineTo(20f); horizontalLineTo(18f); close()
-    }.build()
-}
-
-private val ProducePlaceholderIcon: ImageVector by lazy {
-    ImageVector.Builder(
-        name = "ProducePlaceholder",
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = 24f,
-        viewportHeight = 24f
-    ).path(fill = SolidColor(Color.White)) {
-        moveTo(12f, 2f)
-        curveTo(12f, 2f, 4f, 6f, 4f, 13f)
-        curveTo(4f, 18f, 8f, 22f, 12f, 22f)
-        curveTo(16f, 22f, 20f, 18f, 20f, 13f)
-        curveTo(20f, 6f, 12f, 2f, 12f, 2f)
-        close()
-    }.build()
-}
 
 class HomeFragment : Fragment(R.layout.fragment_home) {
 
@@ -123,6 +63,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private var cachedEval: EvaluationResult? = null
     private var cachedSub: String = ""
     private var cachedMacros: Bundle? = null
+    private var cachedSuggestions: ArrayList<ProductAlternative>? = null
+    private var isNavigatingToDetail: Boolean = false
 
     private val labelCameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
@@ -149,6 +91,18 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
+    private enum class PendingCameraAction { NONE, CAMERA_SCAN, PRODUCE_SCAN, BARCODE_SCAN }
+    private var pendingAction = PendingCameraAction.NONE
+
+    private val requestCameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            executePendingCameraAction()
+        } else {
+            Toast.makeText(requireContext(), "Camera permission is required to scan labels and barcodes.", Toast.LENGTH_LONG).show()
+        }
+        pendingAction = PendingCameraAction.NONE
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -165,14 +119,47 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         composeView.setContent {
             VerticalThumbArchMenu(
                 isRightHanded = isRightHanded,
-                onLabelClick = { resetUI(); launchCameraExplicit(labelCameraLauncher) },
-                onBarcodeClick = { resetUI(); barcodeScannerLauncher.launch(Intent(requireContext(), ScannerActivity::class.java)) },
-                onProduceClick = { resetUI(); launchCameraExplicit(produceCameraLauncher) }
+                onLabelClick = { runWithCameraPermission(PendingCameraAction.CAMERA_SCAN) },
+                onBarcodeClick = { runWithCameraPermission(PendingCameraAction.BARCODE_SCAN) },
+                onProduceClick = { runWithCameraPermission(PendingCameraAction.PRODUCE_SCAN) }
             )
         }
 
+        val bottomNav = activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_navigation)
+            ?: activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_navigation)
+            ?: activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.nav_host_fragment)
+
+        bottomNav?.setOnItemReselectedListener { item ->
+            if (item.itemId == R.id.navigation_home) {
+                resetUI()
+            }
+        }
+
+        view.findViewById<View>(R.id.btnSettings)?.setOnClickListener {
+            val intent = Intent(requireContext(), SettingsActivity::class.java)
+            startActivity(intent)
+        }
+
+        arguments?.getString("AUTO_LOOKUP_BARCODE")?.let { barcode ->
+            arguments?.remove("AUTO_LOOKUP_BARCODE")
+            lookupBarcodeOnline(barcode)
+        }
+
         cachedEval?.let { eval ->
-            displaySummaryCard(eval, cachedSub, 0, 0f, 0, 0f, 0f, 0f, 0f, false, isRestoring = true)
+            displaySummaryCard(
+                evaluation = eval,
+                subtitle = cachedSub,
+                calories = 0,
+                protein = 0f,
+                sodium = 0,
+                potassium = 0f,
+                carbs = 0f,
+                netCarbs = 0f,
+                sugar = 0f,
+                isKeto = false,
+                isRestoring = true,
+                suggestions = cachedSuggestions
+            )
         }
         updateConditionText()
     }
@@ -184,6 +171,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         onBarcodeClick: () -> Unit,
         onProduceClick: () -> Unit
     ) {
+        val unifiedButtonColor = Color(0xFF32221A)
+
+        val produceIcon = ImageVector.vectorResource(id = R.drawable.ic_produce)
+        val barcodeIcon = ImageVector.vectorResource(id = R.drawable.ic_barcode)
+        val cameraIcon = ImageVector.vectorResource(id = R.drawable.ic_camera)
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -191,30 +184,24 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             contentAlignment = if (isRightHanded) Alignment.BottomEnd else Alignment.BottomStart
         ) {
             ThumbMenuButton(
-                isRightHanded = isRightHanded,
-                text = "Fresh Produce",
-                icon = ProducePlaceholderIcon,
-                containerColor = Color(0xFF1B5E20),
+                icon = produceIcon,
+                containerColor = unifiedButtonColor,
                 xOffset = if (isRightHanded) (-10).dp else 10.dp,
                 yOffset = (-190).dp,
                 onClick = onProduceClick
             )
 
             ThumbMenuButton(
-                isRightHanded = isRightHanded,
-                text = "Barcode Lookup",
-                icon = BarcodePlaceholderIcon,
-                containerColor = Color(0xFF2C3A47),
+                icon = barcodeIcon,
+                containerColor = unifiedButtonColor,
                 xOffset = if (isRightHanded) (-80).dp else 80.dp,
                 yOffset = (-65).dp,
                 onClick = onBarcodeClick
             )
 
             ThumbMenuButton(
-                isRightHanded = isRightHanded,
-                text = "Camera Scan",
-                icon = CameraPlaceholderIcon,
-                containerColor = Color(0xFF4A148C),
+                icon = cameraIcon,
+                containerColor = unifiedButtonColor,
                 xOffset = if (isRightHanded) (-130).dp else 130.dp,
                 yOffset = 60.dp,
                 onClick = onLabelClick
@@ -224,73 +211,26 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     @Composable
     private fun ThumbMenuButton(
-        isRightHanded: Boolean,
-        text: String,
         icon: ImageVector,
         containerColor: Color,
         xOffset: androidx.compose.ui.unit.Dp,
         yOffset: androidx.compose.ui.unit.Dp,
         onClick: () -> Unit
     ) {
-        Row(
-            modifier = Modifier.offset(x = xOffset, y = yOffset),
-            verticalAlignment = Alignment.CenterVertically
+        FloatingActionButton(
+            onClick = onClick,
+            shape = CircleShape,
+            containerColor = containerColor,
+            modifier = Modifier
+                .size(90.dp)
+                .offset(x = xOffset, y = yOffset)
         ) {
-            if (isRightHanded) {
-                Surface(
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                    color = Color(0xCC000000),
-                    modifier = Modifier.padding(end = 8.dp)
-                ) {
-                    Text(
-                        text = text,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                FloatingActionButton(
-                    onClick = onClick,
-                    shape = CircleShape,
-                    containerColor = containerColor,
-                    contentColor = Color.White,
-                    modifier = Modifier.size(96.dp)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = text,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-            } else {
-                FloatingActionButton(
-                    onClick = onClick,
-                    shape = CircleShape,
-                    containerColor = containerColor,
-                    contentColor = Color.White,
-                    modifier = Modifier.size(96.dp)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = text,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-                Surface(
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-                    color = Color(0xCC000000),
-                    modifier = Modifier.padding(start = 8.dp)
-                ) {
-                    Text(
-                        text = text,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.Unspecified,
+                modifier = Modifier.size(64.dp)
+            )
         }
     }
 
@@ -302,27 +242,54 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private fun lookupBarcodeOnline(upcCode: String) {
         textExplanation.text = "Searching..."
+
+        val cleanCode = upcCode.trim()
+
+        val isVariableWeight = (cleanCode.length == 12 && cleanCode.startsWith("2")) ||
+                (cleanCode.length == 13 && (cleanCode.startsWith("02") || (cleanCode.substring(0, 2).toIntOrNull() in 20..29)))
+
+        if (isVariableWeight) {
+            activity?.runOnUiThread {
+                resetUI()
+                textExplanation.text = "This is a store-packaged variable weight item. Please use 'Camera Scan' to evaluate its ingredient label directly!"
+                textExplanation.setTextColor(android.graphics.Color.WHITE)
+            }
+            return
+        }
+
         kotlin.concurrent.thread {
             try {
-                val url = URL("https://world.openfoodfacts.org/api/v2/product/$upcCode.json")
+                val url = URL("https://world.openfoodfacts.org/api/v2/product/$cleanCode.json")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("User-Agent", "LabelScanner/1.0")
+
                 if (connection.responseCode == 200) {
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
                     val json = JSONObject(response)
+
                     if (json.optInt("status", 0) == 1) {
                         val product = json.getJSONObject("product")
                         val nutriments = product.optJSONObject("nutriments") ?: JSONObject()
                         val ingredients = product.optString("ingredients_text", "").split(",").map { it.trim().uppercase() }
 
-                        // Robust schema mapper that strictly writes keys ONLY if they are populated [1]
+                        val categoriesTags = product.optJSONArray("categories_tags")
+                        var categoryTag: String? = null
+                        if (categoriesTags != null && categoriesTags.length() > 0) {
+                            for (i in categoriesTags.length() - 1 downTo 0) {
+                                val tag = categoriesTags.optString(i, "")
+                                if (tag.startsWith("en:")) {
+                                    categoryTag = tag
+                                    break
+                                }
+                            }
+                        }
+
                         val evalJson = JSONObject().apply {
                             fun hasVal(vararg keys: String): Boolean {
                                 return keys.any { nutriments.has(it) && !nutriments.isNull(it) }
                             }
 
-                            // Check for Calories keys (serving, then 100g fallback) [1]
                             if (hasVal("energy-kcal_serving")) {
                                 put("calories", nutriments.optInt("energy-kcal_serving", 0))
                             } else if (hasVal("energy-kcal_100g")) {
@@ -331,7 +298,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 put("calories", nutriments.optInt("energy-kcal", 0))
                             }
 
-                            // Check for Sodium keys (serving, then 100g fallback) [1]
                             if (hasVal("sodium_serving")) {
                                 put("sodium", (nutriments.optDouble("sodium_serving", 0.0) * 1000).toInt())
                             } else if (hasVal("sodium_100g")) {
@@ -340,7 +306,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 put("sodium", (nutriments.optDouble("sodium", 0.0) * 1000).toInt())
                             }
 
-                            // Optional macronutrient schema checking
                             if (hasVal("proteins_serving")) put("protein", nutriments.optDouble("proteins_serving", 0.0))
                             else if (hasVal("proteins_100g")) put("protein", nutriments.optDouble("proteins_100g", 0.0))
 
@@ -364,6 +329,102 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             userSettings.getCustomWatchlist("RED"),
                             userSettings.getCustomWatchlist("YELLOW")
                         )
+
+                        val suggestionsList = ArrayList<ProductAlternative>()
+                        val tempYellowSuggestions = ArrayList<ProductAlternative>()
+
+                        Log.d("LabelScanner", "Category Search: Target category code = $categoryTag, product grade = ${evalResult.gradeTitle}")
+
+                        if (!categoryTag.isNullOrEmpty() && (evalResult.gradeTitle.startsWith("Red") || evalResult.gradeTitle.startsWith("Yellow"))) {
+                            try {
+                                val cleanCategory = categoryTag.removePrefix("en:").trim()
+                                val searchUrl = URL("https://world.openfoodfacts.org/api/v2/search?categories_tags_en=$cleanCategory&fields=code,product_name,brands,ingredients_text,nutriments&page_size=15")
+
+                                Log.d("LabelScanner", "Category Search: Querying URL = $searchUrl")
+
+                                val searchConnection = searchUrl.openConnection() as HttpURLConnection
+                                searchConnection.requestMethod = "GET"
+                                searchConnection.setRequestProperty("User-Agent", "LabelScanner/1.0")
+
+                                if (searchConnection.responseCode == 200) {
+                                    val searchResponse = searchConnection.inputStream.bufferedReader().use { it.readText() }
+                                    val searchJson = JSONObject(searchResponse)
+                                    val productsArr = searchJson.optJSONArray("products")
+
+                                    Log.d("LabelScanner", "Category Search: Found raw products = ${productsArr?.length() ?: 0}")
+
+                                    if (productsArr != null) {
+                                        for (j in 0 until productsArr.length()) {
+                                            val altProduct = productsArr.getJSONObject(j)
+                                            val altCode = altProduct.optString("code", "")
+                                            if (altCode == cleanCode) continue
+
+                                            val altNutriments = altProduct.optJSONObject("nutriments") ?: JSONObject()
+                                            val altIngredients = altProduct.optString("ingredients_text", "").split(",").map { it.trim().uppercase() }
+
+                                            val altEvalJson = JSONObject().apply {
+                                                fun hasVal(vararg keys: String): Boolean {
+                                                    return keys.any { altNutriments.has(it) && !altNutriments.isNull(it) }
+                                                }
+                                                if (hasVal("energy-kcal_serving")) put("calories", altNutriments.optInt("energy-kcal_serving", 0))
+                                                else if (hasVal("energy-kcal_100g")) put("calories", altNutriments.optInt("energy-kcal_100g", 0))
+
+                                                if (hasVal("sodium_serving")) put("sodium", (altNutriments.optDouble("sodium_serving", 0.0) * 1000).toInt())
+                                                else if (hasVal("sodium_100g")) put("sodium", (altNutriments.optDouble("sodium_100g", 0.0) * 1000).toInt())
+
+                                                if (hasVal("proteins_serving")) put("protein", altNutriments.optDouble("proteins_serving", 0.0))
+                                                if (hasVal("carbohydrates_serving")) put("carbs", altNutriments.optDouble("carbohydrates_serving", 0.0))
+                                                if (hasVal("fiber_serving")) put("fiber", altNutriments.optDouble("fiber_serving", 0.0))
+                                                if (hasVal("sugars_serving")) put("sugar", altNutriments.optDouble("sugars_serving", 0.0))
+                                            }
+
+                                            val altEvalResult = LabelEvaluator.evaluateScanData(
+                                                altEvalJson,
+                                                altIngredients,
+                                                userSettings.getSelectedConditions(),
+                                                userSettings,
+                                                userSettings.loadTriggersFromAssets("red"),
+                                                userSettings.getCustomWatchlist("RED"),
+                                                userSettings.getCustomWatchlist("YELLOW")
+                                            )
+
+                                            Log.d("LabelScanner", "Category Search: Evaluated alt ${altProduct.optString("product_name")} -> Grade: ${altEvalResult.gradeTitle}")
+
+                                            if (altEvalResult.gradeTitle.startsWith("Green")) {
+                                                suggestionsList.add(
+                                                    ProductAlternative(
+                                                        name = altProduct.optString("product_name", "Alternative Option"),
+                                                        brand = altProduct.optString("brands", ""),
+                                                        code = altCode,
+                                                        gradeTitle = altEvalResult.gradeTitle
+                                                    )
+                                                )
+                                            } else if (altEvalResult.gradeTitle.startsWith("Yellow")) {
+                                                tempYellowSuggestions.add(
+                                                    ProductAlternative(
+                                                        name = altProduct.optString("product_name", "Alternative Option"),
+                                                        brand = altProduct.optString("brands", ""),
+                                                        code = altCode,
+                                                        gradeTitle = altEvalResult.gradeTitle
+                                                    )
+                                                )
+                                            }
+                                            if (suggestionsList.size >= 3) break
+                                        }
+
+                                        for (yellowOpt in tempYellowSuggestions) {
+                                            if (suggestionsList.size >= 3) break
+                                            suggestionsList.add(yellowOpt)
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("LabelScanner", "Error querying dynamic safer alternatives", e)
+                            }
+                        }
+
+                        Log.d("LabelScanner", "Category Search: Compiled suggestion list size = ${suggestionsList.size}")
+
                         activity?.runOnUiThread {
                             displaySummaryCard(
                                 evalResult,
@@ -375,7 +436,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 evalJson.optDouble("carbs", 0.0).toFloat(),
                                 (evalJson.optDouble("carbs", 0.0) - evalJson.optDouble("fiber", 0.0)).toFloat(),
                                 evalJson.optDouble("sugar", 0.0).toFloat(),
-                                userSettings.getSelectedConditions().contains("keto")
+                                userSettings.getSelectedConditions().contains("keto"),
+                                suggestions = suggestionsList
                             )
                         }
                     }
@@ -502,7 +564,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 )
                 withContext(Dispatchers.Main) {
                     isAnalyzing = false
-                    displaySummaryCard(evalResult, name, json.optInt("calories"), 0f, 0, 0f, 0f, 0f, 0f, false)
+                    displaySummaryCard(evalResult,
+                        name,
+                        json.optInt("calories"),
+                        0f,
+                        0,
+                        0f,
+                        0f,
+                        0f,
+                        0f,
+                        false)
                 }
             } catch (e: Exception) {
                 Log.e("LabelScanner", "Produce analysis error", e)
@@ -524,7 +595,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         netCarbs: Float,
         sugar: Float,
         isKeto: Boolean,
-        isRestoring: Boolean = false
+        isRestoring: Boolean = false,
+        suggestions: ArrayList<ProductAlternative>? = null
     ) {
         if (!isRestoring) {
             cachedEval = evaluation
@@ -534,6 +606,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 putFloat("pot", potassium); putFloat("carb", carbs); putFloat("net_carb", netCarbs)
                 putFloat("sug", sugar); putBoolean("is_keto", isKeto)
             }
+            cachedSuggestions = suggestions
         }
         cardSummary.visibility = View.VISIBLE
 
@@ -560,13 +633,30 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
         textTapPrompt?.setTextColor(evaluation.textColor)
 
+        if (suggestions != null && suggestions.isNotEmpty()) {
+            textTapPrompt?.text = "Alternatives Found! Tap for details ➔"
+
+            val pulseAnimation = android.view.animation.AlphaAnimation(0.4f, 1.0f).apply {
+                duration = 1000
+                repeatMode = android.view.animation.Animation.REVERSE
+                repeatCount = android.view.animation.Animation.INFINITE
+            }
+            textTapPrompt?.startAnimation(pulseAnimation)
+        } else {
+            textTapPrompt?.text = "Tap for details ➔"
+            textTapPrompt?.clearAnimation()
+        }
+        textTapPrompt?.setTextColor(evaluation.textColor)
+
         textExplanation.text = ""
 
         cardSummary.setOnClickListener {
+            isNavigatingToDetail = true
             val bundle = Bundle().apply {
                 putSerializable("EVAL", evaluation)
                 putString("SUB", subtitle)
                 putBundle("MACROS", cachedMacros)
+                putSerializable("SUGGESTIONS", cachedSuggestions)
             }
             val extras = FragmentNavigatorExtras(cardSummary to "shared_element_container")
             findNavController().navigate(R.id.action_home_to_detail, bundle, null, extras)
@@ -577,6 +667,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         activity?.runOnUiThread {
             cardSummary.visibility = View.GONE
             cachedEval = null
+            cachedSuggestions = null
             textExplanation.text = "Ready..."
             textExplanation.setTextColor(android.graphics.Color.WHITE)
         }
@@ -595,6 +686,47 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     override fun onResume() {
         super.onResume()
+        isNavigatingToDetail = false
         updateConditionText()
+    }
+
+    private fun runWithCameraPermission(action: PendingCameraAction) {
+        val permission = Manifest.permission.CAMERA
+        if (ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED) {
+            pendingAction = action
+            executePendingCameraAction()
+        } else {
+            pendingAction = action
+            requestCameraPermissionLauncher.launch(permission)
+        }
+    }
+
+    private fun executePendingCameraAction() {
+        when (pendingAction) {
+            PendingCameraAction.CAMERA_SCAN -> {
+                resetUI()
+                launchCameraExplicit(labelCameraLauncher)
+            }
+            PendingCameraAction.PRODUCE_SCAN -> {
+                resetUI()
+                launchCameraExplicit(produceCameraLauncher)
+            }
+            PendingCameraAction.BARCODE_SCAN -> {
+                resetUI()
+                barcodeScannerLauncher.launch(Intent(requireContext(), ScannerActivity::class.java))
+            }
+            else -> {}
+        }
+        pendingAction = PendingCameraAction.NONE
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isNavigatingToDetail) {
+            cachedEval = null
+            cachedSub = ""
+            cachedMacros = null
+            cachedSuggestions = null
+        }
     }
 }

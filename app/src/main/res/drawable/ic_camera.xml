@@ -1,0 +1,28 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 1. The Camera Body (Warm Cream) -->
+    <path
+        android:fillColor="#FFFFF7E6"
+        android:pathData="M 9,3 L 15,3 L 16.5,5 L 20,5 C 21.1,5 22,5.9 22,7 L 22,17 C 22,18.1 21.1,19 20,19 L 4,19 C 2.9,19 2,18.1 2,17 L 2,7 C 2,5.9 2.9,5 4,5 L 7.5,5 Z"/>
+
+    <!-- 2. Outer Lens Rim - Etched in Cocoa Saddle -->
+    <path
+        android:strokeColor="#FF32221A"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M 12,8 A 4,4 0,1,0 12,16 A 4,4 0,1,0 12,8 Z"/>
+
+    <!-- 3. Inner Lens Core - Etched in Cocoa Saddle -->
+    <path
+        android:fillColor="#FF32221A"
+        android:pathData="M 12,10.5 A 1.5,1.5 0,1,0 12,13.5 A 1.5,1.5 0,1,0 12,10.5 Z"/>
+
+    <!-- 4. Flash/Shutter Detail - Etched in Cocoa Saddle -->
+    <path
+        android:fillColor="#FF32221A"
+        android:pathData="M 18,7.5 A 0.8,0.8 0,1,0 18,9.1 A 0.8,0.8 0,1,0 18,7.5 Z"/>
+</vector>

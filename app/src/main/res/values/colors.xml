@@ -3,10 +3,14 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Premium Dark Theme Palette -->
+    <!-- System Colors (Overrides the Android system purple highlights globally!) -->
+    <color name="colorPrimary">#E5C158</color> <!-- Premium warm gold instead of purple -->
+    <color name="colorSecondary">#2B1F16</color> <!-- Soft cocoa-brown instead of purple -->
+
+    <!-- Premium Dark Theme Palette (Tuned for Parchment Background) -->
     <color name="backgroundColor">#111216</color>
-    <color name="surfaceColor">#1A1D24</color>
-    <color name="surfaceStrokeColor">#2C313C</color>
+    <color name="surfaceColor">#EA14161F</color> <!-- 92% opaque deep charcoal -->
+    <color name="surfaceStrokeColor">#313542</color>
     <color name="textPrimary">#F4F5FC</color>
     <color name="textSecondary">#99A1B3</color>
     <color name="textMuted">#6E7585</color>

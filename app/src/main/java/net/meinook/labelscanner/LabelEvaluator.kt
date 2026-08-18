@@ -14,6 +14,13 @@ data class EvaluationResult(
     val yellowViolations: List<String>
 ) : java.io.Serializable
 
+data class ProductAlternative(
+    val name: String,
+    val brand: String,
+    val code: String,
+    val gradeTitle: String
+) : java.io.Serializable
+
 object LabelEvaluator {
 
     private data class NutrientMap(
