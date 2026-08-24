@@ -1,0 +1,228 @@
+kotlin version: 2.2.10
+error message: java.lang.RuntimeException: Exception while generating code for:
+FUN name:populateConditionCheckboxes visibility:private modality:FINAL returnType:kotlin.Unit
+  VALUE_PARAMETER kind:DispatchReceiver name:<this> index:0 type:net.meinook.labelscanner.HealthFragment
+  BLOCK_BODY
+    VAR name:availableProfiles type:kotlin.collections.List<net.meinook.labelscanner.DietProfile> [val]
+      CALL 'public final fun getAvailableDietProfiles (): kotlin.collections.List<net.meinook.labelscanner.DietProfile> declared in net.meinook.labelscanner.AppSettings' type=kotlin.collections.List<net.meinook.labelscanner.DietProfile> origin=null
+        ARG <this>: BLOCK type=net.meinook.labelscanner.AppSettings origin=FOLDED_ELVIS
+          WHEN type=net.meinook.labelscanner.AppSettings origin=FOLDED_ELVIS
+            BRANCH
+              if: COMPOSITE type=kotlin.Boolean origin=null
+                VAR IR_TEMPORARY_VARIABLE name:tmp0 type:net.meinook.labelscanner.AppSettings? [val]
+                  GET_FIELD 'FIELD PROPERTY_BACKING_FIELD name:appSettings type:net.meinook.labelscanner.AppSettings? visibility:private' type=net.meinook.labelscanner.AppSettings? origin=null
+                    receiver: GET_VAR '<this>: net.meinook.labelscanner.HealthFragment declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=net.meinook.labelscanner.HealthFragment origin=IMPLICIT_ARGUMENT
+                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                  ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                    ARG arg0: GET_VAR 'val tmp0: net.meinook.labelscanner.AppSettings? [val] declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=net.meinook.labelscanner.AppSettings? origin=null
+                    ARG arg1: CONST Null type=kotlin.Nothing? value=null
+              then: GET_VAR 'val tmp0: net.meinook.labelscanner.AppSettings? [val] declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=net.meinook.labelscanner.AppSettings? origin=null
+            BRANCH
+              if: CONST Boolean type=kotlin.Boolean value=true
+              then: BLOCK type=kotlin.Unit origin=null
+                CALL 'public final fun throwUninitializedPropertyAccessException (propertyName: kotlin.String): kotlin.Unit declared in kotlin.jvm.internal.Intrinsics' type=kotlin.Unit origin=null
+                  ARG propertyName: CONST String type=kotlin.String value="appSettings"
+    BLOCK type=kotlin.Unit origin=FOR_LOOP
+      VAR FOR_LOOP_ITERATOR name:<iterator> type:kotlin.collections.Iterator<net.meinook.labelscanner.DietProfile> [val]
+        CALL 'public abstract fun iterator (): kotlin.collections.Iterator<E of kotlin.collections.List> [operator] declared in kotlin.collections.List' type=kotlin.collections.Iterator<net.meinook.labelscanner.DietProfile> origin=FOR_LOOP_ITERATOR
+          ARG <this>: GET_VAR 'val availableProfiles: kotlin.collections.List<net.meinook.labelscanner.DietProfile> [val] declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=kotlin.collections.List<net.meinook.labelscanner.DietProfile> origin=null
+      WHILE label=HealthFragment$populateConditionCheckboxes1 origin=FOR_LOOP_INNER_WHILE
+        condition: CALL 'public abstract fun hasNext (): kotlin.Boolean [operator] declared in kotlin.collections.Iterator' type=kotlin.Boolean origin=FOR_LOOP_HAS_NEXT
+          ARG <this>: GET_VAR 'val <iterator>: kotlin.collections.Iterator<net.meinook.labelscanner.DietProfile> [val] declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=kotlin.collections.Iterator<net.meinook.labelscanner.DietProfile> origin=null
+        body: BLOCK type=kotlin.Unit origin=FOR_LOOP_INNER_WHILE
+          VAR FOR_LOOP_VARIABLE name:profile type:net.meinook.labelscanner.DietProfile [val]
+            CALL 'public abstract fun next (): T of kotlin.collections.Iterator [operator] declared in kotlin.collections.Iterator' type=net.meinook.labelscanner.DietProfile origin=FOR_LOOP_NEXT
+              ARG <this>: GET_VAR 'val <iterator>: kotlin.collections.Iterator<net.meinook.labelscanner.DietProfile> [val] declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=kotlin.collections.Iterator<net.meinook.labelscanner.DietProfile> origin=null
+          BLOCK type=kotlin.Unit origin=null
+            VAR name:checkBox type:android.widget.CheckBox [val]
+              CALL 'public final fun apply <T> (<this>: T of kotlin.StandardKt.apply, block: @[ExtensionFunctionType] kotlin.Function1<T of kotlin.StandardKt.apply, kotlin.Unit>): T of kotlin.StandardKt.apply [inline] declared in kotlin.StandardKt' type=android.widget.CheckBox origin=null
+                TYPE_ARG T: android.widget.CheckBox
+                ARG <this>: CONSTRUCTOR_CALL 'public constructor <init> (p0: @[FlexibleNullability] android.content.Context?) declared in android.widget.CheckBox' type=android.widget.CheckBox origin=null
+                  ARG p0: CALL 'public final fun requireContext (): @[EnhancedNullability] android.content.Context [fake_override] declared in net.meinook.labelscanner.HealthFragment' type=@[EnhancedNullability] android.content.Context origin=null
+                    ARG <this>: GET_VAR '<this>: net.meinook.labelscanner.HealthFragment declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=net.meinook.labelscanner.HealthFragment origin=IMPLICIT_ARGUMENT
+                ARG block: BLOCK type=@[ExtensionFunctionType] kotlin.Function1<android.widget.CheckBox, kotlin.Unit> origin=LAMBDA
+                  COMPOSITE type=kotlin.Unit origin=null
+                  FUNCTION_REFERENCE 'private final fun populateConditionCheckboxes$lambda$2 ($this$apply: android.widget.CheckBox, $profile: net.meinook.labelscanner.DietProfile, this$0: net.meinook.labelscanner.HealthFragment): kotlin.Unit declared in net.meinook.labelscanner.HealthFragment' type=@[ExtensionFunctionType] kotlin.Function1<android.widget.CheckBox, kotlin.Unit> origin=INLINE_LAMBDA reflectionTarget=null
+                    ARG $profile: GET_VAR 'val profile: net.meinook.labelscanner.DietProfile [val] declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=net.meinook.labelscanner.DietProfile origin=null
+                    ARG this$0: GET_VAR '<this>: net.meinook.labelscanner.HealthFragment declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=net.meinook.labelscanner.HealthFragment origin=null
+            CALL 'public open fun addView (p0: @[FlexibleNullability] android.view.View?): kotlin.Unit [fake_override] declared in android.widget.LinearLayout' type=kotlin.Unit origin=null
+              ARG <this>: BLOCK type=android.widget.LinearLayout origin=FOLDED_ELVIS
+                WHEN type=android.widget.LinearLayout origin=FOLDED_ELVIS
+                  BRANCH
+                    if: COMPOSITE type=kotlin.Boolean origin=null
+                      VAR IR_TEMPORARY_VARIABLE name:tmp0 type:android.widget.LinearLayout? [val]
+                        GET_FIELD 'FIELD PROPERTY_BACKING_FIELD name:containerConditions type:android.widget.LinearLayout? visibility:private' type=android.widget.LinearLayout? origin=null
+                          receiver: GET_VAR '<this>: net.meinook.labelscanner.HealthFragment declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=net.meinook.labelscanner.HealthFragment origin=IMPLICIT_ARGUMENT
+                      CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                        ARG <this>: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                          ARG arg0: GET_VAR 'val tmp0: android.widget.LinearLayout? [val] declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=android.widget.LinearLayout? origin=null
+                          ARG arg1: CONST Null type=kotlin.Nothing? value=null
+                    then: GET_VAR 'val tmp0: android.widget.LinearLayout? [val] declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=android.widget.LinearLayout? origin=null
+                  BRANCH
+                    if: CONST Boolean type=kotlin.Boolean value=true
+                    then: BLOCK type=kotlin.Unit origin=null
+                      CALL 'public final fun throwUninitializedPropertyAccessException (propertyName: kotlin.String): kotlin.Unit declared in kotlin.jvm.internal.Intrinsics' type=kotlin.Unit origin=null
+                        ARG propertyName: CONST String type=kotlin.String value="containerConditions"
+              ARG p0: GET_VAR 'val checkBox: android.widget.CheckBox [val] declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes' type=android.widget.CheckBox origin=null
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:50)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:43)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:422)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:439)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:164)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateFile(JvmIrCodegenFactory.kt:419)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:388)
+	at org.jetbrains.kotlin.cli.jvm.compiler.KotlinToJVMBytecodeCompiler.runCodegen$cli(KotlinToJVMBytecodeCompiler.kt:431)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:95)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:36)
+	at org.jetbrains.kotlin.cli.pipeline.jvm.JvmBackendPipelinePhase.executePhase(JvmBackendPipelinePhase.kt:29)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:68)
+	at org.jetbrains.kotlin.cli.pipeline.PipelinePhase.phaseBody(PipelinePhase.kt:58)
+	at org.jetbrains.kotlin.config.phaser.NamedCompilerPhase.invoke(CompilerPhase.kt:102)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:22)
+	at org.jetbrains.kotlin.config.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:53)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.runPhasedPipeline(AbstractCliPipeline.kt:109)
+	at org.jetbrains.kotlin.cli.pipeline.AbstractCliPipeline.execute(AbstractCliPipeline.kt:68)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:78)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecutePhased(K2JVMCompiler.kt:44)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:90)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.exec(CLICompiler.kt:352)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:175)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunnerBase.runCompiler(IncrementalJvmCompilerRunnerBase.kt:38)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:504)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:421)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally$lambda$10$compile(IncrementalCompilerRunner.kt:254)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally(IncrementalCompilerRunner.kt:272)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:124)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:679)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:93)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1806)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source)
+	at java.base/java.lang.reflect.Method.invoke(Unknown Source)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Unknown Source)
+	at java.base/java.security.AccessController.doPrivileged(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(Unknown Source)
+	at java.base/java.security.AccessController.doPrivileged(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.base/java.lang.Thread.run(Unknown Source)
+Caused by: java.lang.RuntimeException: Exception while generating code for:
+FUN INLINE_LAMBDA name:populateConditionCheckboxes$lambda$2 visibility:private modality:FINAL returnType:kotlin.Unit
+  VALUE_PARAMETER kind:ExtensionReceiver name:$this$apply index:0 type:android.widget.CheckBox
+  VALUE_PARAMETER BOUND_VALUE_PARAMETER kind:Regular name:$profile index:1 type:net.meinook.labelscanner.DietProfile
+  VALUE_PARAMETER BOUND_VALUE_PARAMETER kind:Regular name:this$0 index:2 type:net.meinook.labelscanner.HealthFragment
+  BLOCK_BODY
+    VAR name:$i$a$-apply-HealthFragment$populateConditionCheckboxes$checkBox$1 type:kotlin.Int [val]
+      CONST Int type=kotlin.Int value=0
+    CALL 'public final fun setText (p0: @[FlexibleNullability] kotlin.CharSequence?): kotlin.Unit [fake_override] declared in android.widget.CheckBox' type=kotlin.Unit origin=EQ
+      ARG <this>: GET_VAR '$this$apply: android.widget.CheckBox declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes$lambda$2' type=android.widget.CheckBox origin=null
+      ARG p0: CALL 'public final fun <get-displayName> (): kotlin.String declared in net.meinook.labelscanner.DietProfile' type=kotlin.String origin=GET_PROPERTY
+        ARG <this>: GET_VAR '$profile: net.meinook.labelscanner.DietProfile declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes$lambda$2' type=net.meinook.labelscanner.DietProfile origin=null
+    SET_FIELD 'FIELD IR_EXTERNAL_JAVA_DECLARATION_STUB name:textColor type:kotlin.Int visibility:public [final,static] declared in android.R.attr' type=kotlin.Unit superQualifierSymbol=android.R.attr origin=EQ
+      value: CONST Int type=kotlin.Int value=-1
+    CALL 'public open fun setTextSize (p0: kotlin.Float): kotlin.Unit [fake_override] declared in android.widget.CheckBox' type=kotlin.Unit origin=EQ
+      ARG <this>: GET_VAR '$this$apply: android.widget.CheckBox declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes$lambda$2' type=android.widget.CheckBox origin=null
+      ARG p0: CONST Float type=kotlin.Float value=16.0
+    CALL 'public open fun setChecked (p0: kotlin.Boolean): kotlin.Unit [fake_override] declared in android.widget.CheckBox' type=kotlin.Unit origin=EQ
+      ARG <this>: GET_VAR '$this$apply: android.widget.CheckBox declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes$lambda$2' type=android.widget.CheckBox origin=null
+      ARG p0: CALL 'public abstract fun contains (element: E of kotlin.collections.MutableSet): kotlin.Boolean [fake_override,operator] declared in kotlin.collections.MutableSet' type=kotlin.Boolean origin=null
+        ARG <this>: GET_FIELD 'FIELD PROPERTY_BACKING_FIELD name:selectedConditionIds type:kotlin.collections.MutableSet<kotlin.String> visibility:private [final]' type=kotlin.collections.MutableSet<kotlin.String> origin=null
+          receiver: GET_VAR 'this$0: net.meinook.labelscanner.HealthFragment declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes$lambda$2' type=net.meinook.labelscanner.HealthFragment origin=null
+        ARG element: CALL 'public final fun <get-id> (): kotlin.String declared in net.meinook.labelscanner.DietProfile' type=kotlin.String origin=GET_PROPERTY
+          ARG <this>: GET_VAR '$profile: net.meinook.labelscanner.DietProfile declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes$lambda$2' type=net.meinook.labelscanner.DietProfile origin=null
+    CALL 'public open fun setPadding (p0: kotlin.Int, p1: kotlin.Int, p2: kotlin.Int, p3: kotlin.Int): kotlin.Unit [fake_override] declared in android.widget.CheckBox' type=kotlin.Unit origin=null
+      ARG <this>: GET_VAR '$this$apply: android.widget.CheckBox declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes$lambda$2' type=android.widget.CheckBox origin=null
+      ARG p0: CONST Int type=kotlin.Int value=16
+      ARG p1: CONST Int type=kotlin.Int value=16
+      ARG p2: CONST Int type=kotlin.Int value=16
+      ARG p3: CONST Int type=kotlin.Int value=16
+    CALL 'public open fun setOnCheckedChangeListener (p0: @[EnhancedNullability] android.widget.CompoundButton.OnCheckedChangeListener?): kotlin.Unit [fake_override] declared in android.widget.CheckBox' type=kotlin.Unit origin=null
+      ARG <this>: GET_VAR '$this$apply: android.widget.CheckBox declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes$lambda$2' type=android.widget.CheckBox origin=null
+      ARG p0: BLOCK type=android.widget.CompoundButton.OnCheckedChangeListener origin=LAMBDA
+        COMPOSITE type=kotlin.Unit origin=null
+        CALL 'public final fun <jvm-indy> <T> (dynamicCall: T of kotlin.jvm.internal.<jvm-indy>, bootstrapMethodHandle: kotlin.Any, vararg bootstrapMethodArguments: kotlin.Any): T of kotlin.jvm.internal.<jvm-indy> declared in kotlin.jvm.internal' type=android.widget.CompoundButton.OnCheckedChangeListener origin=null
+          TYPE_ARG T: android.widget.CompoundButton.OnCheckedChangeListener
+          ARG dynamicCall: CALL 'public final fun onCheckedChanged (p0: net.meinook.labelscanner.HealthFragment, p1: net.meinook.labelscanner.DietProfile): android.widget.CompoundButton.OnCheckedChangeListener declared in kotlin.jvm.internal.invokeDynamic' type=android.widget.CompoundButton.OnCheckedChangeListener origin=null
+            ARG p0: GET_VAR 'this$0: net.meinook.labelscanner.HealthFragment declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes$lambda$2' type=net.meinook.labelscanner.HealthFragment origin=null
+            ARG p1: GET_VAR '$profile: net.meinook.labelscanner.DietProfile declared in net.meinook.labelscanner.HealthFragment.populateConditionCheckboxes$lambda$2' type=net.meinook.labelscanner.DietProfile origin=null
+          ARG bootstrapMethodHandle: CALL 'public final fun <jvm-method-handle> (tag: kotlin.Int, owner: kotlin.String, name: kotlin.String, descriptor: kotlin.String, isInterface: kotlin.Boolean): kotlin.Any declared in kotlin.jvm.internal' type=kotlin.Any origin=null
+            ARG tag: CONST Int type=kotlin.Int value=6
+            ARG owner: CONST String type=kotlin.String value="java/lang/invoke/LambdaMetafactory"
+            ARG name: CONST String type=kotlin.String value="metafactory"
+            ARG descriptor: CONST String type=kotlin.String value="(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
+            ARG isInterface: CONST Boolean type=kotlin.Boolean value=false
+          ARG bootstrapMethodArguments: VARARG type=kotlin.Array<kotlin.Any> varargElementType=kotlin.Any
+            CALL 'public final fun <jvm-original-method-type> (method: kotlin.Any): kotlin.Any declared in kotlin.jvm.internal' type=kotlin.Any origin=null
+              ARG method: RAW_FUNCTION_REFERENCE 'public abstract fun onCheckedChanged (p0: @[FlexibleNullability] android.widget.CompoundButton?, p1: kotlin.Boolean): kotlin.Unit declared in android.widget.CompoundButton.OnCheckedChangeListener' type=kotlin.Any
+            RAW_FUNCTION_REFERENCE 'private final fun populateConditionCheckboxes$lambda$2$lambda$1 (this$0: net.meinook.labelscanner.HealthFragment, $profile: net.meinook.labelscanner.DietProfile, <unused var>: @[FlexibleNullability] android.widget.CompoundButton?, isChecked: kotlin.Boolean): kotlin.Unit declared in net.meinook.labelscanner.HealthFragment' type=kotlin.Any
+            CALL 'public final fun <jvm-original-method-type> (method: kotlin.Any): kotlin.Any declared in kotlin.jvm.internal' type=kotlin.Any origin=null
+              ARG method: RAW_FUNCTION_REFERENCE 'public abstract fun onCheckedChanged (p0: @[FlexibleNullability] android.widget.CompoundButton?, p1: kotlin.Boolean): kotlin.Unit [fake_override] declared in kotlin.jvm.internal.invokeDynamic.<fake>' type=kotlin.Any
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:50)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrSourceCompilerForInline.generateLambdaBody(IrSourceCompilerForInline.kt:72)
+	at org.jetbrains.kotlin.codegen.inline.ExpressionLambda.generateLambdaBody(LambdaInfo.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genValueAndPut(IrInlineCodegen.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall$handleParameter(ExpressionCodegen.kt:564)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:577)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitVariable(ExpressionCodegen.kt:725)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitVariable(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.declarations.IrVariable.accept(IrVariable.kt:36)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitBlock(IrVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:413)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitBlock(IrVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:413)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitWhileLoop(ExpressionCodegen.kt:1130)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitWhileLoop(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrWhileLoop.accept(IrWhileLoop.kt:19)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:541)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitBlock(IrVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:413)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:532)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:233)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:126)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	... 46 more
+Caused by: java.lang.AssertionError: access of const val: SET_FIELD 'FIELD IR_EXTERNAL_JAVA_DECLARATION_STUB name:textColor type:kotlin.Int visibility:public [final,static] declared in android.R.attr' type=kotlin.Unit superQualifierSymbol=android.R.attr origin=EQ
+  value: CONST Int type=kotlin.Int value=-1
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitFieldAccess(ExpressionCodegen.kt:807)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitFieldAccess(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.visitors.IrVisitor.visitSetField(IrVisitor.kt:215)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitSetField(ExpressionCodegen.kt:858)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitSetField(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrSetField.accept(IrSetField.kt:21)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:527)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:532)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:135)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:233)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:126)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	... 87 more
+
+
