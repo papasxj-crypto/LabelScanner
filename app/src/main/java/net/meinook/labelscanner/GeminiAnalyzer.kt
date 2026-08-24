@@ -11,7 +11,80 @@ object GeminiAnalyzer {
 
     private val strictConfig = generationConfig {
         responseMimeType = "application/json"
-        temperature = 0.0f
+        temperature = 0.15f
+    }
+
+    private fun sanitizeJsonResponse(rawText: String?): String {
+        if (rawText == null) return "{}"
+        val trimmed = rawText.trim()
+
+        val markdownRegex = "^```(?:json)?\\s*([\\s\\S]*?)\\s*```$".toRegex()
+        val matchResult = markdownRegex.find(trimmed)
+
+        return if (matchResult != null) {
+            matchResult.groups[1]?.value?.trim() ?: trimmed
+        } else {
+            trimmed
+        }
+    }
+
+    suspend fun analyzeIngredientsText(
+        extractedOcrText: String,
+        condition: String,
+        apiKey: String,
+        modelIdentifier: String
+    ): String = withContext(Dispatchers.IO) {
+        try {
+            val model = GenerativeModel(
+                modelName = modelIdentifier,
+                apiKey = apiKey,
+                generationConfig = strictConfig,
+                systemInstruction = content {
+                    text("""
+                           You are a precise nutrition label text parser. Analyze the provided raw OCR text of a nutrition facts label. Output ONLY a raw, flat JSON object. No markdown, no triple backticks.
+                           
+                           CRITICAL SPEED RULE: Skip all internal explanations, chain-of-thought, or multi-step reasoning. Do not "think" or write down reasoning steps. Translate the raw text directly into the keys of the JSON schema instantly.
+
+                           Required schema:
+                           {
+                             "nutrition_facts_found": false,
+                             "servings": 1.0,
+                             "calories": 0.0,
+                             "sodium": 0.0,
+                             "protein": 0.0,
+                             "carbs": 0.0,
+                             "fiber": 0.0,
+                             "sugar": 0.0,
+                             "added_sugar": 0.0,
+                             "total_fat": 0.0,
+                             "sat_fat": 0.0,
+                             "trans_fat": 0.0,
+                             "potassium": 0.0,
+                             "di": []
+                           }
+                           
+                           Validation rules:
+                           1. Only default missing parameters to 0.0 if a partial Nutrition Facts panel is actively present in the text but is missing a specific row.
+                           2. Output values as clean floating numbers. Do not attach units (e.g. use 15.0, not "15g").
+                           3. Extract serving sizes as precise decimals using the "servings" key.
+                           4. Populate the "di" string list with exact uppercase ingredients from the ingredient statement. If no ingredients statement is present, leave "di" empty.
+                           5. If any macro is labeled 0g or Less than 1g, set its value strictly to 0.0.
+                           
+                           6. PARSING CORRECTION: The input text comes from on-device OCR, which might occasionally misalign lines. Look for the words 'Protein' and 'Total Sugars' and grab the numbers printed directly next to them. If 'Protein' is written as '7g', set 'protein' to 7.0. If 'Total Sugars' is '2g', set 'sugar' to 2.0. Do not map adjacent line numbers.
+                           
+                           7. CRITICAL PRESENCE RULE: If the input text does NOT contain any numeric nutrition declarations (such as 'Calories', 'Sodium', etc.) or is completely missing a Nutrition Facts panel, you MUST set 'nutrition_facts_found' to false and omit all numeric nutrient keys (calories, sodium, carbs, protein, fiber, sugar, total_fat, etc.) from your JSON output entirely. Do not default them to 0.0. This allows our client-side compiler to flag the scan as incomplete.
+                           
+                           8. NUTRITION FACTS FLAG: Set 'nutrition_facts_found' to true if a Nutrition Facts panel, table, or list of nutrient values (like calories, sodium, fat, carbs) is clearly present and readable. Set 'nutrition_facts_found' to false if the input only contains ingredients, barcodes, or cooking directions, and lacks any nutrition facts tables.
+                    """.trimIndent())
+                }
+            )
+
+            val response = model.generateContent(extractedOcrText)
+            sanitizeJsonResponse(response.text)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "{}"
+        }
     }
 
     suspend fun analyzeIngredientsImage(
@@ -28,33 +101,40 @@ object GeminiAnalyzer {
                 generationConfig = strictConfig,
                 systemInstruction = content {
                     text("""
-                           You are a precise nutrition label scanning engine. Analyze the provided image of a nutrition facts label and ingredient list. 
+                           You are a precise nutrition label parser. Output ONLY a raw, flat JSON object. No markdown, no triple backticks. 
+                           
+                           CRITICAL SPEED RULE: Skip all internal explanations, chain-of-thought, or multi-step reasoning. Do not "think" or write down reasoning steps. Translate the visual lines directly into the keys of the JSON schema instantly.
 
-                           You MUST return your response as a strict, single JSON object. Do not wrap it in markdown code blocks like ```json. 
-
-                           The JSON structure must use these exact keys:
+                           Required schema:
                            {
+                             "nutrition_facts_found": false,
                              "servings": 1.0,
-                             "calories": 0,
-                             "sodium": 0,
-                             "protein": 0,
-                             "carbs": 0,
-                             "fiber": 0,
-                             "sugar": 0,
-                             "added_sugar": 0,
-                             "total_fat": 0,
-                             "sat_fat": 0,
-                             "trans_fat": 0,
-                             "potassium": 0,
+                             "calories": 0.0,
+                             "sodium": 0.0,
+                             "protein": 0.0,
+                             "carbs": 0.0,
+                             "fiber": 0.0,
+                             "sugar": 0.0,
+                             "added_sugar": 0.0,
+                             "total_fat": 0.0,
+                             "sat_fat": 0.0,
+                             "trans_fat": 0.0,
+                             "potassium": 0.0,
                              "di": []
                            }
-                           Rules for values:
-                           1. If an item is missing or unreadable on the label, default its numeric value to 0.
-                           2. Only include parsed ingredients in the "di" array.
-                           3. Extract exact whole numbers for the gram (g) and milligram (mg) values.
-                           4. If a macro is explicitly listed as 0g or Less than 1g on the label, you MUST return its value as 0.0. Do not round up or hallucinate values.
-                           5. Extract the "servings per container" value as a precise decimal number (e.g., 2.5). Look for the key "servings_per_container".
-                           6. CRITICAL ACCURACY RULE: Read the numerical values directly from the label text exactly as they are printed. Do not infer, estimate, or extrapolate numbers based on typical serving sizes or standard database items. If the label explicitly states 0g, you must return 0.
+                           
+                           Validation rules:
+                           1. Only default missing parameters to 0.0 if a partial Nutrition Facts panel is actively present in the image but is missing a specific row.
+                           2. Output values as clean floating numbers. Do not attach units (e.g. use 15.0, not "15g").
+                           3. Extract serving sizes as precise decimals using the "servings" key.
+                           4. Populate the "di" string list with exact uppercase ingredients from the ingredient statement. If no ingredients statement is present, leave "di" empty.
+                           5. If any macro is labeled 0g or Less than 1g, set its value strictly to 0.0.
+                           
+                           6. SPATIAL ALIGNMENT & UNALIGNED ROWS RULE: Rows like 'Protein' and 'Total Sugars' typically have no percentage values on the far-right side of the label, leaving blank space there. Do NOT let your attention drift to the '0%' or '0g' from 'Includes 0g Added Sugars' directly above or 'Vitamin D 0mcg 0%' below. Isolate the text 'Protein' and 'Total Sugars' horizontally and read the numeric value (e.g., '7' from 'Protein 7g' and '2' from 'Total Sugars 2g') printed directly adjacent to those words.
+                           
+                           7. CRITICAL PRESENCE RULE: If the visual image does NOT contain a visible Nutrition Facts panel or explicit numeric nutrient declarations, you MUST set 'nutrition_facts_found' to false and omit all numeric nutrient keys (calories, sodium, carbs, protein, fiber, sugar, total_fat, etc.) from your JSON output entirely. Do not default them to 0.0. This allows our client-side compiler to flag the scan as incomplete.
+                           
+                           8. NUTRITION FACTS FLAG: Set 'nutrition_facts_found' to true if a Nutrition Facts panel, table, or list of nutrient values (like calories, sodium, fat, carbs) is clearly present and readable. Set 'nutrition_facts_found' to false if the image only contains ingredients, barcodes, or cooking directions, and lacks any nutrition facts tables.
                     """.trimIndent())
                 }
             )
@@ -63,7 +143,7 @@ object GeminiAnalyzer {
                 image(imageBitmap)
             })
 
-            response.text ?: "{}"
+            sanitizeJsonResponse(response.text)
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -76,41 +156,46 @@ object GeminiAnalyzer {
         apiKey: String,
         modelId: String
     ): String = withContext(Dispatchers.IO) {
-        val generativeModel = GenerativeModel(
-            modelName = modelId,
-            apiKey = apiKey
-        )
+        try {
+            val generativeModel = GenerativeModel(
+                modelName = modelId,
+                apiKey = apiKey,
+                generationConfig = strictConfig
+            )
 
-        val prompt = """
-        You are a clinical nutrition database. Identify the single raw, fresh produce item in this image (e.g., Apple, Broccoli, Mango). 
-        Provide the standard USDA nutritional values for exactly 100 grams of this item.
-        Respond ONLY with a valid JSON object using this exact structure. Do not include markdown formatting or backticks.
-        {
-          "item_name": "Name of produce",
-          "servings_per_container": 1.0,
-          "calories": 0,
-          "sodium_mg": 0,
-          "protein_g": 0.0,
-          "total_carbohydrates_g": 0.0,
-          "total_sugar_g": 0.0,
-          "added_sugar_g": 0.0,
-          "total_fat_g": 0.0,
-          "saturated_fat_g": 0.0,
-          "trans_fat_g": 0.0,
-          "fiber": 0.0,
-          "potassium_g": 0.0,
-          "di": ["RAW PRODUCE"]
-        }
-    """.trimIndent()
-
-        // Fixed compiler typo here (generateContent instead of generateModel)
-        val response = generativeModel.generateContent(
-            content {
-                image(bitmap)
-                text(prompt)
+            val prompt = """
+            Identify the single raw produce item pictured. 
+            Compile standardized USDA nutrient measurements for exactly 100 grams of this item.
+            Return a raw, flat JSON object (no markdown backticks) using these precise keys:
+            {
+              "item_name": "Name of produce",
+              "servings_per_container": 1.0,
+              "calories": 0.0,
+              "sodium_mg": 0.0,
+              "protein_g": 0.0,
+              "total_carbohydrates_g": 0.0,
+              "total_sugar_g": 0.0,
+              "added_sugar_g": 0.0,
+              "total_fat_g": 0.0,
+              "saturated_fat_g": 0.0,
+              "trans_fat_g": 0.0,
+              "fiber": 0.0,
+              "potassium_mg": 0.0,
+              "di": ["RAW PRODUCE"]
             }
-        )
+        """.trimIndent()
 
-        return@withContext response.text ?: "{}"
+            val response = generativeModel.generateContent(
+                content {
+                    image(bitmap)
+                    text(prompt)
+                }
+            )
+
+            return@withContext sanitizeJsonResponse(response.text)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            "{}"
+        }
     }
 }

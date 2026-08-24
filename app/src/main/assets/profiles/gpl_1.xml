@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <diet_profile id="glp_1" name="GLP-1 Support">
     <flag name="enforce_protein_ratio">true</flag>
     <flag name="enforce_protein_floor">true</flag>
@@ -6,15 +7,14 @@
     <nutrient name="sodium" low_max="140" moderate_max="400" is_blacklist="true" />
     <nutrient name="calories" low_max="200" moderate_max="500" is_blacklist="false" />
     <nutrient name="fiber" low_max="3" moderate_max="5" is_blacklist="false" />
-    <!-- FIXED: sat_fat -> saturated_fat -->
     <nutrient name="saturated_fat" low_max="1" moderate_max="2" is_blacklist="true" />
     <nutrient name="carbs" low_max="15" moderate_max="35" is_blacklist="false" />
     <nutrient name="total_fat" low_max="3" moderate_max="5" is_blacklist="true" />
     <nutrient name="added_sugar" low_max="2" moderate_max="5" is_blacklist="true" />
-    <!-- FIXED: sugar -> total_sugar -->
     <nutrient name="total_sugar" low_max="4" moderate_max="10" is_blacklist="false" />
 
-    <protein_rules snack_min="10" meal_min="20" target_ratio="0.10" />
+    <protein_rules snack_min="10" snack_max="999" meal_min="20" meal_max="999" target_ratio="0.10" />
+
     <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
     <trigger category="red">ERYTHRITOL</trigger>
     <trigger category="yellow">SUCRALOSE</trigger>

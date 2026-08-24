@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="celiac_gluten_free" name="Celiac &amp; Gluten Avoidance" exclusivity_group="dietary_pattern">
+    <flag name="enforce_protein_ratio">false</flag>
+    <flag name="enforce_protein_floor">false</flag>
+    <flag name="enforce_protein_ceiling">false</flag>
+
+    <nutrient name="sodium" low_max="0" moderate_max="999" is_blacklist="false" />
+
+    <protein_rules snack_min="0" snack_max="999" meal_min="0" meal_max="999" target_ratio="0.0" />
+
+    <!-- Red Triggers: Direct Gluten-Containing Commodities and Derivatives -->
+    <trigger category="red">WHEAT</trigger>
+    <trigger category="red">BARLEY</trigger>
+    <trigger category="red">RYE</trigger>
+    <trigger category="red">SPELT</trigger>
+    <trigger category="red">SEMOLINA</trigger>
+    <trigger category="red">DURUM</trigger>
+    <trigger category="red">FARINA</trigger>
+    <trigger category="red">GLUTEN</trigger>
+    <trigger category="red">MALT EXTRACT</trigger>
+    <trigger category="red">BREWERS YEAST</trigger>
+
+    <!-- Yellow Triggers: Processed Cross-Contamination Risk Vectors -->
+    <trigger category="yellow">OATS</trigger>
+    <trigger category="yellow">YEAST EXTRACT</trigger>
+    <trigger category="yellow">SOY SAUCE</trigger>
+    <trigger category="yellow">HYDROLYZED VEGETABLE PROTEIN</trigger>
+</diet_profile>

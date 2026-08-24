@@ -1,6 +1,9 @@
 <resources>
-    <string name="app_name">LabelScanner</string>
-    <string name="model_identifier_txt">gemini-1.5-flash</string>
+    <string name="app_name">FilterPoint</string>
+    <string name="support_email">support@filterpoint.app</string>
+    <string name="model_identifier_txt">gemini-3.5-flash</string>
+    <string name="dev_URL">https://analyze-recipe-dev-955054852456.us-central1.run.app</string>
+    <string name="production_URL">https://analyze-recipe-955054852456.us-west1.run.app</string>
 
     <string-array name="medical_conditions_array">
         <item>Chronic Kidney Disease (CKD)</item>
@@ -141,5 +144,25 @@
     <string name="long_press_for_details_txt">Long press for details</string>
     <string name="zero_txt">0</string>
 
+    <!-- Common Quick Add Watchlist Items [1] -->
+    <string-array name="common_watchlist_items">
+        <item>ASPARTAME</item>
+        <item>CARRAGEENAN</item>
+        <item>CORN SYRUP</item>
+        <item>DAIRY</item>
+        <item>EGGS</item>
+        <item>FISH</item>
+        <item>GLUTEN</item>
+        <item>MSG</item>
+        <item>PEANUTS</item>
+        <item>RED 40</item>
+        <item>SESAME</item>
+        <item>SHELLFISH</item>
+        <item>SOY</item>
+        <item>SODIUM NITRATE</item>
+        <item>SULFITES</item>
+        <item>TREE NUTS</item>
+        <item>WHEAT</item>
+    </string-array>
 
 </resources>

@@ -10,46 +10,34 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- SECTION 1: PROFILE SELECTION -->
+        <!-- SECTION HEADER -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/dietary_medical_profiles_txt"
+            android:text="App Preferences"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/white"
-            android:layout_marginBottom="8dp"/>
-
-        <LinearLayout
-            android:id="@+id/containerMedicalProfiles"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
             android:layout_marginBottom="16dp"/>
 
-        <!-- SECTION 2: BIOMETRICS -->
+        <!-- LEFT HANDED TOGGLE CHECKBOX [1] -->
+        <CheckBox
+            android:id="@+id/cb_left_handed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Left-Handed Mode"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:layout_marginBottom="4dp"/>
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/user_target_weight_lbs_txt"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp"/>
-
-        <EditText
-            android:id="@+id/editUserWeight"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:autofillHints="none"
-            android:hint="@string/default_weight_txt"
-            android:textColorHint="#666666"
-            android:textColor="@color/white"
-            android:inputType="numberDecimal"
-            android:background="#1E1E1E"
-            android:layout_marginBottom="24dp"
-            android:padding="12dp"/>
+            android:text="Aligns Home screen scan buttons to the bottom-left for comfortable left-handed thumb access."
+            android:textColor="#888888"
+            android:textSize="13sp"
+            android:layout_marginStart="32dp"
+            android:layout_marginBottom="32dp"/>
 
         <View
             android:layout_width="match_parent"
@@ -57,64 +45,7 @@
             android:background="#333333"
             android:layout_marginBottom="24dp"/>
 
-        <!-- PREMIUM ALLERGEN NAVIGATION ROW -->
-        <LinearLayout
-            android:id="@+id/layoutManageAllergens"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="#1E1E1E"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?android:attr/selectableItemBackground"
-            android:padding="16dp"
-            android:layout_marginBottom="24dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:clickable="false"
-                android:focusable="false">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/allergens_amp_sensitivities_txt"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:clickable="false"
-                    android:focusable="false"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/manage_custom_watchlist_txt"
-                    android:textColor="#888888"
-                    android:textSize="12sp"
-                    android:layout_marginTop="4dp"
-                    android:clickable="false"
-                    android:focusable="false"/>
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/arrow_img_txt"
-                android:textColor="#6200EE"
-                android:textSize="18sp"
-                android:layout_gravity="center_vertical" />
-        </LinearLayout>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#333333"
-            android:layout_marginBottom="24dp"/>
-
-        <!-- MASTER COMMIT ACTION -->
+        <!-- MASTER SAVE ACTION -->
         <Button
             android:id="@+id/buttonSaveSettings"
             android:layout_width="match_parent"

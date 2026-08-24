@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="kidney_stones" name="Kidney Stone Prevention" exclusivity_group="urinary_health">
+    <flag name="enforce_protein_ratio">false</flag>
+    <flag name="enforce_protein_floor">false</flag>
+    <flag name="enforce_protein_ceiling">false</flag>
+
+    <nutrient name="sodium" low_max="140" moderate_max="300" is_blacklist="true" />
+    <nutrient name="total_sugar" low_max="5" moderate_max="12" is_blacklist="false" />
+    <nutrient name="added_sugar" low_max="2" moderate_max="6" is_blacklist="true" />
+    <nutrient name="calcium" low_max="200" moderate_max="400" is_blacklist="false" />
+
+    <protein_rules snack_min="0" snack_max="999" meal_min="0" meal_max="999" target_ratio="0.0" />
+
+    <!-- Red Triggers: High-Oxalate Foods and Severe Dehydration Risks -->
+    <trigger category="red">SPINACH</trigger>
+    <trigger category="red">RHUBARB</trigger>
+    <trigger category="red">ALMONDS</trigger>
+    <trigger category="red">BEETS</trigger>
+    <trigger category="red">STARFRUIT</trigger>
+    <trigger category="red">SODIUM NITRITE</trigger>
+
+    <!-- Yellow Triggers: Moderate Oxalates or Excessive Calcium Excretion Promoters -->
+    <trigger category="yellow">CAFFEINE</trigger>
+    <trigger category="yellow">COCOA</trigger>
+    <trigger category="yellow">CASHEWS</trigger>
+    <trigger category="yellow">PEANUTS</trigger>
+    <trigger category="yellow">SOY PROTEIN</trigger>
+    <trigger category="yellow">TEA EXTRACT</trigger>
+</diet_profile>

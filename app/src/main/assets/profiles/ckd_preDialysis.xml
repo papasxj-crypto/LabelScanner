@@ -33,6 +33,7 @@
     <trigger category="red">PYROPHOSPHATE</trigger>
     <trigger category="red">POLYPHOSPHATE</trigger>
     <trigger category="red">SODIUM NITRITE</trigger>
+    <trigger category="red">SODIUM NITRATE</trigger>
     <trigger category="red">POTASSIUM CHLORIDE</trigger>
     <trigger category="red">MONOSODIUM GLUTAMATE</trigger>
     <trigger category="red">MSG</trigger>

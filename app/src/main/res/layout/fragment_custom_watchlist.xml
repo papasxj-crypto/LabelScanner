@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Top-anchored Deletion Confirmation Banner (Out of comfortable thumb reach) -->
+    <!-- Top-anchored Deletion Confirmation Banner -->
     <LinearLayout
         android:id="@+id/layoutConfirmBanner"
         android:layout_width="match_parent"
@@ -111,6 +111,30 @@
         android:background="#333333"
         android:layout_marginBottom="16dp"/>
 
+    <!-- Horizontal Scrolling Common Quick Add Panel [1, 2] -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Common Quick Add Items"
+        android:textColor="#888888"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:textAllCaps="true"
+        android:layout_marginBottom="6dp"/>
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupCommonItems"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleLine="true" />
+    </HorizontalScrollView>
+
     <!-- Entry boxes and adding panel -->
     <TextView
         android:layout_width="match_parent"
@@ -160,7 +184,7 @@
             android:layout_marginStart="4dp"/>
     </LinearLayout>
 
-    <!-- Done / Back Button (Thumb-reachable at absolute bottom) -->
+    <!-- Done / Back Button -->
     <Button
         android:id="@+id/btnBackToHealth"
         android:layout_width="match_parent"

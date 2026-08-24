@@ -200,6 +200,19 @@
 
             </LinearLayout>
 
+            <!-- Clickable Source Link Label (Tap to Re-scrape) -->
+            <TextView
+                android:id="@+id/txtSourceLink"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Source Link: "
+                android:textColor="#FFF7E6"
+                android:textSize="12sp"
+                android:textStyle="bold|italic"
+                android:gravity="start"
+                android:visibility="gone" />
+
             <!-- 5. Original Input Box (Translucent Smoke Background & White Hint) -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/tilRecipeInput"
@@ -282,15 +295,31 @@
                             android:layout_alignParentStart="true"
                             android:layout_centerVertical="true" />
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnCopyAdjusted"
-                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                        <!-- Side-by-Side Action Button Container [1] -->
+                        <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Copy"
-                            android:textColor="@color/textPrimary"
+                            android:orientation="horizontal"
                             android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" />
+                            android:layout_centerVertical="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnReportAdjusted"
+                                style="@style/Widget.MaterialComponents.Button.TextButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Report"
+                                android:textColor="@color/textPrimary"
+                                android:layout_marginEnd="4dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnCopyAdjusted"
+                                style="@style/Widget.MaterialComponents.Button.TextButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Copy"
+                                android:textColor="@color/textPrimary" />
+                        </LinearLayout>
                     </RelativeLayout>
 
                     <!-- Output floats completely directly on the scale illustration -->

@@ -41,6 +41,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import com.google.android.material.card.MaterialCardView
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -56,6 +59,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var cardSummary: MaterialCardView
     private lateinit var textSummaryGrade: TextView
     private lateinit var textSummaryExplanation: TextView
+    private lateinit var composeView: ComposeView
 
     private lateinit var tempPhotoUri: Uri
     private var isAnalyzing: Boolean = false
@@ -103,6 +107,22 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         pendingAction = PendingCameraAction.NONE
     }
 
+    private fun optDoubleResilient(json: JSONObject, vararg keys: String): Double {
+        for (key in keys) {
+            if (!json.has(key) || json.isNull(key)) continue
+            val rawObj = json.get(key)
+            if (rawObj is Number) {
+                return rawObj.toDouble()
+            }
+            val strVal = rawObj.toString().trim()
+            if (strVal.isNotEmpty()) {
+                val numericPart = strVal.replace(Regex("[^0-9\\.]"), "")
+                return numericPart.toDoubleOrNull() ?: 0.0
+            }
+        }
+        return 0.0
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -112,21 +132,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         textSummaryGrade = view.findViewById(R.id.textSummaryGrade)
         textSummaryExplanation = view.findViewById(R.id.textSummaryExplanation)
 
-        val userSettings = AppSettings(requireContext())
-        val isRightHanded = userSettings.isRightHanded()
-
-        val composeView = view.findViewById<ComposeView>(R.id.composeViewMenu)
-        composeView.setContent {
-            VerticalThumbArchMenu(
-                isRightHanded = isRightHanded,
-                onLabelClick = { runWithCameraPermission(PendingCameraAction.CAMERA_SCAN) },
-                onBarcodeClick = { runWithCameraPermission(PendingCameraAction.BARCODE_SCAN) },
-                onProduceClick = { runWithCameraPermission(PendingCameraAction.PRODUCE_SCAN) }
-            )
-        }
+        composeView = view.findViewById(R.id.composeViewMenu)
+        rebuildComposeMenu()
 
         val bottomNav = activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_navigation)
-            ?: activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_navigation)
             ?: activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.nav_host_fragment)
 
         bottomNav?.setOnItemReselectedListener { item ->
@@ -146,22 +155,45 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
 
         cachedEval?.let { eval ->
+            val cal = cachedMacros?.getInt("cal") ?: 0
+            val pro = cachedMacros?.getFloat("pro") ?: 0f
+            val sod = cachedMacros?.getInt("sod") ?: 0
+            val pot = cachedMacros?.getFloat("pot") ?: 0f
+            val carb = cachedMacros?.getFloat("carb") ?: 0f
+            val netCarb = cachedMacros?.getFloat("net_carb") ?: 0f
+            val sug = cachedMacros?.getFloat("sug") ?: 0f
+            val keto = cachedMacros?.getBoolean("is_keto") ?: false
+
             displaySummaryCard(
                 evaluation = eval,
                 subtitle = cachedSub,
-                calories = 0,
-                protein = 0f,
-                sodium = 0,
-                potassium = 0f,
-                carbs = 0f,
-                netCarbs = 0f,
-                sugar = 0f,
-                isKeto = false,
+                calories = cal,
+                protein = pro,
+                sodium = sod,
+                potassium = pot,
+                carbs = carb,
+                netCarbs = netCarb,
+                sugar = sug,
+                isKeto = keto,
                 isRestoring = true,
                 suggestions = cachedSuggestions
             )
         }
         updateConditionText()
+    }
+
+    private fun rebuildComposeMenu() {
+        val userSettings = AppSettings(requireContext())
+        val isRightHanded = userSettings.isRightHanded()
+
+        composeView.setContent {
+            VerticalThumbArchMenu(
+                isRightHanded = isRightHanded,
+                onLabelClick = { runWithCameraPermission(PendingCameraAction.CAMERA_SCAN) },
+                onBarcodeClick = { runWithCameraPermission(PendingCameraAction.BARCODE_SCAN) },
+                onProduceClick = { runWithCameraPermission(PendingCameraAction.PRODUCE_SCAN) }
+            )
+        }
     }
 
     @Composable
@@ -317,6 +349,14 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
                             if (hasVal("sugars_serving")) put("sugar", nutriments.optDouble("sugars_serving", 0.0))
                             else if (hasVal("sugars_100g")) put("sugar", nutriments.optDouble("sugars_100g", 0.0))
+
+                            if (hasVal("potassium_serving")) {
+                                put("potassium", (nutriments.optDouble("potassium_serving", 0.0) * 1000).toInt())
+                            } else if (hasVal("potassium_100g")) {
+                                put("potassium", (nutriments.optDouble("potassium_100g", 0.0) * 1000).toInt())
+                            } else if (hasVal("potassium")) {
+                                put("potassium", (nutriments.optDouble("potassium", 0.0) * 1000).toInt())
+                            }
                         }
 
                         val userSettings = AppSettings(requireContext())
@@ -362,7 +402,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                             val altNutriments = altProduct.optJSONObject("nutriments") ?: JSONObject()
                                             val altIngredients = altProduct.optString("ingredients_text", "").split(",").map { it.trim().uppercase() }
 
-                                            val altEvalJson = JSONObject().apply {
+                                            val altEvals = JSONObject().apply {
                                                 fun hasVal(vararg keys: String): Boolean {
                                                     return keys.any { altNutriments.has(it) && !altNutriments.isNull(it) }
                                                 }
@@ -379,7 +419,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                             }
 
                                             val altEvalResult = LabelEvaluator.evaluateScanData(
-                                                altEvalJson,
+                                                altEvals,
                                                 altIngredients,
                                                 userSettings.getSelectedConditions(),
                                                 userSettings,
@@ -432,7 +472,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 evalJson.optInt("calories", 0),
                                 evalJson.optDouble("protein", 0.0).toFloat(),
                                 evalJson.optInt("sodium", 0),
-                                0f,
+                                evalJson.optDouble("potassium", 0.0).toFloat(),
                                 evalJson.optDouble("carbs", 0.0).toFloat(),
                                 (evalJson.optDouble("carbs", 0.0) - evalJson.optDouble("fiber", 0.0)).toFloat(),
                                 evalJson.optDouble("sugar", 0.0).toFloat(),
@@ -481,61 +521,151 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         return emptyList()
     }
 
+    // High-performance payload resize preventing OOM crashes and massive cloud transit latency
+    private fun resizeBitmapToMax(source: Bitmap, maxDimension: Int = 1024): Bitmap {
+        val width = source.width
+        val height = source.height
+        if (width <= maxDimension && height <= maxDimension) return source
+
+        val aspectRatio = width.toFloat() / height.toFloat()
+        val targetWidth: Int
+        val targetHeight: Int
+
+        if (width > height) {
+            targetWidth = maxDimension
+            targetHeight = (maxDimension / aspectRatio).toInt()
+        } else {
+            targetHeight = maxDimension
+            targetWidth = (maxDimension * aspectRatio).toInt()
+        }
+
+        return Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
+    }
+
+    // HYBRID SCAN INGESTION ENGINE
     private fun runAnalysis(imageBitmap: Bitmap) {
         isAnalyzing = true
-        activity?.runOnUiThread { textExplanation.text = "Analyzing..." }
+        activity?.runOnUiThread { textExplanation.text = "Reading label..." }
+
+        // EXIF Orientation Correction: Use the direct file URI so ML Kit auto-rotates sideways photos properly!
+        val image = try {
+            InputImage.fromFilePath(requireContext(), tempPhotoUri)
+        } catch (e: Exception) {
+            InputImage.fromBitmap(imageBitmap, 0)
+        }
+
+        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+
+        recognizer.process(image)
+            .addOnSuccessListener { visionText ->
+                val extractedText = visionText.text
+                if (extractedText.isNotBlank()) {
+                    activity?.runOnUiThread { textExplanation.text = "Analyzing text..." }
+                    executeTextBasedAnalysis(extractedText)
+                } else {
+                    activity?.runOnUiThread { textExplanation.text = "Using visual fallback..." }
+                    executeVisionBasedAnalysis(imageBitmap)
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("LabelScanner", "Local OCR Failed, falling back to Vision API", e)
+                activity?.runOnUiThread { textExplanation.text = "OCR Failed. Using visual fallback..." }
+                executeVisionBasedAnalysis(imageBitmap)
+            }
+    }
+
+    // TIER 2: Fast, cheap, precise, text-only API parser
+    private fun executeTextBasedAnalysis(extractedText: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val userSettings = AppSettings(requireContext())
-                val rawResponse = GeminiAnalyzer.analyzeIngredientsImage(
-                    imageBitmap,
+                val rawResponse = GeminiAnalyzer.analyzeIngredientsText(
+                    extractedText,
                     getConditionsString(userSettings, userSettings.getSelectedConditions()),
                     BuildConfig.GEMINI_API_KEY,
                     getString(R.string.model_identifier_txt)
                 )
 
-                Log.d("LabelScanner", "HomeFragment: Raw Gemini Response = $rawResponse")
+                Log.d("LabelScanner", "HomeFragment [Hybrid Text]: Raw Response = $rawResponse")
+                parseAndDisplayAnalysis(rawResponse, userSettings)
 
-                val json = JSONObject(rawResponse.replace("```json", "").replace("```", "").trim())
-
-                val ingredients = extractIngredientsFromJson(json)
-                val loadedRedTriggers = userSettings.loadTriggersFromAssets("red")
-
-                Log.d("LabelScanner", "HomeFragment: Loaded red triggers = $loadedRedTriggers")
-                Log.d("LabelScanner", "HomeFragment: Safely Extracted Ingredients = $ingredients")
-
-                val evalResult = LabelEvaluator.evaluateScanData(
-                    json,
-                    ingredients,
-                    userSettings.getSelectedConditions(),
-                    userSettings,
-                    loadedRedTriggers,
-                    userSettings.getCustomWatchlist("RED"),
-                    userSettings.getCustomWatchlist("YELLOW")
-                )
+            } catch (e: Exception) {
+                Log.e("LabelScanner", "Text hybrid scan execution failed", e)
                 withContext(Dispatchers.Main) {
                     isAnalyzing = false
-                    val fiber = if(json.has("fiber_g")) json.optDouble("fiber_g") else json.optDouble("fiber", 0.0)
-                    val carbs = if(json.has("total_carbohydrates_g")) json.optDouble("total_carbohydrates_g") else json.optDouble("carbs", 0.0)
-                    displaySummaryCard(
-                        evalResult,
-                        "Scan Result",
-                        json.optInt("calories"),
-                        json.optDouble("protein_g", 0.0).toFloat(),
-                        json.optInt("sodium_mg", 0),
-                        0f,
-                        carbs.toFloat(),
-                        (carbs - fiber).toFloat(),
-                        json.optDouble("total_sugar_g", 0.0).toFloat(),
-                        userSettings.getSelectedConditions().contains("keto")
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e("LabelScanner", "Camera Scan analysis error", e)
-                withContext(Dispatchers.Main) {
                     textExplanation.text = "Failed: ${e.localizedMessage ?: "Analysis error"}"
                 }
             }
+        }
+    }
+
+    // TIER 3: Visual fallback (Optimized downsampling to save network transport delay)
+    private fun executeVisionBasedAnalysis(imageBitmap: Bitmap) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val userSettings = AppSettings(requireContext())
+
+                // Compress payload from 5MB+ down to <150KB before cloud upload
+                val optimizedBitmap = resizeBitmapToMax(imageBitmap, 1024)
+
+                val rawResponse = GeminiAnalyzer.analyzeIngredientsImage(
+                    optimizedBitmap,
+                    getConditionsString(userSettings, userSettings.getSelectedConditions()),
+                    BuildConfig.GEMINI_API_KEY,
+                    getString(R.string.model_identifier_txt)
+                )
+
+                Log.d("LabelScanner", "HomeFragment [Fallback Vision]: Raw Response = $rawResponse")
+                parseAndDisplayAnalysis(rawResponse, userSettings)
+
+            } catch (e: Exception) {
+                Log.e("LabelScanner", "Vision fallback scan execution failed", e)
+                withContext(Dispatchers.Main) {
+                    isAnalyzing = false
+                    textExplanation.text = "Failed: ${e.localizedMessage ?: "Analysis error"}"
+                }
+            }
+        }
+    }
+
+    private suspend fun parseAndDisplayAnalysis(rawResponse: String, userSettings: AppSettings) {
+        val json = JSONObject(rawResponse.replace("```json", "").replace("```", "").trim())
+
+        val ingredients = extractIngredientsFromJson(json)
+        val loadedRedTriggers = userSettings.loadTriggersFromAssets("red")
+
+        Log.d("LabelScanner", "HomeFragment: Loaded red triggers = $loadedRedTriggers")
+        Log.d("LabelScanner", "HomeFragment: Safely Extracted Ingredients = $ingredients")
+
+        val evalResult = LabelEvaluator.evaluateScanData(
+            json,
+            ingredients,
+            userSettings.getSelectedConditions(),
+            userSettings,
+            loadedRedTriggers,
+            userSettings.getCustomWatchlist("RED"),
+            userSettings.getCustomWatchlist("YELLOW")
+        )
+        withContext(Dispatchers.Main) {
+            isAnalyzing = false
+            val fiber = if (json.has("fiber_g")) json.optDouble("fiber_g") else json.optDouble("fiber", 0.0)
+            val carbs = if (json.has("total_carbohydrates_g")) json.optDouble("total_carbohydrates_g") else json.optDouble("carbs", 0.0)
+
+            val potassiumVal = optDoubleResilient(json, "potassium_mg", "potassium")
+            val sugarVal = optDoubleResilient(json, "total_sugar_g", "sugar")
+
+            displaySummaryCard(
+                evalResult,
+                "Scan Result",
+                json.optInt("calories"),
+                json.optDouble("protein", 0.0).toFloat().let { if (it == 0f) json.optDouble("protein_g", 0.0).toFloat() else it },
+                json.optInt("sodium", 0).let { if (it == 0) json.optInt("sodium_mg", 0) else it },
+                potassiumVal.toFloat(),
+                carbs.toFloat(),
+                (carbs - fiber).toFloat(),
+                sugarVal.toFloat(),
+                userSettings.getSelectedConditions().contains("keto")
+            )
         }
     }
 
@@ -543,8 +673,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         isAnalyzing = true
         lifecycleScope.launch(Dispatchers.IO) {
             try {
+                // Downsample produce camera scan payload
+                val optimizedBitmap = resizeBitmapToMax(imageBitmap, 1024)
+
                 val rawResponse = GeminiAnalyzer.analyzeProduceImage(
-                    imageBitmap,
+                    optimizedBitmap,
                     BuildConfig.GEMINI_API_KEY,
                     getString(R.string.model_identifier_txt)
                 )
@@ -564,16 +697,27 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 )
                 withContext(Dispatchers.Main) {
                     isAnalyzing = false
-                    displaySummaryCard(evalResult,
+
+                    val proteinVal = optDoubleResilient(json, "protein_g", "protein").toFloat()
+                    val sodiumVal = optDoubleResilient(json, "sodium_mg", "sodium").toInt()
+                    val potassiumVal = optDoubleResilient(json, "potassium_mg", "potassium").toFloat()
+                    val carbsVal = optDoubleResilient(json, "total_carbohydrates_g", "carbs").toFloat()
+                    val fiberVal = optDoubleResilient(json, "fiber_g", "fiber").toFloat()
+                    val sugarVal = optDoubleResilient(json, "total_sugar_g", "sugar").toFloat()
+                    val netCarbsVal = (carbsVal - fiberVal).coerceAtLeast(0f)
+
+                    displaySummaryCard(
+                        evalResult,
                         name,
                         json.optInt("calories"),
-                        0f,
-                        0,
-                        0f,
-                        0f,
-                        0f,
-                        0f,
-                        false)
+                        proteinVal,
+                        sodiumVal,
+                        potassiumVal,
+                        carbsVal,
+                        netCarbsVal,
+                        sugarVal,
+                        false
+                    )
                 }
             } catch (e: Exception) {
                 Log.e("LabelScanner", "Produce analysis error", e)
@@ -614,7 +758,24 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         cardSummary.strokeColor = evaluation.textColor
         cardSummary.strokeWidth = (2 * resources.displayMetrics.density).toInt()
 
-        textSummaryGrade.text = evaluation.gradeTitle
+        val context = cardSummary.context
+        val titleResId = context.resources.getIdentifier("textProductTitle", "id", context.packageName).let { id ->
+            if (id != 0) id else context.resources.getIdentifier("textSummaryTitle", "id", context.packageName).let { id2 ->
+                if (id2 != 0) id2 else context.resources.getIdentifier("textProduct", "id", context.packageName)
+            }
+        }
+
+        val textProductTitle = if (titleResId != 0) cardSummary.findViewById<TextView>(titleResId) else null
+
+        if (textProductTitle != null) {
+            textProductTitle.text = subtitle
+            textProductTitle.setTextColor(evaluation.textColor)
+            textProductTitle.gravity = android.view.Gravity.CENTER
+            textSummaryGrade.text = evaluation.gradeTitle
+        } else {
+            textSummaryGrade.text = "$subtitle\n${evaluation.gradeTitle}"
+        }
+        textSummaryGrade.gravity = android.view.Gravity.CENTER
         textSummaryGrade.setTextColor(evaluation.textColor)
 
         val explanationText = if (evaluation.redViolations.isNotEmpty()) {
@@ -688,6 +849,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         super.onResume()
         isNavigatingToDetail = false
         updateConditionText()
+        rebuildComposeMenu()
     }
 
     private fun runWithCameraPermission(action: PendingCameraAction) {

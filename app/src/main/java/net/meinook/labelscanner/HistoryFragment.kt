@@ -49,6 +49,7 @@ class HistoryFragment : Fragment() {
 
     private lateinit var layoutHistoryContainer: LinearLayout
     private lateinit var textEmptyHistory: TextView
+    private lateinit var txtSwipeToDeleteHint: TextView
 
     companion object {
         // Universal static save hook to log entries from any screen
@@ -137,6 +138,7 @@ class HistoryFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_history, container, false)
         layoutHistoryContainer = view.findViewById(R.id.layoutHistoryContainer)
         textEmptyHistory = view.findViewById(R.id.textEmptyHistory)
+        txtSwipeToDeleteHint = view.findViewById(R.id.txtSwipeToDeleteHint)
         return view
     }
 
@@ -152,8 +154,10 @@ class HistoryFragment : Fragment() {
         val items = loadHistoryFromFile()
         if (items.isEmpty()) {
             textEmptyHistory.visibility = View.VISIBLE
+            txtSwipeToDeleteHint.visibility = View.GONE // Hide hint if no entries are present [2]
         } else {
             textEmptyHistory.visibility = View.GONE
+            txtSwipeToDeleteHint.visibility = View.VISIBLE // Show hint persistently at bottom [2]
             for (item in items) {
                 val cardView = createHistoryCard(context, item)
                 layoutHistoryContainer.addView(cardView)
@@ -232,7 +236,7 @@ class HistoryFragment : Fragment() {
                 val obj = arr.getJSONObject(i)
                 val type = obj.optString("item_type", "RECIPE")
 
-                // Exclude any non-recipe (barcode scan) items from the journal
+                // Only load and show recipe items
                 if (type == "RECIPE") {
                     list.add(
                         HistoryItem(
@@ -325,7 +329,6 @@ class HistoryFragment : Fragment() {
             }
         }
 
-        // Map grade values to distinct colored indicators for the journal view list
         val origIcon = when {
             item.originalGrade.contains("Green", ignoreCase = true) || item.originalGrade.contains("Safe", ignoreCase = true) -> "🟢"
             item.originalGrade.contains("Yellow", ignoreCase = true) || item.originalGrade.contains("Caution", ignoreCase = true) -> "🟡"
@@ -365,13 +368,12 @@ class HistoryFragment : Fragment() {
                 .setPopUpTo(R.id.navigation_history, true)
                 .build()
 
-            // Package complete snapshot layout metrics for instant, offline re-hydration
             val bundle = Bundle().apply {
                 putString("RECIPE_INPUT", item.originalInput)
                 putString("RECIPE_URL", item.sourceUrl)
                 putString("RECIPE_ADJUSTED_OUTPUT", item.adjustedOutput)
                 putString("HISTORY_ITEM_ID", item.id)
-                putString("RECIPE_TITLE", item.title) // Restores the verified recipe title [1]
+                putString("RECIPE_TITLE", item.title)
 
                 putString("ORIGINAL_GRADE", item.originalGrade)
                 putString("ORIGINAL_VIOLATIONS", item.originalViolations)
@@ -483,14 +485,14 @@ class HistoryFragment : Fragment() {
                 originalInput = "2 cups raw broccoli\n1 lb lean beef sirloin\n2 tbsp soy sauce\n1 tbsp sesame oil\n1 tsp cornstarch",
                 adjustedOutput = "2 cups raw broccoli\n1 lb lean beef sirloin\n2 tbsp coconut aminos\n1 tbsp sesame oil\n1 tsp arrowroot starch",
                 itemType = "RECIPE",
-                originalViolations = "• High Sodium\n• Refined Sugars",
-                originalStats = "Per Serving (6 Servings):\nCal: 220 | Sod: 920mg | Prot: 24g\nPot: 480mg | Carbs: 12g",
+                originalViolations = "• High Sodium (Soy Sauce)\n• High Potassium",
+                originalStats = "Per Serving:\nCal: 220 | Sod: 920mg | Prot: 24g",
                 adjustedViolations = "None (Compliant)",
-                adjustedStats = "Per Serving (6 Servings):\nCal: 200 | Sod: 110mg | Prot: 24g\nPot: 410mg | Carbs: 10g",
+                adjustedStats = "Per Serving:\nCal: 210 | Sod: 110mg | Prot: 24g",
                 originalBgColor = Color.parseColor("#4D5C1D1D"),
-                originalTextColor = Color.parseColor("#FFF5F5"),
+                originalTextColor = Color.WHITE,
                 adjustedBgColor = Color.parseColor("#4D1D5C1D"),
-                adjustedTextColor = Color.parseColor("#F5FFF5")
+                adjustedTextColor = Color.WHITE
             )
         )
     }

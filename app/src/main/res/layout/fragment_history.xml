@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_vintage_parchment"> <!-- Parchment background applied! -->
+    android:background="@drawable/bg_vintage_parchment">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -17,7 +17,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp"
-            android:paddingBottom="80dp">
+            android:paddingBottom="140dp"> <!-- Leaves plenty of space so cards don't scroll behind the bottom hint or nav -->
 
             <!-- Borderless Scrapbook Title -->
             <com.google.android.material.card.MaterialCardView
@@ -38,7 +38,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Clinical Food Journal"
-                        android:textColor="@color/textPrimary"
+                        android:textColor="#FFFFFF"
                         android:textSize="22sp"
                         android:textStyle="bold"
                         android:gravity="center"/>
@@ -47,8 +47,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="Your recent recipe adjusts and barcode scans"
-                        android:textColor="@color/textSecondary"
+                        android:text="Your recent recipe adjustments"
+                        android:textColor="#FFFFFF"
                         android:textSize="13sp"
                         android:gravity="center"/>
 
@@ -62,13 +62,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="64dp"
                 android:gravity="center"
-                android:text="Your food journal is empty.\nScan a barcode or adjust a recipe to begin!"
-                android:textColor="@color/textSecondary"
+                android:text="Your food journal is empty.\nAdjust a recipe to begin!"
+                android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:visibility="gone" />
 
-            <!-- Dynamic History List Container [1] -->
+            <!-- Dynamic History List Container -->
             <LinearLayout
                 android:id="@+id/layoutHistoryContainer"
                 android:layout_width="match_parent"
@@ -77,4 +77,21 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- Persistent Bottom Hint Layout -->
+    <TextView
+        android:id="@+id/txtSwipeToDeleteHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_margin="16dp"
+        android:layout_marginBottom="80dp"
+        android:gravity="center"
+        android:text="&lt;&lt;&lt; Swipe left on any entry to delete"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -3,10 +3,13 @@ package net.meinook.labelscanner
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
 import android.text.Html
+import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -18,6 +21,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
+import androidx.navigation.fragment.findNavController
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.card.MaterialCardView
@@ -44,7 +49,13 @@ import java.util.concurrent.TimeUnit
 
 class RecipeFragment : Fragment() {
 
-    private val BACKEND_ANALYSIS_URL = "https://analyze-recipe-955054852456.us-west1.run.app"
+    private val BACKEND_ANALYSIS_URL by lazy {
+        if (BuildConfig.DEBUG) {
+            getString(R.string.dev_URL)
+        } else {
+            getString(R.string.production_URL)
+        }
+    }
 
     // Input Views
     private lateinit var edtRecipeInput: TextInputEditText
@@ -66,7 +77,9 @@ class RecipeFragment : Fragment() {
     private lateinit var cardAdjustedResult: MaterialCardView
     private lateinit var txtAdjustedOutput: TextView
     private lateinit var txtAdjustedRecipeHeader: TextView
+    private lateinit var txtSourceLink: TextView
     private lateinit var btnCopyAdjusted: MaterialButton
+    private lateinit var btnReportAdjusted: MaterialButton
 
     // Input Selector Views
     private lateinit var toggleInputMode: MaterialButtonToggleGroup
@@ -89,20 +102,32 @@ class RecipeFragment : Fragment() {
     // Class properties to capture exact metadata states
     private var scrapedRecipeTitle: String? = null
     private var scrapedRecipeUrl: String? = null
+    private var scrapedServings: Int? = null
 
-    // Temporary Uri to hold the captured high-resolution camera image
     private var tempImageUri: Uri? = null
 
-    // Register camera intent contract
+    private var navController: NavController? = null
+    private val destinationListener = NavController.OnDestinationChangedListener { _, destination, _ ->
+        if (destination.id != R.id.recipeFragment) {
+            edtRecipeInput.setText("")
+            clearAnalysisResults()
+            activeHistoryId = null
+            scrapedRecipeTitle = null
+            scrapedRecipeUrl = null
+            scrapedServings = null
+        }
+    }
+
     private val takePicture = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
             tempImageUri?.let { runOnDeviceOcr(it) }
         } else {
             Toast.makeText(context, "Photo capture canceled", Toast.LENGTH_SHORT).show()
+            toggleInputMode.check(R.id.btnModeText)
+            switchInputInterface(R.id.btnModeText)
         }
     }
 
-    // Helper to generate a secure temp file Uri matching your files-path XML config
     private fun getTmpFileUri(): Uri {
         val tmpFile = java.io.File.createTempFile("camera_capture_", ".jpg", requireContext().filesDir).apply {
             createNewFile()
@@ -120,6 +145,8 @@ class RecipeFragment : Fragment() {
             runOnDeviceOcr(uri)
         } else {
             Toast.makeText(context, "No photo chosen", Toast.LENGTH_SHORT).show()
+            toggleInputMode.check(R.id.btnModeText)
+            switchInputInterface(R.id.btnModeText)
         }
     }
 
@@ -145,7 +172,9 @@ class RecipeFragment : Fragment() {
         cardAdjustedResult = root.findViewById(R.id.cardAdjustedResult)
         txtAdjustedOutput = root.findViewById(R.id.txtAdjustedOutput)
         txtAdjustedRecipeHeader = root.findViewById(R.id.txtAdjustedRecipeHeader)
+        txtSourceLink = root.findViewById(R.id.txtSourceLink)
         btnCopyAdjusted = root.findViewById(R.id.btnCopyAdjusted)
+        btnReportAdjusted = root.findViewById(R.id.btnReportAdjusted)
 
         toggleInputMode = root.findViewById(R.id.toggleInputMode)
         tilRecipeInput = root.findViewById(R.id.tilRecipeInput)
@@ -158,19 +187,38 @@ class RecipeFragment : Fragment() {
 
         val btnModeText: MaterialButton = root.findViewById(R.id.btnModeText)
 
-        // Joint focus & click listeners immediately clear stale cards on the very first touch [Focus Bug Fix]
+        layoutOcrActions.visibility = View.GONE
+        btnSelectPhoto.visibility = View.GONE
+
         edtRecipeInput.setOnClickListener { clearAnalysisResults() }
         edtRecipeInput.setOnFocusChangeListener { _, hasFocus -> if (hasFocus) clearAnalysisResults() }
 
-        // Clicking "Text / Link" now clears the entire slate instantly for a fresh start [3]
+        edtRecipeInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val text = s?.toString()?.trim() ?: ""
+                val isUrl = text.startsWith("http://", ignoreCase = true) || text.startsWith("https://", ignoreCase = true)
+
+                if (btnAdjustRecipe.isEnabled) {
+                    if (isUrl) {
+                        btnAdjustRecipe.text = "Scrape Recipe"
+                    } else {
+                        btnAdjustRecipe.text = "Profile & Adjust"
+                    }
+                }
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
         btnModeText.setOnClickListener {
             edtRecipeInput.text = null
             clearAnalysisResults()
-            activeHistoryId = null // Reset overwrite ID
+            activeHistoryId = null
             scrapedRecipeTitle = null
             scrapedRecipeUrl = null
+            scrapedServings = null
             tilRecipeInput.helperText = null
-            tilRecipeInput.hint = "Paste recipe lines or website link here" // Reset hint
+            tilRecipeInput.hint = "Paste recipe lines or website link here"
             toggleInputMode.check(R.id.btnModeText)
             switchInputInterface(R.id.btnModeText)
         }
@@ -179,14 +227,55 @@ class RecipeFragment : Fragment() {
             if (isChecked) switchInputInterface(checkedId)
         }
 
-        btnSelectPhoto.setOnClickListener {
+        txtSourceLink.setOnClickListener {
+            val url = scrapedRecipeUrl
+            if (!url.isNullOrBlank()) {
+                edtRecipeInput.setText("")
+                clearAnalysisResults()
+                activeHistoryId = null
+                scrapeWebpageContents(url)
+            }
+        }
+
+        btnReportAdjusted.setOnClickListener {
+            val recipeName = txtAdjustedRecipeHeader.text.toString().removePrefix("Adjusted: ")
+            val reportBody = StringBuilder().apply {
+                append("TESTER OBSERVATION / FEEDBACK:\n")
+                append("[Please type what seemed wrong here, e.g., 'cheese swap should be vegan' or 'potassium calculations look off']\n\n")
+                append("=========================================\n")
+                append("RECIPE METADATA:\n")
+                append("Title: $recipeName\n")
+                if (!scrapedRecipeUrl.isNullOrBlank()) {
+                    append("Source Link: $scrapedRecipeUrl\n")
+                }
+                append("\n=========================================\n")
+                append("ORIGINAL RECIPE STATUS:\n")
+                append("Grade: ${txtOriginalGradeTitle.text}\n")
+                append("${txtOriginalStats.text}\n")
+                append("${txtOriginalViolations.text}\n")
+                append("\nOriginal Ingredients:\n")
+                append(lastOriginalIngredients)
+                append("\n\n=========================================\n")
+                append("ADJUSTED RECIPE STATUS:\n")
+                append("Grade: ${txtAdjustedGradeTitle.text}\n")
+                append("${txtAdjustedStats.text}\n")
+                append("${txtAdjustedViolations.text}\n")
+                append("\nAdjusted Ingredients:\n")
+                append(lastAdjustedIngredients)
+                append("\n=========================================\n")
+            }.toString()
+
+            val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("mailto:")
+                putExtra(Intent.EXTRA_EMAIL, arrayOf(getString(R.string.support_email)))
+                putExtra(Intent.EXTRA_SUBJECT, "FilterPoint Telemetry: $recipeName")
+                putExtra(Intent.EXTRA_TEXT, reportBody)
+            }
+
             try {
-                // Generate the secure Uri and launch the camera directly
-                tempImageUri = getTmpFileUri()
-                takePicture.launch(tempImageUri)
+                startActivity(Intent.createChooser(emailIntent, "Send Telemetry Report..."))
             } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(context, "Failed to launch camera: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "No email app found to send telemetry.", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -194,30 +283,26 @@ class RecipeFragment : Fragment() {
         btnRetrieveSteps.setOnClickListener { retrieveStepByStepInstructions() }
         btnRetrieveAnalysis.setOnClickListener { retrieveAnalysisData() }
 
-        // --- RESTORE FULL PAYLOADS FROM THE HISTORY JOURNAL [1, 1.1.2, 1.1.5] ---
         arguments?.getString("RECIPE_INPUT")?.let { recipeText ->
             edtRecipeInput.setText(recipeText)
-            tilRecipeInput.hint = "Touch to edit" // Hint remains set [3]
+            tilRecipeInput.hint = "Touch to edit"
         }
 
         arguments?.getString("RECIPE_URL")?.let { url ->
             if (url.isNotBlank()) {
                 scrapedRecipeUrl = url
-
-                // CRITICAL FIX: Only overwrite the input edit text with the URL if we are NOT restoring an already adjusted recipe snapshot!
                 val originalGrade = arguments?.getString("ORIGINAL_GRADE")
                 if (originalGrade.isNullOrEmpty()) {
                     edtRecipeInput.setText(url)
                     toggleInputMode.check(R.id.btnModeText)
                     switchInputInterface(R.id.btnModeText)
-                    tilRecipeInput.hint = "Touch to edit" // Hint remains set [3]
+                    tilRecipeInput.hint = "Touch to edit"
                 }
             }
         }
 
         activeHistoryId = arguments?.getString("HISTORY_ITEM_ID")
 
-        // Offline History Reconstruction UI hydration
         val originalGrade = arguments?.getString("ORIGINAL_GRADE")
         if (!originalGrade.isNullOrEmpty()) {
             layoutGradeComparison.visibility = View.VISIBLE
@@ -255,7 +340,6 @@ class RecipeFragment : Fragment() {
             txtAdjustedOutput.text = "ADJUSTED INGREDIENTS:\n$adjustedOutput"
             layoutPostAnalysisActions.visibility = View.VISIBLE
 
-            // Track state mappings for dynamic step / rationale button logic
             lastOriginalIngredients = arguments?.getString("RECIPE_INPUT") ?: ""
             lastAdjustedIngredients = adjustedOutput
 
@@ -266,14 +350,15 @@ class RecipeFragment : Fragment() {
 
             scrapedRecipeUrl?.let { url ->
                 if (url.isNotEmpty()) {
-                    tilRecipeInput.helperText = "Source Link: $url"
+                    txtSourceLink.text = "Source Link: $url (Tap to re-scrape)"
+                    txtSourceLink.visibility = View.VISIBLE
                 }
             }
         }
 
-        // Prune after loading to prevent duplicate triggers on orientation change [2]
         arguments?.remove("RECIPE_INPUT")
         arguments?.remove("RECIPE_URL")
+        arguments?.remove("RECIPE_ADJUSTED_OUTPUT")
         arguments?.remove("HISTORY_ITEM_ID")
         arguments?.remove("RECIPE_TITLE")
         arguments?.remove("ORIGINAL_GRADE")
@@ -290,6 +375,26 @@ class RecipeFragment : Fragment() {
         return root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        navController = findNavController().apply {
+            addOnDestinationChangedListener(destinationListener)
+        }
+
+        val incomingUrl = arguments?.getString("recipe_url")
+        if (!incomingUrl.isNullOrEmpty()) {
+            arguments?.remove("recipe_url")
+            scrapeWebpageContents(incomingUrl)
+        }
+    }
+
+    override fun onDestroyView() {
+        navController?.removeOnDestinationChangedListener(destinationListener)
+        navController = null
+        super.onDestroyView()
+    }
+
     private fun switchInputInterface(checkedId: Int) {
         if (checkedId == currentInputModeId) return
         currentInputModeId = checkedId
@@ -304,10 +409,44 @@ class RecipeFragment : Fragment() {
             }
             R.id.btnModeOcr -> {
                 tilRecipeInput.visibility = View.GONE
-                layoutOcrActions.visibility = View.VISIBLE
+                layoutOcrActions.visibility = View.GONE
                 btnAdjustRecipe.text = "Profile & Adjust"
+                showPhotoSourceDialog()
             }
         }
+    }
+
+    private fun showPhotoSourceDialog() {
+        val options = arrayOf("Take Photo with Camera", "Choose from Gallery")
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Select Recipe Source")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> {
+                        try {
+                            tempImageUri = getTmpFileUri()
+                            takePicture.launch(tempImageUri)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            Toast.makeText(context, "Failed to launch camera: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                            toggleInputMode.check(R.id.btnModeText)
+                            switchInputInterface(R.id.btnModeText)
+                        }
+                    }
+                    1 -> {
+                        pickMedia.launch(
+                            PickVisualMediaRequest.Builder()
+                                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                .build()
+                        )
+                    }
+                }
+            }
+            .setOnCancelListener {
+                toggleInputMode.check(R.id.btnModeText)
+                switchInputInterface(R.id.btnModeText)
+            }
+            .show()
     }
 
     private fun clearAnalysisResults() {
@@ -317,8 +456,8 @@ class RecipeFragment : Fragment() {
         txtAdjustedOutput.text = ""
         txtAdjustedRecipeHeader.text = "Adjusted Recipe"
         tilRecipeInput.helperText = null
+        txtSourceLink.visibility = View.GONE
 
-        // Safety: Do NOT reset activeHistoryId here so that edits within the same text session preserve the overwrite ID [1.1.5]
         lastOriginalIngredients = ""
         lastAdjustedIngredients = ""
         lastDiagnosticError = null
@@ -334,7 +473,6 @@ class RecipeFragment : Fragment() {
             R.id.btnModeText -> {
                 val rawText = edtRecipeInput.text?.toString()?.trim() ?: ""
                 if (rawText.isNotBlank()) {
-                    // Client intercepts pasted URL and diverts to optimized scraper cleanly
                     if (rawText.startsWith("http://", ignoreCase = true) || rawText.startsWith("https://", ignoreCase = true)) {
                         scrapeWebpageContents(rawText)
                     } else {
@@ -378,6 +516,7 @@ class RecipeFragment : Fragment() {
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) throw IOException("Network Response Code: ${response.code}")
                     val rawHtml = response.body?.string() ?: ""
+
                     val ingredientsText = extractStructuredRecipeIngredients(rawHtml)
                     val finalOutput = if (ingredientsText.isNotBlank()) ingredientsText else cleanHtmlToText(rawHtml)
 
@@ -387,10 +526,12 @@ class RecipeFragment : Fragment() {
 
                         if (finalOutput.isNotBlank()) {
                             scrapedRecipeUrl = canonicalUrl
-                            tilRecipeInput.helperText = "Source Link: $canonicalUrl"
+                            txtSourceLink.text = "Source Link: $canonicalUrl (Tap to re-scrape)"
+                            txtSourceLink.visibility = View.VISIBLE
+
                             edtRecipeInput.setText(finalOutput)
                             toggleInputMode.check(R.id.btnModeText)
-                            tilRecipeInput.hint = "Touch to edit" // Set dynamic hint [3]
+                            tilRecipeInput.hint = "Touch to edit"
                             Toast.makeText(context, "Ingredients imported! Review below, then click Analyze.", Toast.LENGTH_LONG).show()
                         } else {
                             Toast.makeText(context, "Could not extract readable ingredients from that URL.", Toast.LENGTH_SHORT).show()
@@ -414,138 +555,89 @@ class RecipeFragment : Fragment() {
             image = InputImage.fromFilePath(context, uri)
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to resolve image path.", Toast.LENGTH_SHORT).show()
+            toggleInputMode.check(R.id.btnModeText)
+            switchInputInterface(R.id.btnModeText)
             return
         }
 
-        // Lock button actions while running local OCR extraction [1]
         btnAdjustRecipe.isEnabled = false
         btnAdjustRecipe.text = "Reading image..."
 
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         recognizer.process(image)
             .addOnSuccessListener { visionText ->
+                btnAdjustRecipe.isEnabled = true
+                btnAdjustRecipe.text = "Profile & Adjust"
+
                 val rawText = visionText.text
                 if (rawText.isNotBlank()) {
-                    // Send to background clean-up flow
-                    cleanOcrIngredientsWithGemini(rawText)
+                    val cleanedText = cleanOcrTextLocally(rawText)
+
+                    edtRecipeInput.setText(cleanedText)
+                    toggleInputMode.check(R.id.btnModeText)
+                    switchInputInterface(R.id.btnModeText)
+                    tilRecipeInput.hint = "Touch to edit"
+                    Toast.makeText(context, "Ingredients isolated successfully!", Toast.LENGTH_SHORT).show()
                 } else {
-                    btnAdjustRecipe.isEnabled = true
-                    btnAdjustRecipe.text = "Profile & Adjust"
                     Toast.makeText(context, "No text found inside the photo.", Toast.LENGTH_SHORT).show()
+                    toggleInputMode.check(R.id.btnModeText)
+                    switchInputInterface(R.id.btnModeText)
                 }
             }
             .addOnFailureListener { e ->
                 btnAdjustRecipe.isEnabled = true
                 btnAdjustRecipe.text = "Profile & Adjust"
                 Toast.makeText(context, "OCR Processing failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                toggleInputMode.check(R.id.btnModeText)
+                switchInputInterface(R.id.btnModeText)
             }
     }
 
-    // Handles async call to filter noisy UI buttons, table items, and ads out of OCR [1]
-    private fun cleanOcrIngredientsWithGemini(rawText: String) {
-        val context = context ?: return
-        btnAdjustRecipe.isEnabled = false
-        btnAdjustRecipe.text = "Isolating ingredients..."
+    private fun cleanOcrTextLocally(rawText: String): String {
+        val lines = rawText.lines()
+        val cleanedLines = mutableListOf<String>()
+        val stopKeywords = listOf("directions", "prep:", "cook:", "total:", "instructions", "for the filling:", "for the mash:")
+        val keyboardKeyPattern = Regex("^[fp]\\d+\$", RegexOption.IGNORE_CASE)
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            val apiKey = BuildConfig.GEMINI_API_KEY
-            val modelId = getString(R.string.model_identifier_txt)
+        for (line in lines) {
+            val trimmed = line.trim()
+            val lower = trimmed.lowercase()
 
-            val cleaned = fetchCleanedIngredientsFromGemini(rawText, apiKey, modelId)
-
-            withContext(Dispatchers.Main) {
-                btnAdjustRecipe.isEnabled = true
-                btnAdjustRecipe.text = "Profile & Adjust"
-
-                if (!cleaned.isNullOrBlank()) {
-                    edtRecipeInput.setText(cleaned)
-                    toggleInputMode.check(R.id.btnModeText)
-                    switchInputInterface(R.id.btnModeText)
-                    tilRecipeInput.hint = "Touch to edit"
-                    Toast.makeText(context, "Isolated ingredient list successfully!", Toast.LENGTH_LONG).show()
-                } else {
-                    // Fail gracefully back to raw OCR text if network/API key fails [1]
-                    edtRecipeInput.setText(rawText)
-                    toggleInputMode.check(R.id.btnModeText)
-                    switchInputInterface(R.id.btnModeText)
-                    tilRecipeInput.hint = "Touch to edit"
-                    Toast.makeText(context, "Showing raw OCR text (auto-isolation failed).", Toast.LENGTH_LONG).show()
-                }
+            if (stopKeywords.any { lower.contains(it) }) {
+                break
             }
+
+            if (trimmed.isEmpty()) continue
+            if (trimmed.length <= 1) continue
+            if (trimmed.matches(keyboardKeyPattern)) continue
+            if (lower.startsWith("yield:") || lower.startsWith("ingredients")) continue
+
+            cleanedLines.add(trimmed)
         }
+
+        return cleanedLines.joinToString("\n")
     }
 
-    // Connects directly to Gemini REST API endpoints for quick, lightweight semantic text extraction [1]
-    private suspend fun fetchCleanedIngredientsFromGemini(
-        rawText: String,
-        apiKey: String,
-        modelId: String
-    ): String? = withContext(Dispatchers.IO) {
-        var conn: HttpURLConnection? = null
-        try {
-            val endpoint = "https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$apiKey"
-            val url = URL(endpoint)
-            conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                setRequestProperty("Content-Type", "application/json")
-                connectTimeout = 15000
-                readTimeout = 15000
-                doOutput = true
-            }
+    private fun parseServingsFromYield(yieldRaw: Any?): Int? {
+        if (yieldRaw == null) return null
+        if (yieldRaw is Number) return yieldRaw.toInt()
+        val str = yieldRaw.toString().trim()
+        if (str.isEmpty()) return null
 
-            val systemPrompt = """
-                You are a precise culinary extraction assistant. Analyze the raw OCR text extracted from a recipe photo or webpage screenshot.
-                Extract ONLY the ingredient list.
-                Strictly discard:
-                - Webpage advertisements, cooking tips, preps, buttons, keyboard/UI artifacts, or desk/table clutter.
-                - Recipe instructions, cooking steps, or preparation guidelines.
-                - Conversational introductions or story text.
-                
-                Format the response ONLY as a clean list of ingredients, with one ingredient per line. Do not write any conversational filler, notes, or markdown formatting (such as backticks or bold headers).
-            """.trimIndent()
+        val numericPart = str.takeWhile { it.isDigit() }
+        return numericPart.toIntOrNull()
+    }
 
-            val jsonRequest = JSONObject().apply {
-                put("contents", JSONArray().apply {
-                    put(JSONObject().apply {
-                        put("parts", JSONArray().apply {
-                            put(JSONObject().apply {
-                                put("text", "$systemPrompt\n\nRaw OCR Text:\n$rawText")
-                            })
-                        })
-                    })
-                })
-            }
-
-            conn.outputStream.use { os ->
-                OutputStreamWriter(os, Charsets.UTF_8).use { writer ->
-                    writer.write(jsonRequest.toString())
-                    writer.flush()
-                }
-            }
-
-            val responseCode = conn.responseCode
-            if (responseCode == 200) {
-                val responseText = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText().trim() }
-                val responseJson = JSONObject(responseText)
-                val candidates = responseJson.optJSONArray("candidates")
-                val content = candidates?.optJSONObject(0)?.optJSONObject("content")
-                val parts = content?.optJSONArray("parts")
-                parts?.optJSONObject(0)?.optString("text")?.trim()
-            } else {
-                val errorText = conn.errorStream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
-                Log.e("RECIPE_OCR_CLEAN", "Gemini HTTP $responseCode: $errorText")
-                null
-            }
-        } catch (e: Exception) {
-            Log.e("RECIPE_OCR_CLEAN", "Exception during Gemini OCR cleanup: ${e.message}", e)
-            null
-        } finally {
-            conn?.disconnect()
-        }
+    private fun extractServingsFromHtmlFallback(html: String): Int? {
+        val pattern = Regex("(?:Portions|Servings|Yield):\\s*(\\d+)", RegexOption.IGNORE_CASE)
+        val match = pattern.find(html)
+        return match?.groups?.get(1)?.value?.toIntOrNull()
     }
 
     private fun extractStructuredRecipeIngredients(html: String): String {
         try {
+            scrapedServings = extractServingsFromHtmlFallback(html)
+
             val pattern = Regex(
                 "<script\\b[^>]*type\\s*=\\s*['\"]?application/ld\\+json['\"]?[^>]*>(.*?)</script>",
                 setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
@@ -564,6 +656,13 @@ class RecipeFragment : Fragment() {
                     val recipeObj = findRecipeObject(rootToken)
                     if (recipeObj != null) {
                         scrapedRecipeTitle = recipeObj.optString("name", "").ifEmpty { null }
+
+                        val yieldRaw = recipeObj.opt("recipeYield") ?: recipeObj.opt("yield")
+                        val parsedYield = parseServingsFromYield(yieldRaw)
+                        if (parsedYield != null) {
+                            scrapedServings = parsedYield
+                        }
+
                         val ingredientsText = formatRecipeIngredients(recipeObj)
                         if (ingredientsText.isNotBlank()) return ingredientsText
                     }
@@ -712,7 +811,6 @@ class RecipeFragment : Fragment() {
                     elapsedSeconds < 6 -> "Contacting engine... "
                     elapsedSeconds < 13 -> "Parsing ingredients... "
                     elapsedSeconds < 22 -> "USDA database match... "
-                    elapsedSeconds < 30 -> "Calculating swaps... "
                     else -> "Clinical safety check... "
                 }
 
@@ -734,10 +832,11 @@ class RecipeFragment : Fragment() {
     private fun generateTitleFromIngredients(ingredientsText: String): String {
         val lines = ingredientsText.lines().map { it.trim() }.filter { it.isNotEmpty() }
         val primaryIngredients = mutableListOf<String>()
-
         val ignoreWords = setOf(
             "lange", "long", "short",
             "large", "medium", "small", "tiny", "mini", "jumbo", "giant", "thin", "thick", "whole", "half", "halves", "quarter", "quarters",
+            "boneless", "skinless", "extra-virgin", "extra", "virgin", "lean", "fat-free", "low-fat", "reduced-fat", "salted", "unsalted",
+            "olive", "olives", "canola", "vegetable", "coconut", "sesame", "avocado", "grapeseed",
             "teaspoon", "teaspoons", "tablespoon", "tablespoons", "cup", "cups", "tbsp", "tsp", "gram", "grams", "ounce", "ounces", "oz",
             "pound", "pounds", "lb", "lbs", "ml", "pinch", "pinches", "dash", "dashes", "drop", "drops", "can", "cans", "bottle", "bottles",
             "jar", "jars", "bag", "bags", "pack", "packs", "package", "packages", "pkg", "pkgs", "box", "boxes", "carton", "cartons",
@@ -770,9 +869,9 @@ class RecipeFragment : Fragment() {
         }
 
         return if (primaryIngredients.isNotEmpty()) {
-            primaryIngredients.joinToString(" & ") + " Adjust"
+            primaryIngredients.joinToString(" & ")
         } else {
-            "Custom Recipe Adjust"
+            "Custom Recipe"
         }
     }
 
@@ -801,7 +900,9 @@ class RecipeFragment : Fragment() {
             if (responseString != null) {
                 try {
                     val parsedResult = JSONObject(responseString)
-                    val servings = parsedResult.optInt("servings", 6).coerceAtLeast(1)
+
+                    // Robust servings mapping from response contract
+                    val servings = scrapedServings ?: parsedResult.optInt("servings", 6).coerceAtLeast(1)
                     val adjustedIngredients = parsedResult.optString("adjusted_ingredients", "")
 
                     lastOriginalIngredients = rawText
@@ -1022,36 +1123,36 @@ class RecipeFragment : Fragment() {
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")
-
-            // Connection and Read timeouts increased to bypass serverless cold starts gracefully
             conn.connectTimeout = 30000
             conn.readTimeout = 90000
             conn.doOutput = true
 
             val context = requireContext()
             val userSettings = AppSettings(context)
-
-            // Extract custom red watchlist terms as dynamic allergy checkers on the engine
             val userAllergiesList = try {
                 userSettings.getCustomWatchlist("RED").toList()
             } catch (e: Exception) {
                 emptyList<String>()
             }
 
-            // Build dynamic threshold objects matching exactly the frontend simplified mapping schema
-            val thresholdsObj = JSONObject().apply {
-                put("potassium", JSONObject().apply {
-                    put("yellow_warning", 200.0)
-                    put("red_limit", 350.0)
-                })
-                put("sodium", JSONObject().apply {
-                    put("yellow_warning", 140.0)
-                    put("red_limit", 300.0)
-                })
-                put("protein", JSONObject().apply {
-                    put("yellow_warning", 10.0)
-                    put("red_limit", 15.0)
-                })
+            // ---------------------------------------------------------------------------
+            // UPGRADED DATA-DRIVEN RULES ENGINE (Replaced static CKD thresholds) [3]
+            // ---------------------------------------------------------------------------
+            val thresholdsObj = JSONObject()
+            val targetNutrientKeys = listOf(
+                "potassium", "sodium", "protein", "carbs", "calories",
+                "saturated_fat", "total_fat", "total_sugar", "added_sugar"
+            )
+            for (key in targetNutrientKeys) {
+                val dynamicLimits = userSettings.getNutrientThresholds(key)
+                val yellowWarning = dynamicLimits.first
+                val redLimit = dynamicLimits.second
+                if (redLimit < 999) {
+                    thresholdsObj.put(key, JSONObject().apply {
+                        put("yellow_warning", yellowWarning.toDouble())
+                        put("red_limit", redLimit.toDouble())
+                    })
+                }
             }
 
             val jsonRequest = JSONObject().apply {
@@ -1061,6 +1162,9 @@ class RecipeFragment : Fragment() {
                 put("allergies", JSONArray(userAllergiesList))
                 put("thresholds", thresholdsObj)
                 put("bypass_cache", true)
+
+                // Inject dynamic portion size metadata
+                scrapedServings?.let { put("servings", it) }
             }
 
             val writer = OutputStreamWriter(conn.outputStream)
@@ -1205,7 +1309,6 @@ class RecipeFragment : Fragment() {
     }
 
     private suspend fun fetchPlainTextFromGemini(prompt: String): String? = withContext(Dispatchers.IO) {
-        // Obsoleted by secure multi-route actions! Client plain text generation routed dynamically over backend.
         return@withContext null
     }
 }
