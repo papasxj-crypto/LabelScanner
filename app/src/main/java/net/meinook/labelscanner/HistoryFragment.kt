@@ -17,9 +17,6 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.card.MaterialCardView
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.File
 
 data class HistoryItem(
     val id: String,
@@ -52,83 +49,9 @@ class HistoryFragment : Fragment() {
     private lateinit var txtSwipeToDeleteHint: TextView
 
     companion object {
-        // Universal static save hook to log entries from any screen
+        // Universal static save hook delegating cleanly to File-Based Persistence
         fun saveHistoryItem(context: Context, item: HistoryItem) {
-            try {
-                val file = File(context.filesDir, "user_history.json")
-                val list = mutableListOf<HistoryItem>()
-                var overwritten = false
-
-                if (file.exists()) {
-                    val jsonStr = file.readText()
-                    val arr = JSONArray(jsonStr)
-                    for (i in 0 until arr.length()) {
-                        val obj = arr.getJSONObject(i)
-                        val currentId = obj.getString("id")
-
-                        if (currentId == item.id) {
-                            list.add(item)
-                            overwritten = true
-                        } else {
-                            list.add(
-                                HistoryItem(
-                                    id = currentId,
-                                    timestamp = obj.getLong("timestamp"),
-                                    title = obj.getString("title"),
-                                    subtitle = obj.getString("subtitle"),
-                                    originalGrade = obj.getString("original_grade"),
-                                    adjustedGrade = obj.getString("adjusted_grade"),
-                                    activeProfiles = obj.getString("active_profiles"),
-                                    sourceUrl = obj.optString("source_url", ""),
-                                    originalInput = obj.optString("original_input", ""),
-                                    adjustedOutput = obj.optString("adjusted_output", ""),
-                                    itemType = obj.optString("item_type", "RECIPE"),
-                                    originalViolations = obj.optString("original_violations", ""),
-                                    originalStats = obj.optString("original_stats", ""),
-                                    adjustedViolations = obj.optString("adjusted_violations", ""),
-                                    adjustedStats = obj.optString("adjusted_stats", ""),
-                                    originalBgColor = obj.optInt("original_bg_color", 0),
-                                    originalTextColor = obj.optInt("original_text_color", 0),
-                                    adjustedBgColor = obj.optInt("adjusted_bg_color", 0),
-                                    adjustedTextColor = obj.optInt("adjusted_text_color", 0)
-                                )
-                            )
-                        }
-                    }
-                }
-
-                if (!overwritten) {
-                    list.add(item)
-                }
-
-                val outArr = JSONArray()
-                for (x in list) {
-                    outArr.put(JSONObject().apply {
-                        put("id", x.id)
-                        put("timestamp", x.timestamp)
-                        put("title", x.title)
-                        put("subtitle", x.subtitle)
-                        put("original_grade", x.originalGrade)
-                        put("adjusted_grade", x.adjustedGrade)
-                        put("active_profiles", x.activeProfiles)
-                        put("source_url", x.sourceUrl)
-                        put("original_input", x.originalInput)
-                        put("adjusted_output", x.adjustedOutput)
-                        put("item_type", x.itemType)
-                        put("original_violations", x.originalViolations)
-                        put("original_stats", x.originalStats)
-                        put("adjusted_violations", x.adjustedViolations)
-                        put("adjusted_stats", x.adjustedStats)
-                        put("original_bg_color", x.originalBgColor)
-                        put("original_text_color", x.originalTextColor)
-                        put("adjusted_bg_color", x.adjustedBgColor)
-                        put("adjusted_text_color", x.adjustedTextColor)
-                    })
-                }
-                file.writeText(outArr.toString())
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            HistoryPersistenceManager.saveHistoryItem(context, item)
         }
     }
 
@@ -154,10 +77,10 @@ class HistoryFragment : Fragment() {
         val items = loadHistoryFromFile()
         if (items.isEmpty()) {
             textEmptyHistory.visibility = View.VISIBLE
-            txtSwipeToDeleteHint.visibility = View.GONE // Hide hint if no entries are present [2]
+            txtSwipeToDeleteHint.visibility = View.GONE
         } else {
             textEmptyHistory.visibility = View.GONE
-            txtSwipeToDeleteHint.visibility = View.VISIBLE // Show hint persistently at bottom [2]
+            txtSwipeToDeleteHint.visibility = View.VISIBLE
             for (item in items) {
                 val cardView = createHistoryCard(context, item)
                 layoutHistoryContainer.addView(cardView)
@@ -166,108 +89,25 @@ class HistoryFragment : Fragment() {
     }
 
     private fun deleteHistoryItem(item: HistoryItem) {
-        val file = File(requireContext().filesDir, "user_history.json")
-        if (!file.exists()) return
-
-        try {
-            val jsonStr = file.readText()
-            val arr = JSONArray(jsonStr)
-            val outArr = JSONArray()
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                if (obj.getString("id") != item.id) {
-                    outArr.put(obj)
-                }
-            }
-            file.writeText(outArr.toString())
+        val success = HistoryPersistenceManager.deleteHistoryItem(requireContext(), item.id)
+        if (success) {
             Toast.makeText(context, "Entry removed from journal", Toast.LENGTH_SHORT).show()
-            populateHistoryLog()
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
-    }
-
-    private fun saveHistoryListToFile(list: List<HistoryItem>) {
-        try {
-            val file = File(requireContext().filesDir, "user_history.json")
-            val outArr = JSONArray()
-            for (x in list) {
-                outArr.put(JSONObject().apply {
-                    put("id", x.id)
-                    put("timestamp", x.timestamp)
-                    put("title", x.title)
-                    put("subtitle", x.subtitle)
-                    put("original_grade", x.originalGrade)
-                    put("adjusted_grade", x.adjustedGrade)
-                    put("active_profiles", x.activeProfiles)
-                    put("source_url", x.sourceUrl)
-                    put("original_input", x.originalInput)
-                    put("adjusted_output", x.adjustedOutput)
-                    put("item_type", x.itemType)
-                    put("original_violations", x.originalViolations)
-                    put("original_stats", x.originalStats)
-                    put("adjusted_violations", x.adjustedViolations)
-                    put("adjusted_stats", x.adjustedStats)
-                    put("original_bg_color", x.originalBgColor)
-                    put("original_text_color", x.originalTextColor)
-                    put("adjusted_bg_color", x.adjustedBgColor)
-                    put("adjusted_text_color", x.adjustedTextColor)
-                })
-            }
-            file.writeText(outArr.toString())
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        populateHistoryLog()
     }
 
     private fun loadHistoryFromFile(): List<HistoryItem> {
-        val file = File(requireContext().filesDir, "user_history.json")
-        if (!file.exists()) {
+        val items = HistoryPersistenceManager.loadAllHistory(requireContext())
+        if (items.isEmpty()) {
             val mockList = getMockHistoryItems()
-            saveHistoryListToFile(mockList)
+            for (mock in mockList) {
+                HistoryPersistenceManager.saveHistoryItem(requireContext(), mock)
+            }
             return mockList
         }
 
-        return try {
-            val jsonStr = file.readText()
-            val arr = JSONArray(jsonStr)
-            val list = mutableListOf<HistoryItem>()
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                val type = obj.optString("item_type", "RECIPE")
-
-                // Only load and show recipe items
-                if (type == "RECIPE") {
-                    list.add(
-                        HistoryItem(
-                            id = obj.getString("id"),
-                            timestamp = obj.getLong("timestamp"),
-                            title = obj.getString("title"),
-                            subtitle = obj.getString("subtitle"),
-                            originalGrade = obj.getString("original_grade"),
-                            adjustedGrade = obj.getString("adjusted_grade"),
-                            activeProfiles = obj.getString("active_profiles"),
-                            sourceUrl = obj.optString("source_url", ""),
-                            originalInput = obj.optString("original_input", ""),
-                            adjustedOutput = obj.optString("adjusted_output", ""),
-                            itemType = type,
-                            originalViolations = obj.optString("original_violations", ""),
-                            originalStats = obj.optString("original_stats", ""),
-                            adjustedViolations = obj.optString("adjusted_violations", ""),
-                            adjustedStats = obj.optString("adjusted_stats", ""),
-                            originalBgColor = obj.optInt("original_bg_color", 0),
-                            originalTextColor = obj.optInt("original_text_color", 0),
-                            adjustedBgColor = obj.optInt("adjusted_bg_color", 0),
-                            adjustedTextColor = obj.optInt("adjusted_text_color", 0)
-                        )
-                    )
-                }
-            }
-            list.sortedByDescending { it.timestamp }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            getMockHistoryItems()
-        }
+        // Filter out Scan items to only load and show recipe adjustments
+        return items.filter { it.itemType == "RECIPE" }
     }
 
     @SuppressLint("ClickableViewAccessibility")

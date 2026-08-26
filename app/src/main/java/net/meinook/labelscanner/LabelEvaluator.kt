@@ -100,7 +100,8 @@ object LabelEvaluator {
         xmlRedTriggers: List<String>,
         customRedWatchlist: List<String>,
         customYellowWatchlist: List<String>,
-        isProduce: Boolean = false
+        isProduce: Boolean = false,
+        isRecipe: Boolean = false // Upgraded safety parameter prevents metric scale corruption
     ): EvaluationResult {
 
         val redViolations = mutableListOf<String>()
@@ -165,11 +166,10 @@ object LabelEvaluator {
         }
 
         // 3. ROUTING & STATE CONTROLLER
-        // Check if Gemini actively detected a nutrition facts panel
         val nutritionFactsFound = jsonResult.optBoolean("nutrition_facts_found", true)
 
         fun hasNutrient(xmlId: String): Boolean {
-            if (!nutritionFactsFound) return false // Instantly falsifies check if nutrition panel is absent
+            if (!nutritionFactsFound) return false
             val validKeys = nutrientRegistry.filter { it.xmlId == xmlId }.map { it.jsonKey }
             return validKeys.any { jsonResult.has(it) && !jsonResult.isNull(it) }
         }
@@ -178,14 +178,12 @@ object LabelEvaluator {
         val hasSodium = hasNutrient("sodium")
         val hasIngredients = cleanIngredients.isNotEmpty()
 
-        // Pivot into Watchlist-Only Mode if ingredients are present but nutrition values are absent
         val isIngredientsOnlyMode = !isProduce && (!hasCalories || !hasSodium) && hasIngredients
 
         if (isIngredientsOnlyMode) {
             return finalizeResult(redViolations, yellowViolations, isIngredientsOnly = true)
         }
 
-        // Drop directly to "Incomplete Scan" if both nutrition and ingredients are missing
         if (!isProduce && (!hasCalories || !hasSodium) && !hasIngredients) {
             return EvaluationResult(
                 bgColor = "#1E2027".toColorInt(),
@@ -197,12 +195,10 @@ object LabelEvaluator {
             )
         }
 
-        // 4. IMMEDIATE HAZARD ESCAPE (For Standard Nutritional Scans)
         if (redViolations.isNotEmpty()) {
             return finalizeResult(redViolations, yellowViolations)
         }
 
-        // Helper to extract values dynamically
         fun getVal(xmlId: String): Float {
             val keys = nutrientRegistry.filter { it.xmlId == xmlId }.map { it.jsonKey }
             for (k in keys) {
@@ -213,7 +209,7 @@ object LabelEvaluator {
             return 0.0f
         }
 
-        // 5. CLINICAL DYNAMIC PROTEIN RULES ENGINE
+        // 4. CLINICAL DYNAMIC PROTEIN RULES ENGINE
         val proteinRules = userSettings.getActiveProteinRules()
         val enforceFloor = userSettings.isFeatureFlagActive("enforce_protein_floor")
         val enforceCeiling = userSettings.isFeatureFlagActive("enforce_protein_ceiling")
@@ -240,16 +236,18 @@ object LabelEvaluator {
             }
         }
 
-        // 6. MAIN NUTRIENT EVALUATION LOOP
+        // 5. MAIN NUTRIENT EVALUATION LOOP
         val totalCarbs = getVal("carbs")
         val fiber = getVal("fiber")
         val netCarbs = (totalCarbs - fiber).coerceAtLeast(0.0f)
+
+        // Dynamic flag evaluation maps cleanly from condition files
+        val useNetCarbsActive = savedProfileIds.contains("keto") || userSettings.isFeatureFlagActive("use_net_carbs")
 
         val processed = mutableSetOf<String>()
         for (map in nutrientRegistry) {
             if (processed.contains(map.xmlId)) continue
 
-            // Skip protein static loop if advanced XML protein rules are active
             if (map.xmlId == "protein" && (enforceFloor || enforceCeiling)) {
                 processed.add(map.xmlId)
                 continue
@@ -258,8 +256,12 @@ object LabelEvaluator {
             val (low, mod, blacklist) = userSettings.getNutrientThresholds(map.xmlId)
             if (mod >= 999.0) continue
 
-            var value = if (map.useNetCarbs && savedProfileIds.contains("keto")) netCarbs else getVal(map.xmlId)
-            if (map.isScaleRequired && value in 0.01f..5.0f) value *= 1000
+            var value = if (map.useNetCarbs && useNetCarbsActive) netCarbs else getVal(map.xmlId)
+
+            // Bypass scale adjustments completely for calculated recipe models
+            if (!isRecipe && map.isScaleRequired && value in 0.01f..5.0f) {
+                value *= 1000
+            }
 
             val actualValFormatted = when (map.xmlId) {
                 "calories" -> "${value.toInt()} kcal"
@@ -278,11 +280,11 @@ object LabelEvaluator {
             }
 
             if (value > mod) {
-                val label = if (map.useNetCarbs && savedProfileIds.contains("keto")) "Net Carbs" else map.displayName
+                val label = if (map.useNetCarbs && useNetCarbsActive) "Net Carbs" else map.displayName
                 val message = "$label exceeds target limit: found $actualValFormatted (limit: $modFormatted)"
                 if (blacklist) redViolations.add(message) else yellowViolations.add(message)
             } else if (value > low) {
-                val label = if (map.useNetCarbs && savedProfileIds.contains("keto")) "Net Carbs" else map.displayName
+                val label = if (map.useNetCarbs && useNetCarbsActive) "Net Carbs" else map.displayName
                 val message = "$label is high: found $actualValFormatted (caution limit: $lowFormatted)"
                 yellowViolations.add(message)
             }

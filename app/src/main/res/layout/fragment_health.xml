@@ -3,162 +3,629 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"
+    android:background="#14161F"
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- 1. Ideal Body Weight Row (Fixed at the absolute top) -->
+    <!-- Universal Top Tab Bar Controls -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayoutHealth"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#14161F"
+        app:tabTextColor="#808080"
+        app:tabSelectedTextColor="#4CAF50"
+        app:tabIndicatorColor="#4CAF50"
+        android:layout_marginBottom="12dp">
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Profiles &amp; Targets" />
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Custom Watchlist" />
+    </com.google.android.material.tabs.TabLayout>
+
+    <!-- TAB 1: PROFILES & TARGETS CONTAINER PANEL -->
     <LinearLayout
+        android:id="@+id/layoutTabProfiles"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="16dp">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="visible">
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/ideal_body_weight_txt"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/etIdealWeight"
-            android:layout_width="85dp"
-            android:layout_height="wrap_content"
-            android:background="#1E1E1E"
-            android:textColor="#FFFFFF"
-            android:inputType="numberDecimal"
-            android:gravity="center"
-            android:padding="10dp"
-            android:maxLength="5"
-            android:hint="0"
-            android:textColorHint="#808080" />
-    </LinearLayout>
-
-    <!-- Visual Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#333333"
-        android:layout_marginBottom="16dp" />
-
-    <!-- 2. Clinical Targets Header (Fixed) -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/clinical_targets_txt"
-        android:textColor="#4CAF50"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:textAllCaps="true"
-        android:letterSpacing="0.1"
-        android:layout_marginBottom="8dp"/>
-
-    <!-- 3. Scroll Box Wrapper with Dynamic Arrow Overlays -->
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginBottom="16dp">
-
-        <!-- Scrollable Clinical Targets Box -->
-        <androidx.core.widget.NestedScrollView
-            android:id="@+id/scrollConditionSwitches"
+        <!-- Section 1: Clinical Measurements Dashboard Card -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#1E1E1E"
-            android:padding="8dp"
-            android:fillViewport="true">
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="12dp">
 
             <LinearLayout
-                android:id="@+id/layoutConditionSwitches"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
-        </androidx.core.widget.NestedScrollView>
+                android:orientation="vertical"
+                android:padding="12dp">
 
-        <!-- Up Scroll Arrow (Aligned to Top-Right) -->
-        <ImageView
-            android:id="@+id/ivScrollUpIndicator"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="16dp"
-            android:background="#B3000000"
-            android:padding="4dp"
-            android:src="@android:drawable/arrow_up_float"
-            android:visibility="gone"
-            app:tint="#FFFFFF"
-            android:contentDescription="Scroll Up Indicator" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CLINICAL MEASUREMENTS"
+                    android:textColor="#4CAF50"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="12dp" />
 
-        <!-- Down Scroll Arrow (Aligned to Bottom-Right) -->
-        <ImageView
-            android:id="@+id/ivScrollDownIndicator"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentEnd="true"
-            android:layout_marginBottom="8dp"
-            android:layout_marginEnd="16dp"
-            android:background="#B3000000"
-            android:padding="4dp"
-            android:src="@android:drawable/arrow_down_float"
-            android:visibility="gone"
-            app:tint="#FFFFFF"
-            android:contentDescription="Scroll Down Indicator" />
-    </RelativeLayout>
+                <!-- Row 1: Weight & Gender Side-by-Side -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="2"
+                    android:layout_marginBottom="12dp">
 
-    <!-- Visual Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#333333"
-        android:layout_marginBottom="16dp" />
+                    <!-- Weight Column -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="8dp">
 
-    <!-- 4. Allergen Watchlist Section (Fixed at bottom-middle) -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/allergen_watchlist_txt"
-        android:textColor="#F44336"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:textAllCaps="true"
-        android:letterSpacing="0.1"
-        android:layout_marginBottom="4dp"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Actual Weight (lbs)"
+                            android:textColor="#A89890"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/long_press_for_details_txt"
-        android:textColor="#808080"
-        android:textSize="11sp"
-        android:textStyle="bold"
-        android:textAllCaps="false"
-        android:letterSpacing="0.1"
-        android:layout_marginBottom="8dp"/>
+                        <EditText
+                            android:id="@+id/etActualWeight"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="#2E221D"
+                            android:textColor="#F4F5FC"
+                            android:inputType="numberDecimal"
+                            android:imeOptions="actionNext"
+                            android:padding="10dp"
+                            android:maxLength="5"
+                            android:hint="0"
+                            android:textColorHint="#60544E"
+                            android:textSize="14sp" />
+                    </LinearLayout>
 
-    <!-- Container for Allergen List (Stays static on screen) -->
+                    <!-- Gender Column -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Biological Gender"
+                            android:textColor="#A89890"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp" />
+
+                        <Spinner
+                            android:id="@+id/spinnerGender"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="#2E221D"
+                            android:padding="10dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Row 2: Height & Stat Badges Side-by-Side -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:weightSum="2">
+
+                    <!-- Height Column (Individually focused inputs) -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Height"
+                            android:textColor="#A89890"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <EditText
+                                android:id="@+id/etHeightFeet"
+                                android:layout_width="44dp"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_height_edit_text"
+                                android:textColor="#F4F5FC"
+                                android:inputType="number"
+                                android:imeOptions="actionNext"
+                                android:gravity="center"
+                                android:padding="8dp"
+                                android:maxLength="1"
+                                android:hint="0"
+                                android:textColorHint="#60544E"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text=" '"
+                                android:textColor="#F4F5FC"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:layout_marginEnd="6dp" />
+
+                            <EditText
+                                android:id="@+id/etHeightInches"
+                                android:layout_width="54dp"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_height_edit_text"
+                                android:textColor="#F4F5FC"
+                                android:inputType="number"
+                                android:imeOptions="actionDone"
+                                android:gravity="center"
+                                android:padding="8dp"
+                                android:maxLength="2"
+                                android:hint="0"
+                                android:textColorHint="#60544E"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text=' "'
+                                android:textColor="#F4F5FC"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Calculated Outputs -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center_vertical"
+                        android:layout_marginStart="8dp">
+
+                        <TextView
+                            android:id="@+id/txtIbwCalculated"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="#81C784"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="4dp"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/txtAjbwCalculated"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="#FFD54F"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Section 2: Clinical Profile Targets Card (Scrollable) -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="12dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/txtClinicalTargetsHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/clinical_targets_txt"
+                    android:textColor="#4CAF50"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="8dp"/>
+
+                <TextView
+                    android:id="@+id/txtClinicalTargetsSubheader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/long_press_for_details_txt"
+                    android:textColor="#A89890"
+                    android:textSize="10sp"
+                    android:layout_marginBottom="8dp"
+                    android:layout_below="@id/txtClinicalTargetsHeader" />
+
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/scrollConditionCheckBoxes"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_below="@id/txtClinicalTargetsSubheader"
+                    android:fillViewport="true">
+
+                    <LinearLayout
+                        android:id="@+id/layoutConditionCheckBoxes"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingEnd="44dp" />
+                </androidx.core.widget.NestedScrollView>
+
+                <ImageView
+                    android:id="@+id/ivScrollUpIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#B3251B18"
+                    android:padding="4dp"
+                    android:src="@android:drawable/arrow_up_float"
+                    android:visibility="gone"
+                    app:tint="#F4F5FC"
+                    android:contentDescription="Scroll Up" />
+
+                <ImageView
+                    android:id="@+id/ivScrollDownIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginBottom="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#B3251B18"
+                    android:padding="4dp"
+                    android:src="@android:drawable/arrow_down_float"
+                    android:visibility="gone"
+                    app:tint="#F4F5FC"
+                    android:contentDescription="Scroll Down" />
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Section 3: Allergen Watchlist Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="12dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/txtAllergenTargetsHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/allergen_watchlist_txt"
+                    android:textColor="#F44336"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="2dp"/>
+
+                <TextView
+                    android:id="@+id/txtAllergenTargetsSubheader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/long_press_for_details_txt"
+                    android:textColor="#A89890"
+                    android:textSize="10sp"
+                    android:layout_marginBottom="8dp"
+                    android:layout_below="@id/txtAllergenTargetsHeader"/>
+
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/scrollAllergenCheckBoxes"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_below="@id/txtAllergenTargetsSubheader"
+                    android:fillViewport="true">
+
+                    <LinearLayout
+                        android:id="@+id/layoutAllergenCheckBoxes"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingEnd="44dp" />
+                </androidx.core.widget.NestedScrollView>
+
+                <ImageView
+                    android:id="@+id/ivAllergenScrollUpIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#B3251B18"
+                    android:padding="4dp"
+                    android:src="@android:drawable/arrow_up_float"
+                    android:visibility="gone"
+                    app:tint="#F4F5FC"
+                    android:contentDescription="Scroll Up" />
+
+                <ImageView
+                    android:id="@+id/ivAllergenScrollDownIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginBottom="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#B3251B18"
+                    android:padding="4dp"
+                    android:src="@android:drawable/arrow_down_float"
+                    android:visibility="gone"
+                    app:tint="#F4F5FC"
+                    android:contentDescription="Scroll Down" />
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+
+    <!-- TAB 2: CUSTOM WATCHLIST CONTAINER PANEL -->
     <LinearLayout
-        android:id="@+id/layoutAllergenSwitches"
+        android:id="@+id/layoutTabCustomWatchlist"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
-        android:layout_marginBottom="16dp" />
+        android:visibility="gone">
 
-    <!-- 5. Navigation Button (Fixed at the absolute bottom) -->
-    <Button
-        android:id="@+id/btnManageCustomWatchlist"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/manage_custom_watchlist_txt"
-        android:backgroundTint="#F44336"
-        android:textColor="#FFFFFF"
-        android:layout_marginBottom="8dp"/>
+        <!-- Input Section Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ADD CUSTOM WATCHLIST INGREDIENT"
+                    android:textColor="#FFD54F"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <EditText
+                        android:id="@+id/etCustomIngredient"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.2"
+                        android:background="#2E221D"
+                        android:textColor="#F4F5FC"
+                        android:inputType="text"
+                        android:padding="11dp"
+                        android:hint="Type ingredient (e.g. Carrageenan)"
+                        android:textColorHint="#60544E"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <!-- Red (Avoid) Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAddRed"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.9"
+                        android:backgroundTint="#FF6B6B"
+                        android:textColor="#FFFFFF"
+                        android:text="+ Avoid"
+                        android:textSize="11sp"
+                        android:padding="8dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        app:cornerRadius="8dp"
+                        android:layout_marginEnd="4dp" />
+
+                    <!-- Yellow (Caution) Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAddYellow"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.9"
+                        android:backgroundTint="#FFD54F"
+                        android:textColor="#14161F"
+                        android:text="+ Caution"
+                        android:textSize="11sp"
+                        android:padding="8dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        app:cornerRadius="8dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- EQUAL HEIGHT CARD 1: Common Quick Add Chips Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="8dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/txtCommonAddsHeader"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="COMMON ADDITIONS (TAP TO WATCHLIST)"
+                    android:textColor="#A89890"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="8dp" />
+
+                <androidx.core.widget.NestedScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_below="@id/txtCommonAddsHeader"
+                    android:fillViewport="true">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupCommonAdds"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:chipSpacingHorizontal="8dp"
+                        app:chipSpacingVertical="4dp" />
+                </androidx.core.widget.NestedScrollView>
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- EQUAL HEIGHT CARD 2: Avoid List Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="8dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/txtAvoidHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="AVOID LIST (RED)"
+                    android:textColor="#FF6B6B"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="8dp" />
+
+                <androidx.core.widget.NestedScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_below="@id/txtAvoidHeader"
+                    android:fillViewport="true">
+
+                    <LinearLayout
+                        android:id="@+id/layoutActiveReds"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </androidx.core.widget.NestedScrollView>
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- EQUAL HEIGHT CARD 3: Caution List Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/txtCautionHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="CAUTION LIST (YELLOW)"
+                    android:textColor="#FFD54F"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="8dp" />
+
+                <androidx.core.widget.NestedScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_below="@id/txtCautionHeader"
+                    android:fillViewport="true">
+
+                    <LinearLayout
+                        android:id="@+id/layoutActiveYellows"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </androidx.core.widget.NestedScrollView>
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
 
 </LinearLayout>

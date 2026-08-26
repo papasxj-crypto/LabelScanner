@@ -18,14 +18,23 @@ object GeminiAnalyzer {
         if (rawText == null) return "{}"
         val trimmed = rawText.trim()
 
+        // Phase 1: Strip standard markdown wrap
         val markdownRegex = "^```(?:json)?\\s*([\\s\\S]*?)\\s*```$".toRegex()
         val matchResult = markdownRegex.find(trimmed)
-
-        return if (matchResult != null) {
+        val extracted = if (matchResult != null) {
             matchResult.groups[1]?.value?.trim() ?: trimmed
         } else {
             trimmed
         }
+
+        // Phase 2 Defensive Fallback: Extract the exact outer JSON boundaries to prevent greeting-text crashes
+        val firstBrace = extracted.indexOf('{')
+        val lastBrace = extracted.lastIndexOf('}')
+        if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
+            return extracted.substring(firstBrace, lastBrace + 1)
+        }
+
+        return extracted
     }
 
     suspend fun analyzeIngredientsText(
@@ -75,6 +84,8 @@ object GeminiAnalyzer {
                            7. CRITICAL PRESENCE RULE: If the input text does NOT contain any numeric nutrition declarations (such as 'Calories', 'Sodium', etc.) or is completely missing a Nutrition Facts panel, you MUST set 'nutrition_facts_found' to false and omit all numeric nutrient keys (calories, sodium, carbs, protein, fiber, sugar, total_fat, etc.) from your JSON output entirely. Do not default them to 0.0. This allows our client-side compiler to flag the scan as incomplete.
                            
                            8. NUTRITION FACTS FLAG: Set 'nutrition_facts_found' to true if a Nutrition Facts panel, table, or list of nutrient values (like calories, sodium, fat, carbs) is clearly present and readable. Set 'nutrition_facts_found' to false if the input only contains ingredients, barcodes, or cooking directions, and lacks any nutrition facts tables.
+                           
+                           9. TABULAR REASSEMBLY RULE: If the raw OCR text has split columns (e.g., nutrient names grouped first, followed by all numbers grouped separately), you must semantically pair them according to standard FDA sequence rules (Calories aligns with the first large number, Total Fat with the first fat metric, Sodium with the high milligram value, and Protein with the final macronutrient score).
                     """.trimIndent())
                 }
             )
@@ -135,6 +146,8 @@ object GeminiAnalyzer {
                            7. CRITICAL PRESENCE RULE: If the visual image does NOT contain a visible Nutrition Facts panel or explicit numeric nutrient declarations, you MUST set 'nutrition_facts_found' to false and omit all numeric nutrient keys (calories, sodium, carbs, protein, fiber, sugar, total_fat, etc.) from your JSON output entirely. Do not default them to 0.0. This allows our client-side compiler to flag the scan as incomplete.
                            
                            8. NUTRITION FACTS FLAG: Set 'nutrition_facts_found' to true if a Nutrition Facts panel, table, or list of nutrient values (like calories, sodium, fat, carbs) is clearly present and readable. Set 'nutrition_facts_found' to false if the image only contains ingredients, barcodes, or cooking directions, and lacks any nutrition facts tables.
+                           
+                           9. TABULAR REASSEMBLY RULE: If the input image displays split columns, you must semantically pair them according to standard FDA sequence rules (Calories aligns with the first large number, Total Fat with the first fat metric, Sodium with the high milligram value, and Protein with the final macronutrient score).
                     """.trimIndent())
                 }
             )
