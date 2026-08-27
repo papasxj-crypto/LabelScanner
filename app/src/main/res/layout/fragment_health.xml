@@ -90,14 +90,13 @@
                             android:id="@+id/etActualWeight"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:background="#2E221D"
+                            android:background="#222630"
                             android:textColor="#F4F5FC"
                             android:inputType="numberDecimal"
-                            android:imeOptions="actionNext"
                             android:padding="10dp"
                             android:maxLength="5"
                             android:hint="0"
-                            android:textColorHint="#60544E"
+                            android:textColorHint="#555D6E"
                             android:textSize="14sp" />
                     </LinearLayout>
 
@@ -122,7 +121,7 @@
                             android:id="@+id/spinnerGender"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:background="#2E221D"
+                            android:background="#222630"
                             android:padding="10dp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -134,7 +133,7 @@
                     android:orientation="horizontal"
                     android:weightSum="2">
 
-                    <!-- Height Column (Individually focused inputs) -->
+                    <!-- Height Column (Highlights each input box individually) -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -159,15 +158,13 @@
 
                             <EditText
                                 android:id="@+id/etHeightFeet"
-                                android:layout_width="44dp"
+                                android:layout_width="40dp"
                                 android:layout_height="wrap_content"
-                                android:background="@drawable/bg_height_edit_text"
+                                android:background="#2E221D"
                                 android:textColor="#F4F5FC"
                                 android:inputType="number"
-                                android:imeOptions="actionNext"
                                 android:gravity="center"
                                 android:padding="8dp"
-                                android:maxLength="1"
                                 android:hint="0"
                                 android:textColorHint="#60544E"
                                 android:textSize="14sp" />
@@ -183,19 +180,18 @@
 
                             <EditText
                                 android:id="@+id/etHeightInches"
-                                android:layout_width="54dp"
+                                android:layout_width="50dp"
                                 android:layout_height="wrap_content"
-                                android:background="@drawable/bg_height_edit_text"
+                                android:background="#2E221D"
                                 android:textColor="#F4F5FC"
                                 android:inputType="number"
-                                android:imeOptions="actionDone"
                                 android:gravity="center"
                                 android:padding="8dp"
-                                android:maxLength="2"
                                 android:hint="0"
                                 android:textColorHint="#60544E"
                                 android:textSize="14sp" />
 
+                            <!-- Standardized single-quote double-quote TextView -->
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -267,6 +263,7 @@
                     android:letterSpacing="0.1"
                     android:layout_marginBottom="8dp"/>
 
+                <!-- Standardized "Long press for details" subheader -->
                 <TextView
                     android:id="@+id/txtClinicalTargetsSubheader"
                     android:layout_width="match_parent"
@@ -427,7 +424,7 @@
             app:cardCornerRadius="12dp"
             app:strokeWidth="1dp"
             app:strokeColor="#3A2D28"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -445,6 +442,7 @@
                     android:letterSpacing="0.1"
                     android:layout_marginBottom="12dp" />
 
+                <!-- Input Field Row with Dual Segment Toggles -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -460,7 +458,7 @@
                         android:textColor="#F4F5FC"
                         android:inputType="text"
                         android:padding="11dp"
-                        android:hint="Type ingredient (e.g. Carrageenan)"
+                        android:hint="Type ingredient (e.g. Soy)"
                         android:textColorHint="#60544E"
                         android:textSize="14sp"
                         android:layout_marginEnd="8dp" />
@@ -500,24 +498,23 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- EQUAL HEIGHT CARD 1: Common Quick Add Chips Card -->
+        <!-- Common Quick Add Chips Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
             app:cardBackgroundColor="#251B18"
             app:cardCornerRadius="12dp"
             app:strokeWidth="1dp"
             app:strokeColor="#3A2D28"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="12dp">
 
-            <RelativeLayout
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
                 android:padding="12dp">
 
                 <TextView
-                    android:id="@+id/txtCommonAddsHeader"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="COMMON ADDITIONS (TAP TO WATCHLIST)"
@@ -525,67 +522,19 @@
                     android:textSize="10sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.1"
-                    android:layout_marginBottom="8dp" />
+                    android:layout_marginBottom="10dp" />
 
-                <androidx.core.widget.NestedScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_below="@id/txtCommonAddsHeader"
-                    android:fillViewport="true">
-
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/chipGroupCommonAdds"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        app:chipSpacingHorizontal="8dp"
-                        app:chipSpacingVertical="4dp" />
-                </androidx.core.widget.NestedScrollView>
-            </RelativeLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- EQUAL HEIGHT CARD 2: Avoid List Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            app:cardBackgroundColor="#251B18"
-            app:cardCornerRadius="12dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="#3A2D28"
-            android:layout_marginBottom="8dp">
-
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="12dp">
-
-                <TextView
-                    android:id="@+id/txtAvoidHeader"
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupCommonAdds"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="AVOID LIST (RED)"
-                    android:textColor="#FF6B6B"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.1"
-                    android:layout_marginBottom="8dp" />
+                    app:chipSpacingHorizontal="8dp"
+                    app:chipSpacingVertical="4dp" />
 
-                <androidx.core.widget.NestedScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_below="@id/txtAvoidHeader"
-                    android:fillViewport="true">
-
-                    <LinearLayout
-                        android:id="@+id/layoutActiveReds"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical" />
-                </androidx.core.widget.NestedScrollView>
-            </RelativeLayout>
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- EQUAL HEIGHT CARD 3: Caution List Card -->
+        <!-- Dynamic User Active Watchlist Cards -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -595,35 +544,53 @@
             app:strokeWidth="1dp"
             app:strokeColor="#3A2D28">
 
-            <RelativeLayout
+            <androidx.core.widget.NestedScrollView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="12dp">
+                android:padding="12dp"
+                android:fillViewport="true">
 
-                <TextView
-                    android:id="@+id/txtCautionHeader"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="CAUTION LIST (YELLOW)"
-                    android:textColor="#FFD54F"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.1"
-                    android:layout_marginBottom="8dp" />
+                    android:orientation="vertical">
 
-                <androidx.core.widget.NestedScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_below="@id/txtCautionHeader"
-                    android:fillViewport="true">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="AVOID LIST (RED)"
+                        android:textColor="#FF6B6B"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1"
+                        android:layout_marginBottom="6dp" />
+
+                    <LinearLayout
+                        android:id="@+id/layoutActiveReds"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginBottom="16dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="CAUTION LIST (YELLOW)"
+                        android:textColor="#FFD54F"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1"
+                        android:layout_marginBottom="6dp" />
 
                     <LinearLayout
                         android:id="@+id/layoutActiveYellows"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical" />
-                </androidx.core.widget.NestedScrollView>
-            </RelativeLayout>
+
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>

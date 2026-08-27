@@ -4,6 +4,8 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.FileInputStream
+import java.io.InputStream
 import android.util.Xml
 import org.xmlpull.v1.XmlPullParser
 import androidx.core.content.edit
@@ -16,6 +18,13 @@ class AppSettings(private val context: Context) {
         const val KEY_USER_HEIGHT_INCHES = "user_height_inches"
         const val KEY_USER_GENDER = "user_gender"
 
+        const val KEY_SUBSCRIPTION_ACTIVE = "subscription_active"
+        const val KEY_USER_REVOKED = "is_revoked"
+        const val KEY_REVOCATION_REASON = "revocation_reason"
+
+        // Safety switch to allow testing the paywall on a debug build
+        const val KEY_DEBUG_OVERRIDE_DISABLED = "debug_override_disabled"
+
         private val profileExclusivityMap = mutableMapOf<String, String>()
         private val profileConflictsMap = mutableMapOf<String, MutableSet<String>>()
 
@@ -23,10 +32,9 @@ class AppSettings(private val context: Context) {
             profileExclusivityMap.clear()
             profileConflictsMap.clear()
             try {
-                val fileList = context.assets.list("profiles") ?: emptyArray()
-                for (fileName in fileList) {
-                    if (!fileName.endsWith(".xml")) continue
-                    context.assets.open("profiles/$fileName").use { inputStream ->
+                val mergedFileList = getMergedFileList(context)
+                for (fileName in mergedFileList) {
+                    openProfileStream(context, fileName).use { inputStream ->
                         val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
                         var eventType = parser.eventType
                         var currentProfileId = ""
@@ -56,6 +64,61 @@ class AppSettings(private val context: Context) {
                 e.printStackTrace()
             }
         }
+
+        // Merges assets and filesDir dynamically
+        fun getMergedFileList(context: Context): List<String> {
+            val assetFiles = context.assets.list("profiles") ?: emptyArray()
+            val localDir = File(context.filesDir, "profiles")
+            val localFiles = if (localDir.exists()) localDir.list() ?: emptyArray() else emptyArray()
+            return (assetFiles + localFiles).distinct()
+        }
+
+        fun openProfileStream(context: Context, fileName: String): InputStream {
+            val file = File(File(context.filesDir, "profiles"), fileName)
+            return if (file.exists()) {
+                FileInputStream(file)
+            } else {
+                context.assets.open("profiles/$fileName")
+            }
+        }
+    }
+
+    fun isSubscriptionActive(): Boolean {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_SUBSCRIPTION_ACTIVE, false)
+    }
+
+    fun setSubscriptionActive(active: Boolean) {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_SUBSCRIPTION_ACTIVE, active).apply()
+    }
+
+    fun isUserRevoked(): Boolean {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_USER_REVOKED, false)
+    }
+
+    fun setUserRevoked(revoked: Boolean, reason: String = "") {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        prefs.edit {
+            putBoolean(KEY_USER_REVOKED, revoked)
+            putString(KEY_REVOCATION_REASON, reason)
+        }
+    }
+
+    fun getRevocationReason(): String {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        return prefs.getString(KEY_REVOCATION_REASON, "Access revoked.") ?: "Access revoked."
+    }
+
+    fun isDebugOverrideDisabled(): Boolean {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_DEBUG_OVERRIDE_DISABLED, false)
+    }
+
+    fun setDebugOverrideDisabled(disabled: Boolean) {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean(KEY_DEBUG_OVERRIDE_DISABLED, disabled).apply()
     }
 
     fun isRightHanded(): Boolean {
@@ -84,7 +147,7 @@ class AppSettings(private val context: Context) {
         for (profileId in selectedIds) {
             try {
                 val fileName = if (profileId.endsWith(".xml")) profileId else "$profileId.xml"
-                context.assets.open("profiles/$fileName").use { inputStream ->
+                openProfileStream(context, fileName).use { inputStream ->
                     val factory = org.xmlpull.v1.XmlPullParserFactory.newInstance()
                     val parser = factory.newPullParser()
                     parser.setInput(inputStream, "UTF-8")
@@ -218,12 +281,12 @@ class AppSettings(private val context: Context) {
     fun getAvailableDietProfiles(includeAllergens: Boolean = true): List<DietProfile> {
         val profileList = mutableListOf<DietProfile>()
         try {
-            val fileList = context.assets.list("profiles") ?: emptyArray()
-            for (fileName in fileList) {
+            val mergedFileList = getMergedFileList(context)
+            for (fileName in mergedFileList) {
                 if (fileName.endsWith(".xml")) {
                     if (!includeAllergens && fileName.startsWith("allergen_")) continue
 
-                    context.assets.open("profiles/$fileName").use { inputStream ->
+                    openProfileStream(context, fileName).use { inputStream ->
                         val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
                         var eventType = parser.eventType
                         while (eventType != XmlPullParser.END_DOCUMENT) {
@@ -270,11 +333,11 @@ class AppSettings(private val context: Context) {
         var profileMatched = false
 
         try {
-            val fileList = context.assets.list("profiles") ?: emptyArray()
-            for (fileName in fileList) {
+            val mergedFileList = getMergedFileList(context)
+            for (fileName in mergedFileList) {
                 if (!fileName.endsWith(".xml")) continue
 
-                context.assets.open("profiles/$fileName").use { inputStream ->
+                openProfileStream(context, fileName).use { inputStream ->
                     val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
                     var eventType = parser.eventType
                     var targetProfileActive = false
@@ -313,9 +376,56 @@ class AppSettings(private val context: Context) {
         return Triple(lowMax, modMax, isBlacklist)
     }
 
+    // Direct isolated single-profile extraction helper used during Template Cloning
+    fun getNutrientThresholdsForProfile(profileId: String, nutrientKey: String): Triple<Int, Int, Boolean> {
+        var lowMax = 0
+        var modMax = 0
+        var isBlacklist = false
+        var matched = false
+
+        try {
+            val fileName = if (profileId.endsWith(".xml")) profileId else "$profileId.xml"
+            openProfileStream(context, fileName).use { inputStream ->
+                val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
+                var eventType = parser.eventType
+                var targetActive = false
+
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                    val tagName = parser.name
+                    if (eventType == XmlPullParser.START_TAG) {
+                        if (tagName == "diet_profile") {
+                            val id = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
+                            if (id == profileId) {
+                                targetActive = true
+                            }
+                        } else if (tagName == "nutrient" && targetActive) {
+                            val currentName = parser.getAttributeValue(null, "name")
+                            if (currentName?.lowercase() == nutrientKey.lowercase()) {
+                                val fileLow = parser.getAttributeValue(null, "low_max")?.toIntOrNull() ?: 0
+                                val fileMod = parser.getAttributeValue(null, "moderate_max")?.toIntOrNull() ?: 0
+                                val fileBlacklist = parser.getAttributeValue(null, "is_blacklist")?.toBooleanStrictOrNull() ?: false
+
+                                lowMax = fileLow
+                                modMax = fileMod
+                                isBlacklist = fileBlacklist
+                                matched = true
+                            }
+                        }
+                    }
+                    eventType = parser.next()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        if (!matched) return Triple(0, 0, false)
+        return Triple(lowMax, modMax, isBlacklist)
+    }
+
     fun getIngredientsFromAssetFile(fileName: String): List<String> {
         val triggerList = mutableListOf<String>()
-        var openedStream: java.io.InputStream? = null
+        var openedStream: InputStream? = null
 
         val possibleNames = listOf(
             "profiles/$fileName.xml",
@@ -324,7 +434,8 @@ class AppSettings(private val context: Context) {
         )
         for (name in possibleNames) {
             try {
-                openedStream = context.assets.open(name)
+                val localFile = File(File(context.filesDir, "profiles"), name.substringAfter("profiles/"))
+                openedStream = if (localFile.exists()) FileInputStream(localFile) else context.assets.open(name)
                 if (openedStream != null) break
             } catch (e: Exception) {
                 // Seek alternative file pattern
@@ -333,10 +444,10 @@ class AppSettings(private val context: Context) {
 
         if (openedStream == null) {
             try {
-                val files = context.assets.list("profiles") ?: emptyArray()
+                val files = getMergedFileList(context)
                 for (file in files) {
                     if (file.endsWith(".xml")) {
-                        val matchedStream = context.assets.open("profiles/$file").use { tempStream ->
+                        val matchedStream = openProfileStream(context, file).use { tempStream ->
                             val parser = Xml.newPullParser().apply { setInput(tempStream, null) }
                             var eventType = parser.eventType
                             var matchFound = false
@@ -353,7 +464,7 @@ class AppSettings(private val context: Context) {
                             matchFound
                         }
                         if (matchedStream) {
-                            openedStream = context.assets.open("profiles/$file")
+                            openedStream = openProfileStream(context, file)
                             break
                         }
                     }
@@ -396,11 +507,11 @@ class AppSettings(private val context: Context) {
         if (activeProfileIds.isEmpty()) return triggerList
 
         try {
-            val fileList = context.assets.list("profiles") ?: emptyArray()
-            for (fileName in fileList) {
+            val mergedFileList = getMergedFileList(context)
+            for (fileName in mergedFileList) {
                 if (!fileName.endsWith(".xml")) continue
 
-                context.assets.open("profiles/$fileName").use { inputStream ->
+                openProfileStream(context, fileName).use { inputStream ->
                     val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
                     var eventType = parser.eventType
                     var targetProfileActive = false
@@ -445,11 +556,11 @@ class AppSettings(private val context: Context) {
         var ruleDiscovered = false
 
         try {
-            val fileList = context.assets.list("profiles") ?: emptyArray()
-            for (fileName in fileList) {
+            val mergedFileList = getMergedFileList(context)
+            for (fileName in mergedFileList) {
                 if (!fileName.endsWith(".xml")) continue
 
-                context.assets.open("profiles/$fileName").use { inputStream ->
+                openProfileStream(context, fileName).use { inputStream ->
                     val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
                     var eventType = parser.eventType
                     var targetProfileActive = false
@@ -504,11 +615,11 @@ class AppSettings(private val context: Context) {
         val accumulatedRules = mutableListOf<NutrientRule>()
 
         try {
-            val fileList = context.assets.list("profiles") ?: emptyArray()
-            for (fileName in fileList) {
+            val mergedFileList = getMergedFileList(context)
+            for (fileName in mergedFileList) {
                 if (!fileName.endsWith(".xml")) continue
 
-                context.assets.open("profiles/$fileName").use { inputStream ->
+                openProfileStream(context, fileName).use { inputStream ->
                     val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
                     var eventType = parser.eventType
                     var targetProfileActive = false

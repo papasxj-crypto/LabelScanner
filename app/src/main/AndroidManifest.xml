@@ -53,6 +53,18 @@
         <!-- 3. OTHER ACTIVITIES -->
         <activity android:name=".SettingsActivity" android:exported="false" />
 
+        <!-- Declare Paywall Activity -->
+        <activity
+            android:name=".PaywallActivity"
+            android:theme="@style/Theme.LabelScanner"
+            android:exported="false" />
+
+        <!-- Declare Lockout Activity -->
+        <activity
+            android:name=".LockoutActivity"
+            android:theme="@style/Theme.LabelScanner"
+            android:exported="false" />
+
         <!-- FILE PROVIDER -->
         <provider
             android:name="androidx.core.content.FileProvider"

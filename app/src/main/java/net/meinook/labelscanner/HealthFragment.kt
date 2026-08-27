@@ -2,16 +2,16 @@ package net.meinook.labelscanner
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -63,9 +63,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
     private lateinit var appSettings: AppSettings
 
-    // Gating flag to prevent programmatic focus change clearing the target fields
-    private var isProgrammaticFocusTransition = false
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -86,7 +83,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         txtIbwCalculated = view.findViewById(R.id.txtIbwCalculated)
         txtAjbwCalculated = view.findViewById(R.id.txtAjbwCalculated)
 
-        // Bind Tab 2 Views
+        // Bind Tab 2 Views (Clean of legacy spinner and old button)
         etCustomIngredient = view.findViewById(R.id.etCustomIngredient)
         btnAddRed = view.findViewById(R.id.btnAddRed)
         btnAddYellow = view.findViewById(R.id.btnAddYellow)
@@ -123,32 +120,11 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private fun setupTab1Profiles() {
         spinnerGender.setPopupBackgroundDrawable(Color.parseColor("#2E221D").toDrawable())
 
-        // Custom programmatic adapter to guarantee readable text in dark mode
-        val genders = arrayOf("Unspecified", "Male", "Female")
-        val genderAdapter = object : ArrayAdapter<String>(
+        val genderAdapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_item,
-            genders
-        ) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val v = super.getView(position, convertView, parent)
-                if (v is TextView) {
-                    v.setTextColor(Color.parseColor("#F4F5FC"))
-                    v.textSize = 14f
-                }
-                return v
-            }
-
-            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val v = super.getDropDownView(position, convertView, parent)
-                v.setBackgroundColor(Color.parseColor("#2E221D"))
-                if (v is TextView) {
-                    v.setTextColor(Color.parseColor("#F4F5FC"))
-                    v.textSize = 14f
-                }
-                return v
-            }
-        }.apply {
+            arrayOf("Unspecified", "Male", "Female")
+        ).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
         spinnerGender.adapter = genderAdapter
@@ -177,9 +153,62 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
         updateCalculatedWeights()
 
-        // Bind standard clear behaviors using safety flags
-        setupClearOnTouch(etHeightFeet)
-        setupClearOnTouch(etHeightInches)
+        // Restored your exact working TextWatcher block
+        val heightWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val feet = etHeightFeet.text.toString().toDoubleOrNull() ?: 0.0
+                val inches = etHeightInches.text.toString().toDoubleOrNull() ?: 0.0
+                val totalInches = (feet * 12.0) + inches
+                appSettings.setUserHeightInches(totalInches)
+                appSettings.setPendingSaveFlag(true)
+                updateCalculatedWeights()
+            }
+        }
+        etHeightFeet.addTextChangedListener(heightWatcher)
+        etHeightInches.addTextChangedListener(heightWatcher)
+
+        // Clear when touched and provide active background highlight indicators
+        etHeightFeet.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                etHeightFeet.setText("")
+                etHeightFeet.setBackgroundColor(Color.parseColor("#4E3B34")) // Focus Highlight
+            } else {
+                etHeightFeet.setBackgroundColor(Color.parseColor("#2E221D")) // Standard background
+                val text = etHeightFeet.text.toString().trim()
+                if (text.isEmpty()) {
+                    val savedTotalInches = appSettings.getUserHeightInches()
+                    if (savedTotalInches > 0.0) {
+                        val feet = (savedTotalInches / 12).toInt()
+                        etHeightFeet.setText(feet.toString())
+                    }
+                }
+            }
+        }
+        etHeightFeet.setOnClickListener {
+            etHeightFeet.setText("")
+        }
+
+        etHeightInches.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                etHeightInches.setText("")
+                etHeightInches.setBackgroundColor(Color.parseColor("#4E3B34")) // Focus Highlight
+            } else {
+                etHeightInches.setBackgroundColor(Color.parseColor("#2E221D")) // Standard background
+                val text = etHeightInches.text.toString().trim()
+                if (text.isEmpty()) {
+                    val savedTotalInches = appSettings.getUserHeightInches()
+                    if (savedTotalInches > 0.0) {
+                        val inches = (savedTotalInches % 12).toInt()
+                        etHeightInches.setText(inches.toString())
+                    }
+                }
+            }
+        }
+        etHeightInches.setOnClickListener {
+            etHeightInches.setText("")
+        }
 
         // Setup real-time weight listener
         etActualWeight.addTextChangedListener(object : TextWatcher {
@@ -192,52 +221,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 updateCalculatedWeights()
             }
         })
-
-        // Feet text listener (updates metrics and auto-advances to inches)
-        etHeightFeet.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                val feet = s.toString().toDoubleOrNull() ?: 0.0
-                val inches = etHeightInches.text.toString().toDoubleOrNull() ?: 0.0
-                val totalInches = (feet * 12.0) + inches
-                appSettings.setUserHeightInches(totalInches)
-                appSettings.setPendingSaveFlag(true)
-                updateCalculatedWeights()
-
-                if (s?.isNotEmpty() == true && etHeightFeet.hasFocus()) {
-                    isProgrammaticFocusTransition = true
-                    etHeightInches.requestFocus()
-                    isProgrammaticFocusTransition = false
-                }
-            }
-        })
-
-        // Inches text listener
-        etHeightInches.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                val feet = etHeightFeet.text.toString().toDoubleOrNull() ?: 0.0
-                val inches = s.toString().toDoubleOrNull() ?: 0.0
-                val totalInches = (feet * 12.0) + inches
-                appSettings.setUserHeightInches(totalInches)
-                appSettings.setPendingSaveFlag(true)
-                updateCalculatedWeights()
-            }
-        })
-
-        // Handle IME "Done" on Inches to clear focus and dismiss keyboard cleanly
-        etHeightInches.setOnEditorActionListener { v, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_UNSPECIFIED) {
-                v.clearFocus()
-                val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                imm?.hideSoftInputFromWindow(v.windowToken, 0)
-                true
-            } else {
-                false
-            }
-        }
 
         spinnerGender.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -305,21 +288,8 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
-        populateActiveWatchlists() // Triggers programmatic chip alignment and display
-    }
-
-    // Standard focus/click listeners that clear input safely without triggering accessibility warnings
-    private fun setupClearOnTouch(editText: EditText) {
-        editText.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus && !isProgrammaticFocusTransition) {
-                editText.text.clear()
-            }
-        }
-        editText.setOnClickListener {
-            if (!isProgrammaticFocusTransition) {
-                editText.text.clear()
-            }
-        }
+        setupCommonQuickAddChips()
+        populateActiveWatchlists()
     }
 
     private fun updateScrollIndicators() {
@@ -379,247 +349,40 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
     private fun setupCommonQuickAddChips() {
         chipGroupCommonAdds.removeAllViews()
-
-        // Load active watchlist contents to determine highlight state
-        val redItems = appSettings.getCustomWatchlist("RED").map { it.lowercase().trim() }
-        val yellowItems = appSettings.getCustomWatchlist("YELLOW").map { it.lowercase().trim() }
-
         val commonIngredients = listOf(
-            "Carrageenan",
-            "Guar Gum",
-            "Maltodextrin",
-            "Potassium Chloride",
-            "Potassium Sorbate",
-            "Red 40",
-            "Sodium Phosphate",
-            "Xanthan Gum",
-            "Yellow 5"
+            "Dairy", "Peanuts", "Soy", "Gluten", "Shellfish",
+            "Almonds", "Sesame", "MSG", "Nitrites", "Corn Syrup"
         )
         val density = resources.displayMetrics.density
         for (ingredient in commonIngredients) {
-            val normalized = ingredient.lowercase().trim()
-            val isRed = redItems.contains(normalized)
-            val isYellow = yellowItems.contains(normalized)
-
             val chip = Chip(requireContext()).apply {
                 text = ingredient
                 isCheckable = false
                 isClickable = true
-
-                // Color configuration mapping directly to the Earthy Espresso theme scheme
-                when {
-                    isRed -> {
-                        setTextColor(Color.parseColor("#FFD2D2")) // Soft red-pink
-                        setChipBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#3D2423"))) // Deep Cocoa-Red
-                        setChipStrokeColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#FF6B6B"))) // Red Border
-                    }
-                    isYellow -> {
-                        setTextColor(Color.parseColor("#FFECA1")) // Soft gold-yellow
-                        setChipBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#3D351E"))) // Deep Cocoa-Yellow
-                        setChipStrokeColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#FFD54F"))) // Yellow Border
-                    }
-                    else -> {
-                        setTextColor(Color.parseColor("#F4F5FC")) // Standard off-white
-                        setChipBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#2E221D"))) // Neutral warm dark brown
-                        setChipStrokeColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#3A2D28"))) // Dark Brass Border
-                    }
-                }
+                setTextColor(Color.parseColor("#F4F5FC"))
+                setChipBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#222630")))
+                setChipStrokeColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#3A2D28")))
                 chipStrokeWidth = density * 1f
 
                 setOnClickListener {
-                    showQuickAddSelectionDialog(ingredient, isRed, isYellow)
+                    showQuickAddSelectionDialog(ingredient)
                 }
             }
             chipGroupCommonAdds.addView(chip)
         }
     }
 
-    // Displays a stateful, compact dialog based on whether the item is already watchlisted
-    private fun showQuickAddSelectionDialog(ingredient: String, isAlreadyRed: Boolean, isAlreadyYellow: Boolean) {
-        val density = resources.displayMetrics.density
-
-        // Create programmatic Earthy Espresso CardView
-        val cardView = com.google.android.material.card.MaterialCardView(requireContext()).apply {
-            setCardBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#251B18"))) // Warm Charcoal
-            strokeColor = Color.parseColor("#3A2D28") // Dark Brass
-            strokeWidth = (1 * density).toInt()
-            radius = 12 * density
-            layoutParams = ViewGroup.LayoutParams(
-                (260 * density).toInt(), // Compact size
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        }
-
-        val contentLayout = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding((16 * density).toInt(), (16 * density).toInt(), (16 * density).toInt(), (16 * density).toInt())
-            gravity = Gravity.CENTER_HORIZONTAL
-        }
-
-        // Establish the header text reflecting the active status of the ingredient
-        val headerText = when {
-            isAlreadyRed -> "CARRAGEENAN (AVOIDING)"
-            isAlreadyYellow -> "CARRAGEENAN (CAUTIONED)"
-            else -> "ADD ${ingredient.uppercase()}"
-        }
-
-        val titleView = TextView(requireContext()).apply {
-            text = headerText.replace("CARRAGEENAN", ingredient.uppercase())
-            setTextColor(Color.parseColor("#A89890")) // Sand-Gray
-            textSize = 11f
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            letterSpacing = 0.1f
-            setPadding(0, 0, 0, (14 * density).toInt())
-            gravity = Gravity.CENTER
-        }
-        contentLayout.addView(titleView)
-
-        val buttonsContainer = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        }
-
-        var dialog: android.app.Dialog? = null
-
-        // Render controls corresponding to active states
-        when {
-            isAlreadyRed -> {
-                // Already in Avoid List: [ Remove ] [ Caution ]
-                val btnRemove = MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonStyle).apply {
-                    text = "Remove"
-                    backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#423936")) // Warm brown-gray
-                    setTextColor(Color.parseColor("#F4F5FC"))
-                    textSize = 12f
-                    cornerRadius = (8 * density).toInt()
-                    insetTop = 0
-                    insetBottom = 0
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                        marginEnd = (6 * density).toInt()
-                    }
-                    setOnClickListener {
-                        appSettings.removeWatchlistIngredient(ingredient)
-                        populateActiveWatchlists()
-                        Toast.makeText(context, "'$ingredient' removed from watchlist.", Toast.LENGTH_SHORT).show()
-                        dialog?.dismiss()
-                    }
-                }
-
-                val btnCaution = MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonStyle).apply {
-                    text = "Caution"
-                    backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#FFD54F")) // Yellow
-                    setTextColor(Color.parseColor("#14161F"))
-                    textSize = 12f
-                    cornerRadius = (8 * density).toInt()
-                    insetTop = 0
-                    insetBottom = 0
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    setOnClickListener {
-                        appSettings.removeWatchlistIngredient(ingredient)
-                        appSettings.addWatchlistIngredient(ingredient, "YELLOW")
-                        populateActiveWatchlists()
-                        Toast.makeText(context, "'$ingredient' shifted to Caution.", Toast.LENGTH_SHORT).show()
-                        dialog?.dismiss()
-                    }
-                }
-                buttonsContainer.addView(btnRemove)
-                buttonsContainer.addView(btnCaution)
+    private fun showQuickAddSelectionDialog(ingredient: String) {
+        val tiers = arrayOf("Add to Avoid (Red)", "Add to Caution (Yellow)")
+        MaterialAlertDialogBuilder(requireContext(), R.style.Theme_LabelScanner)
+            .setTitle("Add $ingredient")
+            .setItems(tiers) { _, which ->
+                val tier = if (which == 0) "RED" else "YELLOW"
+                appSettings.addWatchlistIngredient(ingredient, tier)
+                populateActiveWatchlists()
+                Toast.makeText(context, "'$ingredient' added to $tier watchlist.", Toast.LENGTH_SHORT).show()
             }
-            isAlreadyYellow -> {
-                // Already in Caution List: [ Remove ] [ Avoid ]
-                val btnRemove = MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonStyle).apply {
-                    text = "Remove"
-                    backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#423936")) // Warm brown-gray
-                    setTextColor(Color.parseColor("#F4F5FC"))
-                    textSize = 12f
-                    cornerRadius = (8 * density).toInt()
-                    insetTop = 0
-                    insetBottom = 0
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                        marginEnd = (6 * density).toInt()
-                    }
-                    setOnClickListener {
-                        appSettings.removeWatchlistIngredient(ingredient)
-                        populateActiveWatchlists()
-                        Toast.makeText(context, "'$ingredient' removed from watchlist.", Toast.LENGTH_SHORT).show()
-                        dialog?.dismiss()
-                    }
-                }
-
-                val btnAvoid = MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonStyle).apply {
-                    text = "Avoid"
-                    backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#FF6B6B")) // Red
-                    setTextColor(Color.WHITE)
-                    textSize = 12f
-                    cornerRadius = (8 * density).toInt()
-                    insetTop = 0
-                    insetBottom = 0
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    setOnClickListener {
-                        appSettings.removeWatchlistIngredient(ingredient)
-                        appSettings.addWatchlistIngredient(ingredient, "RED")
-                        populateActiveWatchlists()
-                        Toast.makeText(context, "'$ingredient' shifted to Avoid.", Toast.LENGTH_SHORT).show()
-                        dialog?.dismiss()
-                    }
-                }
-                buttonsContainer.addView(btnRemove)
-                buttonsContainer.addView(btnAvoid)
-            }
-            else -> {
-                // Neutral State: [ Avoid ] [ Caution ]
-                val btnAvoid = MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonStyle).apply {
-                    text = "Avoid"
-                    backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#FF6B6B")) // Red
-                    setTextColor(Color.WHITE)
-                    textSize = 12f
-                    cornerRadius = (8 * density).toInt()
-                    insetTop = 0
-                    insetBottom = 0
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                        marginEnd = (6 * density).toInt()
-                    }
-                    setOnClickListener {
-                        appSettings.addWatchlistIngredient(ingredient, "RED")
-                        populateActiveWatchlists()
-                        Toast.makeText(context, "'$ingredient' added to Avoid list.", Toast.LENGTH_SHORT).show()
-                        dialog?.dismiss()
-                    }
-                }
-
-                val btnCaution = MaterialButton(requireContext(), null, com.google.android.material.R.attr.materialButtonStyle).apply {
-                    text = "Caution"
-                    backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#FFD54F")) // Yellow
-                    setTextColor(Color.parseColor("#14161F"))
-                    textSize = 12f
-                    cornerRadius = (8 * density).toInt()
-                    insetTop = 0
-                    insetBottom = 0
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    setOnClickListener {
-                        appSettings.addWatchlistIngredient(ingredient, "YELLOW")
-                        populateActiveWatchlists()
-                        Toast.makeText(context, "'$ingredient' added to Caution list.", Toast.LENGTH_SHORT).show()
-                        dialog?.dismiss()
-                    }
-                }
-                buttonsContainer.addView(btnAvoid)
-                buttonsContainer.addView(btnCaution)
-            }
-        }
-
-        contentLayout.addView(buttonsContainer)
-        cardView.addView(contentLayout)
-
-        dialog = MaterialAlertDialogBuilder(requireContext(), R.style.Theme_LabelScanner)
-            .setView(cardView)
-            .create()
-
-        dialog.show()
-        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+            .show()
     }
 
     private fun populateActiveWatchlists() {
@@ -642,8 +405,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                     setMargins(0, 0, 0, (6 * density).toInt())
                 }
                 setPadding((8 * density).toInt(), (6 * density).toInt(), (8 * density).toInt(), (6 * density).toInt())
-                // Aligned to Warm Dark Brown to blend with the inputs
-                setBackgroundColor(Color.parseColor("#2E221D"))
+                setBackgroundColor(Color.parseColor("#222630"))
             }
 
             val label = TextView(requireContext()).apply {
@@ -671,7 +433,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         if (redItems.isEmpty()) {
             val emptyText = TextView(requireContext()).apply {
                 text = "No custom items to avoid."
-                setTextColor(Color.parseColor("#A89890")) // Aligned to Sand-Gray
+                setTextColor(Color.parseColor("#99A1B3"))
                 textSize = 12f
                 setPadding(0, 0, 0, (12 * density).toInt())
             }
@@ -685,7 +447,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         if (yellowItems.isEmpty()) {
             val emptyText = TextView(requireContext()).apply {
                 text = "No custom caution markers."
-                setTextColor(Color.parseColor("#A89890")) // Aligned to Sand-Gray
+                setTextColor(Color.parseColor("#99A1B3"))
                 textSize = 12f
                 setPadding(0, 0, 0, (12 * density).toInt())
             }
@@ -695,9 +457,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 layoutActiveYellows.addView(createActiveItemView(item, "YELLOW"))
             }
         }
-
-        // Synchronize and re-render the highlighting state of the quick-add chips
-        setupCommonQuickAddChips()
     }
 
     private fun buildDynamicCheckBoxes() {

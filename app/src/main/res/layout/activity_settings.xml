@@ -1,57 +1,145 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"
-    android:padding="16dp">
+    android:background="#14161F"
+    android:padding="16dp"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- SECTION HEADER -->
-        <TextView
+        <!-- SECTION 1: APP PREFERENCES CARD -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="App Preferences"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:layout_marginBottom="16dp"/>
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="12dp">
 
-        <!-- LEFT HANDED TOGGLE CHECKBOX [1] -->
-        <CheckBox
-            android:id="@+id/cb_left_handed"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="APP PREFERENCES"
+                    android:textColor="#4CAF50"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Upgraded Material CheckBox with persistent high-contrast button tinting -->
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cb_left_handed"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Left-Handed Mode"
+                    android:textColor="#F4F5FC"
+                    android:textSize="15sp"
+                    app:buttonTint="#4CAF50"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Aligns Home screen scan buttons to the bottom-left for comfortable left-handed thumb access."
+                    android:textColor="#A89890"
+                    android:textSize="12sp"
+                    android:layout_marginStart="32dp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- SECTION 2: CUSTOM CONDITION CARD -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Left-Handed Mode"
-            android:textColor="@color/white"
-            android:textSize="16sp"
-            android:layout_marginBottom="4dp"/>
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="12dp">
 
-        <TextView
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DIETARY TEMPLATES"
+                    android:textColor="#4CAF50"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Create, edit, or clone dietary templates to customize nutrient limits for tailored conditions (such as bodybuilders or recovery plans)."
+                    android:textColor="#A89890"
+                    android:textSize="12sp"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Action Button bound cleanly to SettingsActivity -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCreateCustomProfile"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:text="Create Custom Profile"
+                    android:textColor="#4CAF50"
+                    app:strokeColor="#3A2D28"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:cornerRadius="8dp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- SECTION 3: MASTER ACTION CARD -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Aligns Home screen scan buttons to the bottom-left for comfortable left-handed thumb access."
-            android:textColor="#888888"
-            android:textSize="13sp"
-            android:layout_marginStart="32dp"
-            android:layout_marginBottom="32dp"/>
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="16dp">
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#333333"
-            android:layout_marginBottom="24dp"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
 
-        <!-- MASTER SAVE ACTION -->
-        <Button
-            android:id="@+id/buttonSaveSettings"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/save_apply_changes_txt"
-            android:layout_marginBottom="24dp"/>
+                <Button
+                    android:id="@+id/buttonSaveSettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="#4CAF50"
+                    android:textColor="#14161F"
+                    android:textStyle="bold"
+                    android:text="@string/save_apply_changes_txt"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:cornerRadius="8dp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 </ScrollView>

@@ -54,6 +54,21 @@ android {
 }
 
 dependencies {
+    // Standard Google Play Billing Library with Coroutines support
+    val billing_version = "7.1.1"
+    implementation("com.android.billingclient:billing:$billing_version")
+    implementation("com.android.billingclient:billing-ktx:$billing_version")
+
+    // 2. Firebase BoM (Bill of Materials) to automatically align Firebase versions
+    implementation(platform("com.google.firebase:firebase-bom:33.9.0"))
+
+    // 3. Firebase Auth & Firestore SDKs (Resolves FirebaseAuth & FirebaseFirestore imports)
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+
+    // 4. Coroutines Play Services Integration (Resolves the kotlinx.coroutines.tasks.await import)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
     // Core Android & UI
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")

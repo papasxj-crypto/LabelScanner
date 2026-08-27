@@ -1,5 +1,6 @@
 package net.meinook.labelscanner
 
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.view.Window
@@ -21,6 +22,7 @@ class SettingsActivity : AppCompatActivity() {
 
         cbLeftHanded = findViewById(R.id.cb_left_handed)
         val buttonSave = findViewById<Button>(R.id.buttonSaveSettings)
+        val btnCreateCustomProfile = findViewById<Button>(R.id.btnCreateCustomProfile)
 
         // Populate left-handed check state (Checked if NOT right-handed) [1]
         cbLeftHanded.isChecked = !settings.isRightHanded()
@@ -28,6 +30,14 @@ class SettingsActivity : AppCompatActivity() {
         // Master Save button preference listener [2]
         buttonSave.setOnClickListener {
             saveUserConfigurationSettings()
+        }
+
+        // Launch custom profile creator flow [SettingsActivity.kt]
+        btnCreateCustomProfile.setOnClickListener {
+            CustomProfileManager.showCreateCustomProfileDialog(this, settings) {
+                // Set the pending save flag so fragments recreate the check lists cleanly [SettingsActivity.kt]
+                settings.setPendingSaveFlag(true)
+            }
         }
     }
 

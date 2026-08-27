@@ -12,9 +12,36 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 class MainActivity : AppCompatActivity() {
 
     private lateinit var navController: NavController
+    private lateinit var appSettings: AppSettings
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        appSettings = AppSettings(this)
+
+        // 1. Check if built/installed in Debug Mode from Android Studio
+        if (isDebuggable() && !appSettings.isDebugOverrideDisabled()) {
+            // Automatically simulate active subscription state for painless daily development
+            appSettings.setSubscriptionActive(true)
+        }
+
+        // 2. Check for remote/administrative lockout
+        if (appSettings.isUserRevoked()) {
+            val intent = Intent(this, LockoutActivity::class.java).apply {
+                putExtra("revocation_reason", appSettings.getRevocationReason())
+            }
+            startActivity(intent)
+            finish() // Destroys MainActivity so they cannot navigate back
+            return
+        }
+
+        // 3. Check for active subscription
+        if (!appSettings.isSubscriptionActive()) {
+            startActivity(Intent(this, PaywallActivity::class.java))
+            finish() // Prevents bypassing the paywall via the back button
+            return
+        }
+
         setContentView(R.layout.activity_main)
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -33,6 +60,11 @@ class MainActivity : AppCompatActivity() {
         bottomNav.post {
             handleIncomingShareIntent(intent)
         }
+    }
+
+    // Programmatically determines if the build signature is Debuggable (compiled on local computer)
+    private fun isDebuggable(): Boolean {
+        return (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
 
     override fun onNewIntent(intent: Intent?) {

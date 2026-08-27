@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#14161F"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp">
+
+    <ImageView
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:src="@android:drawable/ic_delete"
+        app:tint="#FF6B6B"
+        android:contentDescription="Revoked Icon" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ACCESS REVOKED"
+        android:textColor="#FF6B6B"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1"
+        android:layout_marginTop="24dp" />
+
+    <TextView
+        android:id="@+id/txtLockoutReason"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Your access to this beta testing release has expired or has been administratively suspended."
+        android:textColor="#A89890"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="32dp" />
+
+</LinearLayout>
