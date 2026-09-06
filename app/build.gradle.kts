@@ -54,19 +54,22 @@ android {
 }
 
 dependencies {
+    // Google Jetpack Core Splash Screen Library
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
     // Standard Google Play Billing Library with Coroutines support
     val billing_version = "7.1.1"
     implementation("com.android.billingclient:billing:$billing_version")
     implementation("com.android.billingclient:billing-ktx:$billing_version")
 
-    // 2. Firebase BoM (Bill of Materials) to automatically align Firebase versions
+    // Stabilized Firebase BoM (Aligns all standard core libraries to your Kotlin compiler)
     implementation(platform("com.google.firebase:firebase-bom:33.9.0"))
 
-    // 3. Firebase Auth & Firestore SDKs (Resolves FirebaseAuth & FirebaseFirestore imports)
+    // Firebase Auth & Firestore SDKs (Managed by BoM 33.9.0)
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
 
-    // 4. Coroutines Play Services Integration (Resolves the kotlinx.coroutines.tasks.await import)
+    // Coroutines Play Services Integration
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
     // Core Android & UI
@@ -79,13 +82,10 @@ dependencies {
     // Google ML Kit Text Recognition (On-Device OCR)
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
 
-    // Gemini & AI
-    implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
-
     // Barcode Scanning - ML Kit (Modern)
     implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.0")
 
-    // Barcode Scanning - ZXing (Restored journeyapps for CompoundBarcodeView)
+    // Barcode Scanning - ZXing
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     // CameraX
@@ -107,7 +107,7 @@ dependencies {
     implementation("androidx.activity:activity-compose")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
 
-    // OkHttp for Web Scraping / HTTP requests
+    // OkHttp for Web Scraping & Secure Backend REST Proxies
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Testing

@@ -101,7 +101,7 @@ object LabelEvaluator {
         customRedWatchlist: List<String>,
         customYellowWatchlist: List<String>,
         isProduce: Boolean = false,
-        isRecipe: Boolean = false // Upgraded safety parameter prevents metric scale corruption
+        isRecipe: Boolean = false
     ): EvaluationResult {
 
         val redViolations = mutableListOf<String>()
@@ -185,10 +185,11 @@ object LabelEvaluator {
         }
 
         if (!isProduce && (!hasCalories || !hasSodium) && !hasIngredients) {
+            // Recalculated to a highly visible, neutral dark Grey theme
             return EvaluationResult(
-                bgColor = "#1E2027".toColorInt(),
-                textColor = "#90A4AE".toColorInt(),
-                subtextColor = "#CFD8DC".toColorInt(),
+                bgColor = "#2B2D31".toColorInt(),
+                textColor = "#9EA1A8".toColorInt(),
+                subtextColor = "#D1D2D5".toColorInt(),
                 gradeTitle = "Incomplete Scan",
                 redViolations = emptyList(),
                 yellowViolations = listOf("Missing core nutrition data (Calories/Sodium) and ingredients list.") + yellowViolations
@@ -241,7 +242,6 @@ object LabelEvaluator {
         val fiber = getVal("fiber")
         val netCarbs = (totalCarbs - fiber).coerceAtLeast(0.0f)
 
-        // Dynamic flag evaluation maps cleanly from condition files
         val useNetCarbsActive = savedProfileIds.contains("keto") || userSettings.isFeatureFlagActive("use_net_carbs")
 
         val processed = mutableSetOf<String>()
@@ -258,7 +258,6 @@ object LabelEvaluator {
 
             var value = if (map.useNetCarbs && useNetCarbsActive) netCarbs else getVal(map.xmlId)
 
-            // Bypass scale adjustments completely for calculated recipe models
             if (!isRecipe && map.isScaleRequired && value in 0.01f..5.0f) {
                 value *= 1000
             }
@@ -317,9 +316,10 @@ object LabelEvaluator {
                 yellowViolations = yellows.distinct()
             )
             isIngredientsOnly -> EvaluationResult(
-                bgColor = "#222A35".toColorInt(),
-                textColor = "#90A4AE".toColorInt(),
-                subtextColor = "#CFD8DC".toColorInt(),
+                // Upgraded to a clean, high-contrast Slate/Navy Blue theme [1]
+                bgColor = "#1A2F4C".toColorInt(),
+                textColor = "#6BA4FF".toColorInt(),
+                subtextColor = "#B5D3FF".toColorInt(),
                 gradeTitle = "Watchlist Clear (Unrated)",
                 redViolations = emptyList(),
                 yellowViolations = listOf("No blacklisted ingredients found. Nutrition facts not scanned.")

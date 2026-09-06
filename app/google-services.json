@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "955054852456",
+    "project_id": "filterpoint-backend",
+    "storage_bucket": "filterpoint-backend.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:955054852456:android:b862205eb0c919ed30aedd",
+        "android_client_info": {
+          "package_name": "net.meinook.labelscanner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAn16BrVWzVz3EQ1WOjNfAJgdjoD4qqfo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

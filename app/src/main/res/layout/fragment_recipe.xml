@@ -280,28 +280,20 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <RelativeLayout
+                    <!-- Upgraded 2-Row Container Panel (Flipped: Buttons above Adjusted Recipe Header) -->
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginBottom="8dp">
 
-                        <TextView
-                            android:id="@+id/txtAdjustedRecipeHeader"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Adjusted Recipe"
-                            android:textColor="@color/textPrimary"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:layout_alignParentStart="true"
-                            android:layout_centerVertical="true" />
-
-                        <!-- Side-by-Side Action Button Container [1] -->
+                        <!-- Row 1 (Flipped): Action Button Panel aligned neatly to the right -->
                         <LinearLayout
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
-                            android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true">
+                            android:gravity="end"
+                            android:layout_marginBottom="4dp">
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btnReportAdjusted"
@@ -320,7 +312,17 @@
                                 android:text="Copy"
                                 android:textColor="@color/textPrimary" />
                         </LinearLayout>
-                    </RelativeLayout>
+
+                        <!-- Row 2 (Flipped): Full-Width Recipe Name wraps naturally to multiple lines -->
+                        <TextView
+                            android:id="@+id/txtAdjustedRecipeHeader"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Adjusted Recipe"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
 
                     <!-- Output floats completely directly on the scale illustration -->
                     <TextView

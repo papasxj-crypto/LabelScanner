@@ -7,8 +7,11 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -18,6 +21,7 @@ import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
@@ -29,6 +33,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import java.util.Locale
 
+// Aligned constructor cleanly maps to your fragment_health layout resource ID
 class HealthFragment : Fragment(R.layout.fragment_health) {
 
     private lateinit var tabLayoutHealth: TabLayout
@@ -36,14 +41,14 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private lateinit var layoutTabCustomWatchlist: LinearLayout
 
     // Tab 1 Elements
-    private lateinit var layoutConditions: LinearLayout
-    private lateinit var layoutAllergens: LinearLayout
     private lateinit var etActualWeight: EditText
     private lateinit var etHeightFeet: EditText
     private lateinit var etHeightInches: EditText
     private lateinit var spinnerGender: Spinner
     private lateinit var txtIbwCalculated: TextView
     private lateinit var txtAjbwCalculated: TextView
+    private lateinit var layoutConditions: LinearLayout
+    private lateinit var layoutAllergens: LinearLayout
 
     private var scrollCondition: NestedScrollView? = null
     private var ivScrollUp: ImageView? = null
@@ -60,6 +65,18 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private lateinit var chipGroupCommonAdds: ChipGroup
     private lateinit var layoutActiveReds: LinearLayout
     private lateinit var layoutActiveYellows: LinearLayout
+
+    private var scrollCommon: NestedScrollView? = null
+    private var ivCommonScrollUp: ImageView? = null
+    private var ivCommonScrollDown: ImageView? = null
+
+    private var scrollRed: NestedScrollView? = null
+    private var ivRedScrollUp: ImageView? = null
+    private var ivRedScrollDown: ImageView? = null
+
+    private var scrollYellow: NestedScrollView? = null
+    private var ivYellowScrollUp: ImageView? = null
+    private var ivYellowScrollDown: ImageView? = null
 
     private lateinit var appSettings: AppSettings
 
@@ -83,13 +100,26 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         txtIbwCalculated = view.findViewById(R.id.txtIbwCalculated)
         txtAjbwCalculated = view.findViewById(R.id.txtAjbwCalculated)
 
-        // Bind Tab 2 Views (Clean of legacy spinner and old button)
+        // Bind Tab 2 Views
         etCustomIngredient = view.findViewById(R.id.etCustomIngredient)
         btnAddRed = view.findViewById(R.id.btnAddRed)
         btnAddYellow = view.findViewById(R.id.btnAddYellow)
         chipGroupCommonAdds = view.findViewById(R.id.chipGroupCommonAdds)
         layoutActiveReds = view.findViewById(R.id.layoutActiveReds)
         layoutActiveYellows = view.findViewById(R.id.layoutActiveYellows)
+
+        // Bind Tab 2 Scroll Overlays
+        scrollCommon = view.findViewById(R.id.scrollCommonAdds)
+        ivCommonScrollUp = view.findViewById(R.id.ivCommonScrollUpIndicator)
+        ivCommonScrollDown = view.findViewById(R.id.ivCommonScrollDownIndicator)
+
+        scrollRed = view.findViewById(R.id.scrollActiveReds)
+        ivRedScrollUp = view.findViewById(R.id.ivRedScrollUpIndicator)
+        ivRedScrollDown = view.findViewById(R.id.ivRedScrollDownIndicator)
+
+        scrollYellow = view.findViewById(R.id.scrollActiveYellows)
+        ivYellowScrollUp = view.findViewById(R.id.ivYellowScrollUpIndicator)
+        ivYellowScrollDown = view.findViewById(R.id.ivYellowScrollDownIndicator)
 
         setupTabLayout()
         setupTab1Profiles()
@@ -108,6 +138,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                     1 -> {
                         layoutTabProfiles.visibility = View.GONE
                         layoutTabCustomWatchlist.visibility = View.VISIBLE
+                        setupCommonQuickAddChips()
                         populateActiveWatchlists()
                     }
                 }
@@ -153,63 +184,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
         updateCalculatedWeights()
 
-        // Restored your exact working TextWatcher block
-        val heightWatcher = object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                val feet = etHeightFeet.text.toString().toDoubleOrNull() ?: 0.0
-                val inches = etHeightInches.text.toString().toDoubleOrNull() ?: 0.0
-                val totalInches = (feet * 12.0) + inches
-                appSettings.setUserHeightInches(totalInches)
-                appSettings.setPendingSaveFlag(true)
-                updateCalculatedWeights()
-            }
-        }
-        etHeightFeet.addTextChangedListener(heightWatcher)
-        etHeightInches.addTextChangedListener(heightWatcher)
-
-        // Clear when touched and provide active background highlight indicators
-        etHeightFeet.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
-                etHeightFeet.setText("")
-                etHeightFeet.setBackgroundColor(Color.parseColor("#4E3B34")) // Focus Highlight
-            } else {
-                etHeightFeet.setBackgroundColor(Color.parseColor("#2E221D")) // Standard background
-                val text = etHeightFeet.text.toString().trim()
-                if (text.isEmpty()) {
-                    val savedTotalInches = appSettings.getUserHeightInches()
-                    if (savedTotalInches > 0.0) {
-                        val feet = (savedTotalInches / 12).toInt()
-                        etHeightFeet.setText(feet.toString())
-                    }
-                }
-            }
-        }
-        etHeightFeet.setOnClickListener {
-            etHeightFeet.setText("")
-        }
-
-        etHeightInches.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
-                etHeightInches.setText("")
-                etHeightInches.setBackgroundColor(Color.parseColor("#4E3B34")) // Focus Highlight
-            } else {
-                etHeightInches.setBackgroundColor(Color.parseColor("#2E221D")) // Standard background
-                val text = etHeightInches.text.toString().trim()
-                if (text.isEmpty()) {
-                    val savedTotalInches = appSettings.getUserHeightInches()
-                    if (savedTotalInches > 0.0) {
-                        val inches = (savedTotalInches % 12).toInt()
-                        etHeightInches.setText(inches.toString())
-                    }
-                }
-            }
-        }
-        etHeightInches.setOnClickListener {
-            etHeightInches.setText("")
-        }
-
         // Setup real-time weight listener
         etActualWeight.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -222,18 +196,102 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         })
 
-        spinnerGender.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val genderStr = when (position) {
-                    1 -> "MALE"
-                    2 -> "FEMALE"
-                    else -> "UNSPECIFIED"
-                }
-                appSettings.setUserGender(genderStr)
+        // Setup Weight Focus & Highlight (Now completely aligned to matches Height aesthetics)
+        etActualWeight.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                etActualWeight.setBackgroundColor(Color.parseColor("#4E3B34")) // Focus Highlight
+            } else {
+                etActualWeight.setBackgroundColor(Color.parseColor("#2E221D")) // Standard background
+            }
+        }
+
+        // Weight keyboard "Done" listener
+        etActualWeight.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                etActualWeight.clearFocus()
+                val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.hideSoftInputFromWindow(etActualWeight.windowToken, 0)
+                true
+            } else {
+                false
+            }
+        }
+
+        // Separate, isolated Height text change listeners prevent recursive/overlapping overrides
+        etHeightFeet.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val feet = s.toString().toDoubleOrNull() ?: 0.0
+                val inches = etHeightInches.text.toString().toDoubleOrNull() ?: 0.0
+                val totalInches = (feet * 12.0) + inches
+                appSettings.setUserHeightInches(totalInches)
                 appSettings.setPendingSaveFlag(true)
                 updateCalculatedWeights()
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        })
+
+        etHeightInches.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val feet = etHeightFeet.text.toString().toDoubleOrNull() ?: 0.0
+                val inches = s.toString().toDoubleOrNull() ?: 0.0
+                val totalInches = (feet * 12.0) + inches
+                appSettings.setUserHeightInches(totalInches)
+                appSettings.setPendingSaveFlag(true)
+                updateCalculatedWeights()
+            }
+        })
+
+        // Feet Focus & Highlight
+        etHeightFeet.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                etHeightFeet.setBackgroundColor(Color.parseColor("#4E3B34")) // Focus Highlight
+            } else {
+                etHeightFeet.setBackgroundColor(Color.parseColor("#2E221D")) // Standard background
+            }
+        }
+
+        // Feet keyboard "Next" listener
+        etHeightFeet.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_NEXT) {
+                etHeightInches.requestFocus()
+                true
+            } else {
+                false
+            }
+        }
+
+        // Inches Focus & Highlight
+        etHeightInches.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                etHeightInches.setBackgroundColor(Color.parseColor("#4E3B34")) // Focus Highlight
+            } else {
+                etHeightInches.setBackgroundColor(Color.parseColor("#2E221D")) // Standard background
+            }
+        }
+
+        // Inches keyboard "Done" listener
+        etHeightInches.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                etHeightInches.clearFocus()
+                val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.hideSoftInputFromWindow(etHeightInches.windowToken, 0)
+                true
+            } else {
+                false
+            }
+        }
+
+        // Inches touch interceptor redirects all touches to highlight/focus "Feet" instead [1]
+        etHeightInches.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_UP) {
+                etHeightFeet.requestFocus()
+                val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.showSoftInput(etHeightFeet, InputMethodManager.SHOW_IMPLICIT)
+            }
+            true
         }
 
         // Setup Scroll Bindings for Targets (Card 2)
@@ -266,9 +324,9 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             if (text.isNotEmpty()) {
                 appSettings.addWatchlistIngredient(text, "RED")
                 etCustomIngredient.text = null
+                setupCommonQuickAddChips()
                 populateActiveWatchlists()
                 Toast.makeText(context, "'$text' added to Avoid list", Toast.LENGTH_SHORT).show()
-                updateAllergenScrollIndicators()
             } else {
                 Toast.makeText(context, "Please enter an ingredient name.", Toast.LENGTH_SHORT).show()
             }
@@ -280,13 +338,24 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             if (text.isNotEmpty()) {
                 appSettings.addWatchlistIngredient(text, "YELLOW")
                 etCustomIngredient.text = null
+                setupCommonQuickAddChips()
                 populateActiveWatchlists()
                 Toast.makeText(context, "'$text' added to Caution list", Toast.LENGTH_SHORT).show()
-                updateAllergenScrollIndicators()
             } else {
                 Toast.makeText(context, "Please enter an ingredient name.", Toast.LENGTH_SHORT).show()
             }
         }
+
+        // Bind Tab 2 Scroll Listeners
+        scrollCommon?.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
+            updateCommonScrollIndicators()
+        })
+        scrollRed?.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
+            updateRedScrollIndicators()
+        })
+        scrollYellow?.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
+            updateYellowScrollIndicators()
+        })
 
         setupCommonQuickAddChips()
         populateActiveWatchlists()
@@ -313,12 +382,66 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private fun updateAllergenScrollIndicators() {
         val sa = scrollAllergen ?: return
         val up = ivAllergenScrollUp ?: return
-        val down = ivAllergenScrollDown ?: return
+        val down = sa.getChildAt(0)?.height?.let { it - sa.height } ?: 0
         val child = sa.getChildAt(0)
         if (child != null) {
             val scrollRange = child.height - sa.height
             if (scrollRange > 0) {
                 val scrollY = sa.scrollY
+                up.visibility = if (scrollY > 15) View.VISIBLE else View.GONE
+                sa.findViewById<ImageView>(R.id.ivAllergenScrollDownIndicator)?.visibility = if (scrollY < scrollRange - 15) View.VISIBLE else View.GONE
+            } else {
+                up.visibility = View.GONE
+                sa.findViewById<ImageView>(R.id.ivAllergenScrollDownIndicator)?.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun updateCommonScrollIndicators() {
+        val sc = scrollCommon ?: return
+        val up = ivCommonScrollUp ?: return
+        val down = ivCommonScrollDown ?: return
+        val child = sc.getChildAt(0)
+        if (child != null) {
+            val scrollRange = child.height - sc.height
+            if (scrollRange > 0) {
+                val scrollY = sc.scrollY
+                up.visibility = if (scrollY > 15) View.VISIBLE else View.GONE
+                down.visibility = if (scrollY < scrollRange - 15) View.VISIBLE else View.GONE
+            } else {
+                up.visibility = View.GONE
+                down.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun updateRedScrollIndicators() {
+        val sc = scrollRed ?: return
+        val up = ivRedScrollUp ?: return
+        val down = ivRedScrollDown ?: return
+        val child = sc.getChildAt(0)
+        if (child != null) {
+            val scrollRange = child.height - sc.height
+            if (scrollRange > 0) {
+                val scrollY = sc.scrollY
+                up.visibility = if (scrollY > 15) View.VISIBLE else View.GONE
+                down.visibility = if (scrollY < scrollRange - 15) View.VISIBLE else View.GONE
+            } else {
+                up.visibility = View.GONE
+                down.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun updateYellowScrollIndicators() {
+        val sc = scrollYellow ?: return
+        val up = ivYellowScrollUp ?: return
+        val down = ivYellowScrollDown ?: return
+        val child = sc.getChildAt(0)
+        if (child != null) {
+            val scrollRange = child.height - sc.height
+            if (scrollRange > 0) {
+                val scrollY = sc.scrollY
                 up.visibility = if (scrollY > 15) View.VISIBLE else View.GONE
                 down.visibility = if (scrollY < scrollRange - 15) View.VISIBLE else View.GONE
             } else {
@@ -349,40 +472,96 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
     private fun setupCommonQuickAddChips() {
         chipGroupCommonAdds.removeAllViews()
-        val commonIngredients = listOf(
-            "Dairy", "Peanuts", "Soy", "Gluten", "Shellfish",
-            "Almonds", "Sesame", "MSG", "Nitrites", "Corn Syrup"
-        )
+        val commonIngredients = resources.getStringArray(R.array.common_watchlist_items)
         val density = resources.displayMetrics.density
+
+        val redCustom = appSettings.getCustomWatchlist("RED").map { it.uppercase().trim() }.toSet()
+        val yellowCustom = appSettings.getCustomWatchlist("YELLOW").map { it.uppercase().trim() }.toSet()
+
+        val activeConditions = appSettings.getSelectedConditions()
+        val activeTriggers = mutableSetOf<String>()
+        for (profileId in activeConditions) {
+            val triggers = appSettings.getIngredientsFromAssetFile(profileId)
+            for (t in triggers) {
+                activeTriggers.add(t.uppercase().trim())
+            }
+        }
+
+        fun isCommonIngredientActive(ingredient: String, triggers: Set<String>): Boolean {
+            val upper = ingredient.uppercase().trim()
+            if (triggers.contains(upper)) return true
+            return when (upper) {
+                "DAIRY" -> triggers.contains("MILK") || triggers.contains("BUTTER") || triggers.contains("CHEESE") || triggers.contains("LACTOSE")
+                "GLUTEN" -> triggers.contains("WHEAT") || triggers.contains("BARLEY") || triggers.contains("RYE") || triggers.contains("GLUTEN")
+                "PEANUTS" -> triggers.contains("PEANUT") || triggers.contains("PEANUTS")
+                "TREE NUTS" -> triggers.contains("ALMOND") || triggers.contains("CASHEW") || triggers.contains("CASHEWS") || triggers.contains("WALNUT")
+                else -> false
+            }
+        }
+
         for (ingredient in commonIngredients) {
+            val ingUpper = ingredient.uppercase().trim()
+
+            val (chipBgColor, chipTextColor) = when {
+                redCustom.contains(ingUpper) || isCommonIngredientActive(ingredient, activeTriggers) -> {
+                    Pair("#FF6B6B", "#FFFFFF")
+                }
+                yellowCustom.contains(ingUpper) -> {
+                    Pair("#FFD54F", "#14161F")
+                }
+                else -> {
+                    Pair("#222630", "#F4F5FC")
+                }
+            }
+
             val chip = Chip(requireContext()).apply {
                 text = ingredient
                 isCheckable = false
                 isClickable = true
-                setTextColor(Color.parseColor("#F4F5FC"))
-                setChipBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#222630")))
+                setTextColor(Color.parseColor(chipTextColor))
+                setChipBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor(chipBgColor)))
                 setChipStrokeColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#3A2D28")))
                 chipStrokeWidth = density * 1f
 
                 setOnClickListener {
-                    showQuickAddSelectionDialog(ingredient)
+                    showQuickAddSelectionDialog(this, ingredient)
                 }
             }
             chipGroupCommonAdds.addView(chip)
         }
+
+        scrollCommon?.post { updateCommonScrollIndicators() }
     }
 
-    private fun showQuickAddSelectionDialog(ingredient: String) {
-        val tiers = arrayOf("Add to Avoid (Red)", "Add to Caution (Yellow)")
-        MaterialAlertDialogBuilder(requireContext(), R.style.Theme_LabelScanner)
-            .setTitle("Add $ingredient")
-            .setItems(tiers) { _, which ->
-                val tier = if (which == 0) "RED" else "YELLOW"
-                appSettings.addWatchlistIngredient(ingredient, tier)
-                populateActiveWatchlists()
-                Toast.makeText(context, "'$ingredient' added to $tier watchlist.", Toast.LENGTH_SHORT).show()
+    private fun showQuickAddSelectionDialog(chipView: View, ingredient: String) {
+        val context = requireContext()
+
+        val popup = PopupMenu(context, chipView).apply {
+            menu.add(0, 1, 0, "Add to Avoid (Red)")
+            menu.add(0, 2, 1, "Add to Caution (Yellow)")
+        }
+
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> {
+                    appSettings.addWatchlistIngredient(ingredient, "RED")
+                    setupCommonQuickAddChips()
+                    populateActiveWatchlists()
+                    Toast.makeText(context, "'$ingredient' added to Avoid list", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                2 -> {
+                    appSettings.addWatchlistIngredient(ingredient, "YELLOW")
+                    setupCommonQuickAddChips()
+                    populateActiveWatchlists()
+                    Toast.makeText(context, "'$ingredient' added to Caution list", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                else -> false
             }
-            .show()
+        }
+
+        popup.show()
     }
 
     private fun populateActiveWatchlists() {
@@ -421,6 +600,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 imageTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#FF6B6B"))
                 setOnClickListener {
                     appSettings.removeWatchlistIngredient(item)
+                    setupCommonQuickAddChips()
                     populateActiveWatchlists()
                 }
             }
@@ -457,6 +637,9 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 layoutActiveYellows.addView(createActiveItemView(item, "YELLOW"))
             }
         }
+
+        scrollRed?.post { updateRedScrollIndicators() }
+        scrollYellow?.post { updateYellowScrollIndicators() }
     }
 
     private fun buildDynamicCheckBoxes() {

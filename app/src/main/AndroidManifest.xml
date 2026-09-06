@@ -26,18 +26,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LabelScanner">
 
-        <!-- 1. MAIN ACTIVITY (Now handles both launcher and incoming share intents) [1.1.1] -->
+        <!-- MainActivity is your single, secure entry point using the starting theme -->
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout">
-
+            android:theme="@style/Theme.LabelScanner.Starting"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-            <!-- Shared Intent Filter: Targets web browser share sheets [1.1.1] -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />

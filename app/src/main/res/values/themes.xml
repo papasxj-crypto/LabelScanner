@@ -24,21 +24,41 @@
 
     <!-- Base Application Theme -->
     <style name="Theme.LabelScanner" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Default app backgrounds are dark cocoa to match your fragment layouts -->
+        <item name="android:windowBackground">#14161F</item>
+
         <!-- Global Bottom Navigation Style Override -->
         <item name="bottomNavigationStyle">@style/Widget.LabelScanner.BottomNavigationView</item>
 
-        <!-- Global Theme Colors [1] -->
+        <!-- Global Theme Colors -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorSecondary">@color/colorSecondary</item>
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorOnSecondary">@color/white</item>
 
-        <!-- Toggle Button Checked States (Overrides purple check background) [1] -->
+        <!-- Toggle Button Checked States (Overrides purple check background) -->
         <item name="colorPrimaryContainer">#2B1F16</item> <!-- Cocoa-brown active background -->
         <item name="colorOnPrimaryContainer">#E5C158</item> <!-- Warm gold active text -->
 
-        <!-- System-wide Touch Ripple / Pulse (Overrides purple ripple globally!) [2] -->
+        <!-- System-wide Touch Ripple / Pulse (Overrides purple ripple globally!) -->
         <item name="colorControlHighlight">#40E5C158</item> <!-- 25% transparent gold ripple instead of purple -->
+    </style>
+
+    <!--
+      GOOGLE JETPACK STARTING SPLASH THEME
+      This temporary starting theme is used exclusively while the app is booting.
+      It displays your actual app launcher icon and background, then automatically
+      transitions to your main application theme (Theme.LabelScanner) when ready.
+    -->
+    <style name="Theme.LabelScanner.Starting" parent="Theme.SplashScreen">
+        <!-- Match your launcher icon background exactly (warm sand/cream) -->
+        <item name="windowSplashScreenBackground">#E4D5B1</item>
+
+        <!-- Use your actual app launcher icon -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+
+        <!-- The theme to apply once the splash screen is dismissed -->
+        <item name="postSplashScreenTheme">@style/Theme.LabelScanner</item>
     </style>
 
     <!-- Bottom Navigation Custom Styling -->

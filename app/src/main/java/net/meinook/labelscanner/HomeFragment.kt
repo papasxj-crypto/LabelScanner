@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.Manifest
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -13,6 +14,7 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,6 +43,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -53,6 +57,15 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 class HomeFragment : Fragment(R.layout.fragment_home) {
+
+    // 1. DUAL-URL COMPILATION INJECTION RULE COMPLIANT
+    private val BACKEND_ANALYSIS_URL by lazy {
+        if (BuildConfig.DEBUG) {
+            getString(R.string.dev_URL)
+        } else {
+            getString(R.string.production_URL)
+        }
+    }
 
     private lateinit var textExplanation: TextView
     private lateinit var textCondition: TextView
@@ -135,6 +148,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         composeView = view.findViewById(R.id.composeViewMenu)
         rebuildComposeMenu()
 
+        // Binds standard onClick listener to launch the dynamic Profile Select Dialog [1]
+        textCondition.setOnClickListener {
+            showProfileSelectorDialog()
+        }
+
         val bottomNav = activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_navigation)
             ?: activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.nav_host_fragment)
 
@@ -194,6 +212,71 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 onProduceClick = { runWithCameraPermission(PendingCameraAction.PRODUCE_SCAN) }
             )
         }
+    }
+
+    // MULTI-PROFILE SELECTION AND CREATION FLOWS [1]
+    private fun showProfileSelectorDialog() {
+        val context = context ?: return
+        val userSettings = AppSettings(context)
+        val currentProfiles = userSettings.getProfilesList()
+        val activeProfile = userSettings.getActiveProfile()
+
+        val options = currentProfiles.toMutableList()
+        options.add("＋ Create New Profile")
+
+        val activeIndex = currentProfiles.indexOf(activeProfile)
+
+        AlertDialog.Builder(context)
+            .setTitle("Select Profile")
+            .setSingleChoiceItems(options.toTypedArray(), activeIndex) { dialog, which ->
+                dialog.dismiss()
+                if (which == options.size - 1) {
+                    showCreateProfileDialog()
+                } else {
+                    val selectedProfile = options[which]
+                    userSettings.setActiveProfile(selectedProfile)
+                    updateConditionText()
+                    rebuildComposeMenu()
+                    resetUI()
+                    Toast.makeText(context, "Profile switched to $selectedProfile", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .show()
+    }
+
+    private fun showCreateProfileDialog() {
+        val context = context ?: return
+        val inputLayout = TextInputLayout(context).apply {
+            boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
+            setPadding(32, 16, 32, 8)
+        }
+        val inputEdit = TextInputEditText(context).apply {
+            hint = "Enter profile name (e.g. Grandma)"
+        }
+        inputLayout.addView(inputEdit)
+
+        AlertDialog.Builder(context)
+            .setTitle("Create New Profile")
+            .setView(inputLayout)
+            .setPositiveButton("Create") { dialog, _ ->
+                val name = inputEdit.text?.toString()?.trim() ?: ""
+                if (name.isNotEmpty()) {
+                    val userSettings = AppSettings(context)
+                    userSettings.createProfile(name)
+                    userSettings.setActiveProfile(name)
+                    updateConditionText()
+                    rebuildComposeMenu()
+                    resetUI()
+                    Toast.makeText(context, "Profile '$name' activated", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Profile name cannot be empty", Toast.LENGTH_SHORT).show()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 
     @Composable
@@ -521,7 +604,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         return emptyList()
     }
 
-    // High-performance payload resize preventing OOM crashes and massive cloud transit latency
     private fun resizeBitmapToMax(source: Bitmap, maxDimension: Int = 1024): Bitmap {
         val width = source.width
         val height = source.height
@@ -542,12 +624,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         return Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
     }
 
-    // HYBRID SCAN INGESTION ENGINE
     private fun runAnalysis(imageBitmap: Bitmap) {
         isAnalyzing = true
         activity?.runOnUiThread { textExplanation.text = "Reading label..." }
 
-        // EXIF Orientation Correction: Use the direct file URI so ML Kit auto-rotates sideways photos properly!
         val image = try {
             InputImage.fromFilePath(requireContext(), tempPhotoUri)
         } catch (e: Exception) {
@@ -574,7 +654,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
     }
 
-    // TIER 2: Fast, cheap, precise, text-only API parser
     private fun executeTextBasedAnalysis(extractedText: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -583,7 +662,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     extractedText,
                     getConditionsString(userSettings, userSettings.getSelectedConditions()),
                     BuildConfig.GEMINI_API_KEY,
-                    getString(R.string.model_identifier_txt)
+                    getString(R.string.model_identifier_txt),
+                    BACKEND_ANALYSIS_URL
                 )
 
                 Log.d("LabelScanner", "HomeFragment [Hybrid Text]: Raw Response = $rawResponse")
@@ -599,20 +679,18 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
-    // TIER 3: Visual fallback (Optimized downsampling to save network transport delay)
     private fun executeVisionBasedAnalysis(imageBitmap: Bitmap) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val userSettings = AppSettings(requireContext())
-
-                // Compress payload from 5MB+ down to <150KB before cloud upload
                 val optimizedBitmap = resizeBitmapToMax(imageBitmap, 1024)
 
                 val rawResponse = GeminiAnalyzer.analyzeIngredientsImage(
                     optimizedBitmap,
                     getConditionsString(userSettings, userSettings.getSelectedConditions()),
                     BuildConfig.GEMINI_API_KEY,
-                    getString(R.string.model_identifier_txt)
+                    getString(R.string.model_identifier_txt),
+                    BACKEND_ANALYSIS_URL
                 )
 
                 Log.d("LabelScanner", "HomeFragment [Fallback Vision]: Raw Response = $rawResponse")
@@ -673,13 +751,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         isAnalyzing = true
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Downsample produce camera scan payload
                 val optimizedBitmap = resizeBitmapToMax(imageBitmap, 1024)
+
+                activity?.runOnUiThread { textExplanation.text = "Analyzing Image ..." }
 
                 val rawResponse = GeminiAnalyzer.analyzeProduceImage(
                     optimizedBitmap,
                     BuildConfig.GEMINI_API_KEY,
-                    getString(R.string.model_identifier_txt)
+                    getString(R.string.model_identifier_txt),
+                    BACKEND_ANALYSIS_URL
                 )
                 Log.d("LabelScanner", "HomeFragment: Raw Produce Response = $rawResponse")
 
@@ -842,7 +922,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
 
     private fun updateConditionText() {
-        textCondition.text = "Target: ${getConditionsString(AppSettings(requireContext()), AppSettings(requireContext()).getSelectedConditions())}"
+        textCondition.text = "Profile: ${AppSettings(requireContext()).getActiveProfile()}"
     }
 
     override fun onResume() {

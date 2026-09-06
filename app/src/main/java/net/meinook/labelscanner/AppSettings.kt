@@ -83,6 +83,56 @@ class AppSettings(private val context: Context) {
         }
     }
 
+    // MULTI-PROFILE UTILITIES
+    fun getProfilesList(): List<String> {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        val profilesSet = prefs.getStringSet("profiles_list", null)
+        return if (profilesSet.isNullOrEmpty()) {
+            listOf("Me")
+        } else {
+            profilesSet.toList().sorted()
+        }
+    }
+
+    fun saveProfilesList(profiles: List<String>) {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putStringSet("profiles_list", profiles.toSet()).apply()
+    }
+
+    fun createProfile(profileName: String) {
+        val nameClean = profileName.trim()
+        if (nameClean.isEmpty()) return
+        val currentList = getProfilesList().toMutableList()
+        if (!currentList.contains(nameClean)) {
+            currentList.add(nameClean)
+            saveProfilesList(currentList)
+        }
+    }
+
+    fun deleteProfile(profileName: String) {
+        val nameClean = profileName.trim()
+        if (nameClean.isEmpty() || nameClean == "Me") return
+        val currentList = getProfilesList().toMutableList()
+        if (currentList.remove(nameClean)) {
+            saveProfilesList(currentList)
+            if (getActiveProfile() == nameClean) {
+                setActiveProfile("Me")
+            }
+        }
+    }
+
+    fun getActiveProfile(): String {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        return prefs.getString("active_profile_id", "Me") ?: "Me"
+    }
+
+    fun setActiveProfile(profileName: String) {
+        val nameClean = profileName.trim()
+        if (nameClean.isEmpty()) return
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("active_profile_id", nameClean).apply()
+    }
+
     fun isSubscriptionActive(): Boolean {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
         return prefs.getBoolean(KEY_SUBSCRIPTION_ACTIVE, false)
@@ -133,7 +183,8 @@ class AppSettings(private val context: Context) {
 
     fun saveCustomWatchlistItem(ingredient: String, tier: String) {
         val sharedPrefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        val key = if (tier.uppercase() == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
+        val baseKey = if (tier.uppercase() == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
+        val key = "${getActiveProfile()}_$baseKey"
 
         val existingItems = sharedPrefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
         existingItems.add(ingredient.trim().uppercase())
@@ -175,7 +226,8 @@ class AppSettings(private val context: Context) {
 
     fun getCustomWatchlist(tier: String): List<String> {
         val sharedPrefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        val key = if (tier.uppercase() == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
+        val baseKey = if (tier.uppercase() == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
+        val key = "${getActiveProfile()}_$baseKey"
 
         val itemsSet = sharedPrefs.getStringSet(key, emptySet()) ?: emptySet()
         return itemsSet.map { it.uppercase() }.sorted()
@@ -183,12 +235,14 @@ class AppSettings(private val context: Context) {
 
     fun saveSelectedConditions(conditions: Set<String>) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        prefs.edit { putStringSet("tracked_medical_conditions", conditions) }
+        val key = "${getActiveProfile()}_tracked_medical_conditions"
+        prefs.edit { putStringSet(key, conditions) }
     }
 
     fun getSelectedConditions(): Set<String> {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        return prefs.getStringSet("tracked_medical_conditions", null) ?: setOf("healthy_baseline")
+        val key = "${getActiveProfile()}_tracked_medical_conditions"
+        return prefs.getStringSet(key, null) ?: setOf("healthy_baseline")
     }
 
     fun setPendingSaveFlag(hasSaved: Boolean) {
@@ -211,8 +265,11 @@ class AppSettings(private val context: Context) {
         if (cleanName.isEmpty()) return
 
         val tierUpper = tier.uppercase()
-        val targetKey = if (tierUpper == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
-        val alternateKey = if (tierUpper == "RED") "custom_yellow_ingredients" else "custom_red_ingredients"
+        val targetBaseKey = if (tierUpper == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
+        val alternateBaseKey = if (tierUpper == "RED") "custom_yellow_ingredients" else "custom_red_ingredients"
+
+        val targetKey = "${getActiveProfile()}_$targetBaseKey"
+        val alternateKey = "${getActiveProfile()}_$alternateBaseKey"
 
         val targetSet = (prefs.getStringSet(targetKey, emptySet()) ?: emptySet()).toMutableSet()
         val alternateSet = (prefs.getStringSet(alternateKey, emptySet()) ?: emptySet()).toMutableSet()
@@ -231,16 +288,19 @@ class AppSettings(private val context: Context) {
         val cleanName = ingredient.trim().uppercase()
         if (cleanName.isEmpty()) return
 
-        val redSet = (prefs.getStringSet("custom_red_ingredients", emptySet()) ?: emptySet()).toMutableSet()
-        val yellowSet = (prefs.getStringSet("custom_yellow_ingredients", emptySet()) ?: emptySet()).toMutableSet()
+        val redKey = "${getActiveProfile()}_custom_red_ingredients"
+        val yellowKey = "${getActiveProfile()}_custom_yellow_ingredients"
+
+        val redSet = (prefs.getStringSet(redKey, emptySet()) ?: emptySet()).toMutableSet()
+        val yellowSet = (prefs.getStringSet(yellowKey, emptySet()) ?: emptySet()).toMutableSet()
 
         val removedFromRed = redSet.remove(cleanName)
         val removedFromYellow = yellowSet.remove(cleanName)
 
         if (removedFromRed || removedFromYellow) {
             prefs.edit {
-                putStringSet("custom_red_ingredients", redSet)
-                putStringSet("custom_yellow_ingredients", yellowSet)
+                putStringSet(redKey, redSet)
+                putStringSet(yellowKey, yellowSet)
             }
         }
     }
@@ -376,7 +436,6 @@ class AppSettings(private val context: Context) {
         return Triple(lowMax, modMax, isBlacklist)
     }
 
-    // Direct isolated single-profile extraction helper used during Template Cloning
     fun getNutrientThresholdsForProfile(profileId: String, nutrientKey: String): Triple<Int, Int, Boolean> {
         var lowMax = 0
         var modMax = 0
@@ -403,7 +462,7 @@ class AppSettings(private val context: Context) {
                             if (currentName?.lowercase() == nutrientKey.lowercase()) {
                                 val fileLow = parser.getAttributeValue(null, "low_max")?.toIntOrNull() ?: 0
                                 val fileMod = parser.getAttributeValue(null, "moderate_max")?.toIntOrNull() ?: 0
-                                val fileBlacklist = parser.getAttributeValue(null, "is_blacklist")?.toBooleanStrictOrNull() ?: false
+                                val fileBlacklist = parser.getAttributeValue(null, "is_blacklist")?.toBoolean() ?: false
 
                                 lowMax = fileLow
                                 modMax = fileMod

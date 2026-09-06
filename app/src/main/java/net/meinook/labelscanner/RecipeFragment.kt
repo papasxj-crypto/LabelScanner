@@ -10,10 +10,10 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.Html
 import android.text.TextWatcher
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
@@ -49,10 +49,13 @@ import java.util.concurrent.TimeUnit
 
 class RecipeFragment : Fragment() {
 
+    // DUAL-URL INJECTION COMPLIANT - NO HARDCODED "HTTPS://"
     private val BACKEND_ANALYSIS_URL by lazy {
         if (BuildConfig.DEBUG) {
+            // PASTE YOUR ACTAL DEV URL (us-central1) HERE:
             getString(R.string.dev_URL)
         } else {
+            // Your Production Cloud Function URL (us-west1)
             getString(R.string.production_URL)
         }
     }
@@ -337,7 +340,7 @@ class RecipeFragment : Fragment() {
 
             cardAdjustedResult.visibility = View.VISIBLE
             val adjustedOutput = arguments?.getString("RECIPE_ADJUSTED_OUTPUT") ?: ""
-            txtAdjustedOutput.text = "ADJUSTED INGREDIENTS:\n$adjustedOutput"
+            txtAdjustedOutput.text = adjustedOutput
             layoutPostAnalysisActions.visibility = View.VISIBLE
 
             lastOriginalIngredients = arguments?.getString("RECIPE_INPUT") ?: ""
@@ -393,6 +396,13 @@ class RecipeFragment : Fragment() {
         navController?.removeOnDestinationChangedListener(destinationListener)
         navController = null
         super.onDestroyView()
+    }
+
+    private fun hideKeyboardAndClipboard() {
+        val view = activity?.currentFocus ?: edtRecipeInput
+        view.clearFocus()
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     private fun switchInputInterface(checkedId: Int) {
@@ -496,7 +506,26 @@ class RecipeFragment : Fragment() {
         return cleanUrl
     }
 
+    // Modern, inverted-exclusion regex filters hidden Unicode spaces and leading non-alphanumeric ballot boxes
+    private fun sanitizeScrapedIngredients(text: String): String {
+        return text.lines()
+            .map { line ->
+                var temp = line.trim()
+                // 1. Normalize non-breaking spaces and zero-width spaces first so standard trims work
+                temp = temp.replace('\u00A0', ' ')
+                    .replace('\u200B', ' ')
+                    .trim()
+                // 2. Erase absolute leading non-alphanumeric, non-fraction symbols (strips ballot boxes, checkmarks, bullets)
+                temp = temp.replace(Regex("^[^a-zA-Z0-9½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞\\d/\\(\\)]+"), "").trim()
+                temp
+            }
+            .filter { it.isNotEmpty() }
+            .joinToString("\n")
+    }
+
     private fun scrapeWebpageContents(urlStr: String) {
+        hideKeyboardAndClipboard()
+
         btnAdjustRecipe.isEnabled = false
         btnAdjustRecipe.text = "Scraping page link..."
 
@@ -520,19 +549,25 @@ class RecipeFragment : Fragment() {
                     val ingredientsText = extractStructuredRecipeIngredients(rawHtml)
                     val finalOutput = if (ingredientsText.isNotBlank()) ingredientsText else cleanHtmlToText(rawHtml)
 
+                    // Client-side sanitization scrubs out ballot boxes cleanly
+                    val sanitizedOutput = sanitizeScrapedIngredients(finalOutput)
+
                     withContext(Dispatchers.Main) {
                         btnAdjustRecipe.isEnabled = true
                         btnAdjustRecipe.text = "Profile & Adjust"
 
-                        if (finalOutput.isNotBlank()) {
+                        if (sanitizedOutput.isNotBlank()) {
                             scrapedRecipeUrl = canonicalUrl
                             txtSourceLink.text = "Source Link: $canonicalUrl (Tap to re-scrape)"
                             txtSourceLink.visibility = View.VISIBLE
 
-                            edtRecipeInput.setText(finalOutput)
+                            edtRecipeInput.setText(sanitizedOutput)
                             toggleInputMode.check(R.id.btnModeText)
                             tilRecipeInput.hint = "Touch to edit"
-                            Toast.makeText(context, "Ingredients imported! Review below, then click Analyze.", Toast.LENGTH_LONG).show()
+
+                            hideKeyboardAndClipboard()
+
+                            Toast.makeText(context, "Ingredients imported and cleaned! Review below, then click Analyze.", Toast.LENGTH_LONG).show()
                         } else {
                             Toast.makeText(context, "Could not extract readable ingredients from that URL.", Toast.LENGTH_SHORT).show()
                         }
@@ -572,12 +607,16 @@ class RecipeFragment : Fragment() {
                 val rawText = visionText.text
                 if (rawText.isNotBlank()) {
                     val cleanedText = cleanOcrTextLocally(rawText)
+                    val sanitizedOcr = sanitizeScrapedIngredients(cleanedText)
 
-                    edtRecipeInput.setText(cleanedText)
+                    edtRecipeInput.setText(sanitizedOcr)
                     toggleInputMode.check(R.id.btnModeText)
                     switchInputInterface(R.id.btnModeText)
                     tilRecipeInput.hint = "Touch to edit"
-                    Toast.makeText(context, "Ingredients isolated successfully!", Toast.LENGTH_SHORT).show()
+
+                    hideKeyboardAndClipboard()
+
+                    Toast.makeText(context, "Ingredients isolated and cleaned successfully!", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(context, "No text found inside the photo.", Toast.LENGTH_SHORT).show()
                     toggleInputMode.check(R.id.btnModeText)
@@ -876,6 +915,8 @@ class RecipeFragment : Fragment() {
     }
 
     private fun analyzeRecipeAndAdjust(rawText: String) {
+        hideKeyboardAndClipboard()
+
         btnAdjustRecipe.isEnabled = false
         lastDiagnosticError = null
 
@@ -901,7 +942,6 @@ class RecipeFragment : Fragment() {
                 try {
                     val parsedResult = JSONObject(responseString)
 
-                    // Robust servings mapping from response contract
                     val servings = scrapedServings ?: parsedResult.optInt("servings", 6).coerceAtLeast(1)
                     val adjustedIngredients = parsedResult.optString("adjusted_ingredients", "")
 
@@ -945,7 +985,8 @@ class RecipeFragment : Fragment() {
                             xmlRedTriggers = dynamicXmlTriggers.keys.toList(),
                             customRedWatchlist = userSettings.getCustomWatchlist("RED"),
                             customYellowWatchlist = userSettings.getCustomWatchlist("YELLOW"),
-                            isProduce = false
+                            isProduce = false,
+                            isRecipe = true
                         )
                     } else null
 
@@ -970,7 +1011,8 @@ class RecipeFragment : Fragment() {
                             xmlRedTriggers = dynamicXmlTriggers.keys.toList(),
                             customRedWatchlist = userSettings.getCustomWatchlist("RED"),
                             customYellowWatchlist = userSettings.getCustomWatchlist("YELLOW"),
-                            isProduce = false
+                            isProduce = false,
+                            isRecipe = true
                         )
                     } else null
 
@@ -1042,7 +1084,7 @@ class RecipeFragment : Fragment() {
                     }
 
                     cardAdjustedResult.visibility = View.VISIBLE
-                    txtAdjustedOutput.text = "ADJUSTED INGREDIENTS:\n$adjustedIngredients"
+                    txtAdjustedOutput.text = adjustedIngredients
                     layoutPostAnalysisActions.visibility = View.VISIBLE
 
                     val saverId = activeHistoryId ?: System.currentTimeMillis().toString()
@@ -1135,9 +1177,6 @@ class RecipeFragment : Fragment() {
                 emptyList<String>()
             }
 
-            // ---------------------------------------------------------------------------
-            // UPGRADED DATA-DRIVEN RULES ENGINE (Replaced static CKD thresholds) [3]
-            // ---------------------------------------------------------------------------
             val thresholdsObj = JSONObject()
             val targetNutrientKeys = listOf(
                 "potassium", "sodium", "protein", "carbs", "calories",
@@ -1163,7 +1202,6 @@ class RecipeFragment : Fragment() {
                 put("thresholds", thresholdsObj)
                 put("bypass_cache", true)
 
-                // Inject dynamic portion size metadata
                 scrapedServings?.let { put("servings", it) }
             }
 

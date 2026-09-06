@@ -81,22 +81,25 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Actual Weight (lbs)"
-                            android:textColor="#A89890"
+                            android:textColor="#99A1B3"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:layout_marginBottom="4dp" />
 
+                        <!-- Configured with the warm #2E221D background and #60544E hints [1] -->
                         <EditText
                             android:id="@+id/etActualWeight"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:background="#222630"
+                            android:background="#2E221D"
                             android:textColor="#F4F5FC"
                             android:inputType="numberDecimal"
+                            android:imeOptions="actionDone"
+                            android:selectAllOnFocus="true"
                             android:padding="10dp"
                             android:maxLength="5"
                             android:hint="0"
-                            android:textColorHint="#555D6E"
+                            android:textColorHint="#60544E"
                             android:textSize="14sp" />
                     </LinearLayout>
 
@@ -112,16 +115,17 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Biological Gender"
-                            android:textColor="#A89890"
+                            android:textColor="#99A1B3"
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:layout_marginBottom="4dp" />
 
+                        <!-- Configured with the warm #2E221D background [1] -->
                         <Spinner
                             android:id="@+id/spinnerGender"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:background="#222630"
+                            android:background="#2E221D"
                             android:padding="10dp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -133,7 +137,7 @@
                     android:orientation="horizontal"
                     android:weightSum="2">
 
-                    <!-- Height Column (Highlights each input box individually) -->
+                    <!-- Height Column -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -163,6 +167,8 @@
                                 android:background="#2E221D"
                                 android:textColor="#F4F5FC"
                                 android:inputType="number"
+                                android:imeOptions="actionNext"
+                                android:selectAllOnFocus="true"
                                 android:gravity="center"
                                 android:padding="8dp"
                                 android:hint="0"
@@ -185,13 +191,14 @@
                                 android:background="#2E221D"
                                 android:textColor="#F4F5FC"
                                 android:inputType="number"
+                                android:imeOptions="actionDone"
+                                android:selectAllOnFocus="true"
                                 android:gravity="center"
                                 android:padding="8dp"
                                 android:hint="0"
                                 android:textColorHint="#60544E"
                                 android:textSize="14sp" />
 
-                            <!-- Standardized single-quote double-quote TextView -->
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -416,7 +423,7 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-        <!-- Input Section Card -->
+        <!-- Input Section Card (Removed legacy spinners) -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -498,43 +505,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Common Quick Add Chips Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="#251B18"
-            app:cardCornerRadius="12dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="#3A2D28"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="COMMON ADDITIONS (TAP TO WATCHLIST)"
-                    android:textColor="#A89890"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.1"
-                    android:layout_marginBottom="10dp" />
-
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chipGroupCommonAdds"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:chipSpacingHorizontal="8dp"
-                    app:chipSpacingVertical="4dp" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Dynamic User Active Watchlist Cards -->
+        <!-- Common Quick Add Chips Card (Scrollable - Weight: 1) -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -542,55 +513,219 @@
             app:cardBackgroundColor="#251B18"
             app:cardCornerRadius="12dp"
             app:strokeWidth="1dp"
-            app:strokeColor="#3A2D28">
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="12dp">
 
-            <androidx.core.widget.NestedScrollView
+            <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:padding="12dp"
-                android:fillViewport="true">
+                android:padding="12dp">
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/txtCommonAddsHeader"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:text="COMMON ADDITIONS (TAP TO WATCHLIST)"
+                    android:textColor="#A89890"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="8dp" />
 
-                    <TextView
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/scrollCommonAdds"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_below="@id/txtCommonAddsHeader"
+                    android:fillViewport="true">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupCommonAdds"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="AVOID LIST (RED)"
-                        android:textColor="#FF6B6B"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.1"
-                        android:layout_marginBottom="6dp" />
+                        app:chipSpacingHorizontal="8dp"
+                        app:chipSpacingVertical="4dp"
+                        android:paddingEnd="44dp" />
+                </androidx.core.widget.NestedScrollView>
+
+                <ImageView
+                    android:id="@+id/ivCommonScrollUpIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#B3251B18"
+                    android:padding="4dp"
+                    android:src="@android:drawable/arrow_up_float"
+                    android:visibility="gone"
+                    app:tint="#F4F5FC"
+                    android:contentDescription="Scroll Up" />
+
+                <ImageView
+                    android:id="@+id/ivCommonScrollDownIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginBottom="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#B3251B18"
+                    android:padding="4dp"
+                    android:src="@android:drawable/arrow_down_float"
+                    android:visibility="gone"
+                    app:tint="#F4F5FC"
+                    android:contentDescription="Scroll Down" />
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Dynamic User Avoid Watchlist Card (Scrollable - Weight: 1) -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="12dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/txtActiveRedsHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="AVOID LIST (RED)"
+                    android:textColor="#FF6B6B"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="8dp" />
+
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/scrollActiveReds"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_below="@id/txtActiveRedsHeader"
+                    android:fillViewport="true">
 
                     <LinearLayout
                         android:id="@+id/layoutActiveReds"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:layout_marginBottom="16dp" />
+                        android:paddingEnd="44dp" />
+                </androidx.core.widget.NestedScrollView>
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="CAUTION LIST (YELLOW)"
-                        android:textColor="#FFD54F"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.1"
-                        android:layout_marginBottom="6dp" />
+                <ImageView
+                    android:id="@+id/ivRedScrollUpIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#B3251B18"
+                    android:padding="4dp"
+                    android:src="@android:drawable/arrow_up_float"
+                    android:visibility="gone"
+                    app:tint="#F4F5FC"
+                    android:contentDescription="Scroll Up" />
+
+                <ImageView
+                    android:id="@+id/ivRedScrollDownIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginBottom="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#B3251B18"
+                    android:padding="4dp"
+                    android:src="@android:drawable/arrow_down_float"
+                    android:visibility="gone"
+                    app:tint="#F4F5FC"
+                    android:contentDescription="Scroll Down" />
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Dynamic User Caution Watchlist Card (Scrollable - Weight: 1) -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            app:cardBackgroundColor="#251B18"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#3A2D28"
+            android:layout_marginBottom="4dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/txtActiveYellowsHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="CAUTION LIST (YELLOW)"
+                    android:textColor="#FFD54F"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="8dp" />
+
+                <androidx.core.widget.NestedScrollView
+                    android:id="@+id/scrollActiveYellows"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_below="@id/txtActiveYellowsHeader"
+                    android:fillViewport="true">
 
                     <LinearLayout
                         android:id="@+id/layoutActiveYellows"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical" />
+                        android:orientation="vertical"
+                        android:paddingEnd="44dp" />
+                </androidx.core.widget.NestedScrollView>
 
-                </LinearLayout>
-            </androidx.core.widget.NestedScrollView>
+                <ImageView
+                    android:id="@+id/ivYellowScrollUpIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#B3251B18"
+                    android:padding="4dp"
+                    android:src="@android:drawable/arrow_up_float"
+                    android:visibility="gone"
+                    app:tint="#F4F5FC"
+                    android:contentDescription="Scroll Up" />
 
+                <ImageView
+                    android:id="@+id/ivYellowScrollDownIndicator"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_alignParentBottom="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginBottom="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="#B3251B18"
+                    android:padding="4dp"
+                    android:src="@android:drawable/arrow_down_float"
+                    android:visibility="gone"
+                    app:tint="#F4F5FC"
+                    android:contentDescription="Scroll Down" />
+            </RelativeLayout>
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
