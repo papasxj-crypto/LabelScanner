@@ -8,6 +8,12 @@
     <flag name="enforce_protein_floor">true</flag>
     <flag name="enforce_protein_ceiling">false</flag>
 
+    <!-- Tactical Culinary Intervention Flags -->
+    <flag name="avoid_phosphate_additives">true</flag>
+    <flag name="strictly_avoid_coconut">true</flag>
+    <flag name="limit_saturated_fats">true</flag>
+    <flag name="prefer_preblended_gf_flour">false</flag>
+
     <!-- CKD Specific Target Metrics -->
     <nutrient name="sodium" low_max="140" moderate_max="300" is_blacklist="true" />
     <nutrient name="potassium" low_max="200" moderate_max="350" is_blacklist="true" />
@@ -30,7 +36,6 @@
     <trigger category="red">POTASSIUM CHLORIDE</trigger>
     <trigger category="red">MONOSODIUM GLUTAMATE</trigger>
     <trigger category="red">MSG</trigger>
-    <trigger category="red">SODIUM BICARBONATE</trigger>
     <trigger category="red">BRINE</trigger>
     <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
 

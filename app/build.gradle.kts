@@ -1,13 +1,3 @@
-import java.util.Properties
-
-// 1. Read API Key EARLY
-val localProperties = Properties()
-val localPropertiesFile = rootProject.file("local.properties")
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.inputStream().use { localProperties.load(it) }
-}
-val geminiKey = localProperties.getProperty("GEMINI_API_KEY") ?: ""
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -27,7 +17,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
+        // Retained for local testing/demo release builds
+        buildConfigField("Boolean", "BYPASS_PAYWALL", "true")
     }
 
     buildFeatures {
@@ -40,6 +31,7 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

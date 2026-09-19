@@ -13,16 +13,16 @@
         android:icon="@drawable/ic_health"
         android:title="My Health" />
 
-    <!-- 3. Recipe Adjuster Tab (Now using your custom Chef Hat!) -->
+    <!-- 3. Recipe Adjuster Tab (Chef Hat Icon) -->
     <item
         android:id="@+id/recipeFragment"
         android:icon="@drawable/ic_recipe"
         android:title="Recipe" />
 
-    <!-- 4. History Tab (Replaced Settings) [1, 2] -->
+    <!-- 4. Saved Cookbook Tab (Preserves navigation ID to prevent nav_graph.xml routing breaks) -->
     <item
         android:id="@+id/navigation_history"
-        android:icon="@drawable/ic_history"
-        android:title="History" />
+        android:icon="@drawable/ic_recipe"
+        android:title="Saved" />
 
 </menu>

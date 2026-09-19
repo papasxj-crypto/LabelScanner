@@ -15,27 +15,18 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
@@ -59,7 +50,7 @@ import org.json.JSONObject
 class HomeFragment : Fragment(R.layout.fragment_home) {
 
     // 1. DUAL-URL COMPILATION INJECTION RULE COMPLIANT
-    private val BACKEND_ANALYSIS_URL by lazy {
+    private val backendAnalysisUrl by lazy {
         if (BuildConfig.DEBUG) {
             getString(R.string.dev_URL)
         } else {
@@ -148,12 +139,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         composeView = view.findViewById(R.id.composeViewMenu)
         rebuildComposeMenu()
 
-        // Binds standard onClick listener to launch the dynamic Profile Select Dialog [1]
         textCondition.setOnClickListener {
             showProfileSelectorDialog()
         }
 
-        val bottomNav = activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_navigation)
+        val bottomNav = activity?.findViewById(R.id.bottom_navigation)
             ?: activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.nav_host_fragment)
 
         bottomNav?.setOnItemReselectedListener { item ->
@@ -214,7 +204,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
-    // MULTI-PROFILE SELECTION AND CREATION FLOWS [1]
     private fun showProfileSelectorDialog() {
         val context = context ?: return
         val userSettings = AppSettings(context)
@@ -660,10 +649,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 val userSettings = AppSettings(requireContext())
                 val rawResponse = GeminiAnalyzer.analyzeIngredientsText(
                     extractedText,
-                    getConditionsString(userSettings, userSettings.getSelectedConditions()),
-                    BuildConfig.GEMINI_API_KEY,
-                    getString(R.string.model_identifier_txt),
-                    BACKEND_ANALYSIS_URL
+                    backendAnalysisUrl
                 )
 
                 Log.d("LabelScanner", "HomeFragment [Hybrid Text]: Raw Response = $rawResponse")
@@ -687,10 +673,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
                 val rawResponse = GeminiAnalyzer.analyzeIngredientsImage(
                     optimizedBitmap,
-                    getConditionsString(userSettings, userSettings.getSelectedConditions()),
-                    BuildConfig.GEMINI_API_KEY,
-                    getString(R.string.model_identifier_txt),
-                    BACKEND_ANALYSIS_URL
+                    backendAnalysisUrl
                 )
 
                 Log.d("LabelScanner", "HomeFragment [Fallback Vision]: Raw Response = $rawResponse")
@@ -757,14 +740,46 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
                 val rawResponse = GeminiAnalyzer.analyzeProduceImage(
                     optimizedBitmap,
-                    BuildConfig.GEMINI_API_KEY,
-                    getString(R.string.model_identifier_txt),
-                    BACKEND_ANALYSIS_URL
+                    backendAnalysisUrl
                 )
                 Log.d("LabelScanner", "HomeFragment: Raw Produce Response = $rawResponse")
 
                 val json = JSONObject(rawResponse.replace("```json", "").replace("```", "").trim())
                 val name = json.optString("item_name", "Produce")
+
+                // --- REALITY CHECK GUARDRAIL ---
+                val isNonFood = !json.optBoolean("is_food", true) ||
+                        name.contains("non-food", ignoreCase = true) ||
+                        name.startsWith("none", ignoreCase = true)
+
+                if (isNonFood) {
+                    withContext(Dispatchers.Main) {
+                        isAnalyzing = false
+                        val nonFoodResult = EvaluationResult(
+                            gradeTitle = "Not Edible Produce",
+                            textColor = android.graphics.Color.parseColor("#F4F5FC"),
+                            subtextColor = android.graphics.Color.parseColor("#99A1B3"),
+                            bgColor = android.graphics.Color.parseColor("#2E221D"),
+                            redViolations = emptyList(),
+                            yellowViolations = emptyList()
+                        )
+                        displaySummaryCard(
+                            evaluation = nonFoodResult,
+                            subtitle = name.replace(Regex("""(?i)^none\s*\(?"""), "").removeSuffix(")").trim().ifEmpty { "Non-food item" },
+                            calories = 0,
+                            protein = 0f,
+                            sodium = 0,
+                            potassium = 0f,
+                            carbs = 0f,
+                            netCarbs = 0f,
+                            sugar = 0f,
+                            isKeto = false
+                        )
+                    }
+                    return@launch
+                }
+
+                // If valid food, proceed with standard clinical evaluation
                 val evalResult = LabelEvaluator.evaluateScanData(
                     json,
                     listOf(name.uppercase().trim()),
@@ -775,6 +790,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     emptyList(),
                     true
                 )
+
                 withContext(Dispatchers.Main) {
                     isAnalyzing = false
 

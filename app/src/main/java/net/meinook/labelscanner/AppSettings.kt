@@ -1,3 +1,4 @@
+@file:Suppress("unused") // Suppresses all helper API unused alerts for clean build integrations
 package net.meinook.labelscanner
 
 import android.content.Context
@@ -9,10 +10,14 @@ import java.io.InputStream
 import android.util.Xml
 import org.xmlpull.v1.XmlPullParser
 import androidx.core.content.edit
+import java.util.Locale
+import android.util.Log
 
 class AppSettings(private val context: Context) {
 
     companion object {
+        private const val TAG = "AppSettings"
+
         const val KEY_CUSTOM_BLACKBOARD = "custom_blacklist_ingredients"
         const val KEY_USER_WEIGHT = "user_target_weight_lbs"
         const val KEY_USER_HEIGHT_INCHES = "user_height_inches"
@@ -61,7 +66,7 @@ class AppSettings(private val context: Context) {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Error indexing exclusivity groups", e)
             }
         }
 
@@ -96,7 +101,9 @@ class AppSettings(private val context: Context) {
 
     fun saveProfilesList(profiles: List<String>) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putStringSet("profiles_list", profiles.toSet()).apply()
+        prefs.edit {
+            putStringSet("profiles_list", profiles.toSet())
+        }
     }
 
     fun createProfile(profileName: String) {
@@ -130,17 +137,21 @@ class AppSettings(private val context: Context) {
         val nameClean = profileName.trim()
         if (nameClean.isEmpty()) return
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putString("active_profile_id", nameClean).apply()
+        prefs.edit { putString("active_profile_id", nameClean) }
     }
 
     fun isSubscriptionActive(): Boolean {
+        // Automatically unlocks if the build config flag is compiled as true
+        if (BuildConfig.BYPASS_PAYWALL) {
+            return true
+        }
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
         return prefs.getBoolean(KEY_SUBSCRIPTION_ACTIVE, false)
     }
 
     fun setSubscriptionActive(active: Boolean) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean(KEY_SUBSCRIPTION_ACTIVE, active).apply()
+        prefs.edit { putBoolean(KEY_SUBSCRIPTION_ACTIVE, active) }
     }
 
     fun isUserRevoked(): Boolean {
@@ -168,7 +179,7 @@ class AppSettings(private val context: Context) {
 
     fun setDebugOverrideDisabled(disabled: Boolean) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean(KEY_DEBUG_OVERRIDE_DISABLED, disabled).apply()
+        prefs.edit { putBoolean(KEY_DEBUG_OVERRIDE_DISABLED, disabled) }
     }
 
     fun isRightHanded(): Boolean {
@@ -178,7 +189,7 @@ class AppSettings(private val context: Context) {
 
     fun setRightHanded(right: Boolean) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("is_right_handed", right).apply()
+        prefs.edit { putBoolean("is_right_handed", right) }
     }
 
     fun saveCustomWatchlistItem(ingredient: String, tier: String) {
@@ -189,37 +200,47 @@ class AppSettings(private val context: Context) {
         val existingItems = sharedPrefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
         existingItems.add(ingredient.trim().uppercase())
 
-        sharedPrefs.edit().putStringSet(key, existingItems).apply()
+        sharedPrefs.edit { putStringSet(key, existingItems) }
     }
 
     fun isFeatureFlagActive(flagName: String): Boolean {
         val selectedIds = getSelectedConditions()
+        if (selectedIds.isEmpty()) return false
 
-        for (profileId in selectedIds) {
-            try {
-                val fileName = if (profileId.endsWith(".xml")) profileId else "$profileId.xml"
+        try {
+            val mergedFileList = getMergedFileList(context)
+            for (fileName in mergedFileList) {
+                if (!fileName.endsWith(".xml")) continue
+
                 openProfileStream(context, fileName).use { inputStream ->
-                    val factory = org.xmlpull.v1.XmlPullParserFactory.newInstance()
-                    val parser = factory.newPullParser()
-                    parser.setInput(inputStream, "UTF-8")
-
+                    val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
                     var eventType = parser.eventType
-                    while (eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
-                        if (eventType == org.xmlpull.v1.XmlPullParser.START_TAG && parser.name == "flag") {
-                            val nameAttr = parser.getAttributeValue(null, "name")
-                            if (nameAttr == flagName) {
-                                val valueText = parser.nextText()
-                                if (valueText.trim().lowercase() == "true") {
-                                    return true
+                    var targetProfileActive = false
+
+                    while (eventType != XmlPullParser.END_DOCUMENT) {
+                        val tagName = parser.name
+                        if (eventType == XmlPullParser.START_TAG) {
+                            if (tagName == "diet_profile") {
+                                val id = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
+                                if (selectedIds.contains(id)) {
+                                    targetProfileActive = true
+                                }
+                            } else if (tagName == "flag" && targetProfileActive) {
+                                val nameAttr = parser.getAttributeValue(null, "name")
+                                if (nameAttr == flagName) {
+                                    val valueText = parser.nextText()
+                                    if (valueText.trim().equals("true", ignoreCase = true)) {
+                                        return true
+                                    }
                                 }
                             }
                         }
                         eventType = parser.next()
                     }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking feature flag $flagName", e)
         }
         return false
     }
@@ -236,27 +257,22 @@ class AppSettings(private val context: Context) {
     fun saveSelectedConditions(conditions: Set<String>) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
         val key = "${getActiveProfile()}_tracked_medical_conditions"
-        prefs.edit { putStringSet(key, conditions) }
+        // If the user unchecks the last item, automatically fall back to healthy_baseline
+        val finalConditions = if (conditions.isEmpty()) setOf("healthy_baseline") else conditions
+        prefs.edit { putStringSet(key, finalConditions) }
     }
 
     fun getSelectedConditions(): Set<String> {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
         val key = "${getActiveProfile()}_tracked_medical_conditions"
-        return prefs.getStringSet(key, null) ?: setOf("healthy_baseline")
+        val saved = prefs.getStringSet(key, null)
+        // If empty or null, guarantee healthy_baseline is returned
+        return if (saved.isNullOrEmpty()) setOf("healthy_baseline") else saved
     }
 
     fun setPendingSaveFlag(hasSaved: Boolean) {
         val prefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
         prefs.edit { putBoolean("pending_profile_save", hasSaved) }
-    }
-
-    fun getAndClearPendingSaveFlag(): Boolean {
-        val prefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
-        val currentFlagState = prefs.getBoolean("pending_profile_save", false)
-        if (currentFlagState) {
-            prefs.edit { putBoolean("pending_profile_save", false) }
-        }
-        return currentFlagState
     }
 
     fun addWatchlistIngredient(ingredient: String, tier: String) {
@@ -318,13 +334,13 @@ class AppSettings(private val context: Context) {
                     val conflictingIds = selectedIds.filter { profileId: String ->
                         profileExclusivityMap[profileId] == activeGroup || profileExclusivityMap[profileId] == "all"
                     }
-                    selectedIds.removeAll(conflictingIds)
+                    selectedIds.removeAll(conflictingIds.toSet())
                 }
             } else {
                 val baselineConflictingIds = selectedIds.filter { profileId: String ->
                     profileExclusivityMap[profileId] == "all"
                 }
-                selectedIds.removeAll(baselineConflictingIds)
+                selectedIds.removeAll(baselineConflictingIds.toSet())
             }
 
             val dynamicConflicts = profileConflictsMap[targetProfileId] ?: emptySet()
@@ -340,12 +356,24 @@ class AppSettings(private val context: Context) {
 
     fun getAvailableDietProfiles(includeAllergens: Boolean = true): List<DietProfile> {
         val profileList = mutableListOf<DietProfile>()
-        try {
-            val mergedFileList = getMergedFileList(context)
-            for (fileName in mergedFileList) {
-                if (fileName.endsWith(".xml")) {
-                    if (!includeAllergens && fileName.startsWith("allergen_")) continue
+        val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
 
+        val mergedFileList = getMergedFileList(context)
+        for (fileName in mergedFileList) {
+            if (fileName.endsWith(".xml")) {
+                if (!includeAllergens && fileName.startsWith("allergen_")) continue
+
+                // Only load the custom profile belonging specifically to the active profile configuration
+                if (fileName.startsWith("custom_") && !fileName.equals("custom_$activeSuffix.xml", ignoreCase = true)) {
+                    continue
+                }
+                // Prevent any legacy un-suffixed custom profiles from showing up
+                if (fileName.equals("custom.xml", ignoreCase = true)) {
+                    continue
+                }
+
+                // Isolated try-catch prevents an empty file in filesDir from hiding your asset profiles
+                try {
                     openProfileStream(context, fileName).use { inputStream ->
                         val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
                         var eventType = parser.eventType
@@ -359,10 +387,10 @@ class AppSettings(private val context: Context) {
                             eventType = parser.next()
                         }
                     }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Skipping unparseable profile file: $fileName", e)
                 }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
         return profileList
     }
@@ -429,57 +457,137 @@ class AppSettings(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error getting nutrient thresholds", e)
         }
 
         if (!profileMatched) return Triple(0, 999, false)
         return Triple(lowMax, modMax, isBlacklist)
     }
 
+    // Dynamic scanner matches profile IDs and extracts thresholds independent of uppercase/lowercase filename casing
     fun getNutrientThresholdsForProfile(profileId: String, nutrientKey: String): Triple<Int, Int, Boolean> {
         var lowMax = 0
         var modMax = 0
         var isBlacklist = false
         var matched = false
 
-        try {
-            val fileName = if (profileId.endsWith(".xml")) profileId else "$profileId.xml"
-            openProfileStream(context, fileName).use { inputStream ->
-                val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
-                var eventType = parser.eventType
-                var targetActive = false
+        val mergedFileList = getMergedFileList(context)
+        for (fileName in mergedFileList) {
+            if (!fileName.endsWith(".xml")) continue
 
-                while (eventType != XmlPullParser.END_DOCUMENT) {
-                    val tagName = parser.name
-                    if (eventType == XmlPullParser.START_TAG) {
-                        if (tagName == "diet_profile") {
-                            val id = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
-                            if (id == profileId) {
-                                targetActive = true
-                            }
-                        } else if (tagName == "nutrient" && targetActive) {
-                            val currentName = parser.getAttributeValue(null, "name")
-                            if (currentName?.lowercase() == nutrientKey.lowercase()) {
-                                val fileLow = parser.getAttributeValue(null, "low_max")?.toIntOrNull() ?: 0
-                                val fileMod = parser.getAttributeValue(null, "moderate_max")?.toIntOrNull() ?: 0
-                                val fileBlacklist = parser.getAttributeValue(null, "is_blacklist")?.toBoolean() ?: false
+            try {
+                var targetProfileActive = false
+                openProfileStream(context, fileName).use { inputStream ->
+                    val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
+                    var eventType = parser.eventType
+
+                    while (eventType != XmlPullParser.END_DOCUMENT) {
+                        val tagName = parser.name
+                        if (eventType == XmlPullParser.START_TAG) {
+                            if (tagName == "diet_profile") {
+                                val id = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
+                                if (id == profileId) {
+                                    targetProfileActive = true
+                                }
+                            } else if (tagName == "nutrient" && targetProfileActive) {
+                                val currentName = parser.getAttributeValue(null, "name")
+                                if (currentName?.lowercase() == nutrientKey.lowercase()) {
+                                    val fileLow = parser.getAttributeValue(null, "low_max")?.toIntOrNull() ?: 0
+                                    val fileMod = parser.getAttributeValue(null, "moderate_max")?.toIntOrNull() ?: 0
+                                    val fileBlacklist = parser.getAttributeValue(null, "is_blacklist")?.toBoolean() ?: false
+
+                                    lowMax = fileLow
+                                    modMax = fileMod
+                                    isBlacklist = fileBlacklist
+                                    matched = true
+                                }
+                            } else if (tagName == "protein_rules" && targetProfileActive && nutrientKey.lowercase() == "protein") {
+                                val fileLow = parser.getAttributeValue(null, "snack_max")?.toIntOrNull() ?: 0
+                                val fileMod = parser.getAttributeValue(null, "meal_max")?.toIntOrNull() ?: 0
 
                                 lowMax = fileLow
                                 modMax = fileMod
-                                isBlacklist = fileBlacklist
+                                isBlacklist = false
                                 matched = true
                             }
                         }
+                        eventType = parser.next()
                     }
-                    eventType = parser.next()
                 }
+            } catch (e: Exception) {
+                Log.w(TAG, "Skipping unparseable or empty profile file: $fileName", e)
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+            if (matched) {
+                break
+            }
         }
 
         if (!matched) return Triple(0, 0, false)
         return Triple(lowMax, modMax, isBlacklist)
+    }
+
+    // Scans local Custom XML files and returns their saved base_profile_id attribute
+    fun getBaseProfileIdForProfile(profileId: String): String {
+        val mergedFileList = getMergedFileList(context)
+        for (fileName in mergedFileList) {
+            if (!fileName.endsWith(".xml")) continue
+
+            try {
+                openProfileStream(context, fileName).use { inputStream ->
+                    val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
+                    var eventType = parser.eventType
+                    while (eventType != XmlPullParser.END_DOCUMENT) {
+                        if (eventType == XmlPullParser.START_TAG && parser.name == "diet_profile") {
+                            val id = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
+                            if (id == profileId) {
+                                return parser.getAttributeValue(null, "base_profile_id") ?: ""
+                            }
+                        }
+                        eventType = parser.next()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error reading base_profile_id for profile $profileId", e)
+            }
+        }
+        return ""
+    }
+
+    fun isFeatureFlagActiveForProfile(profileId: String, flagName: String): Boolean {
+        try {
+            val mergedFileList = getMergedFileList(context)
+            for (fileName in mergedFileList) {
+                if (!fileName.endsWith(".xml")) continue
+
+                openProfileStream(context, fileName).use { inputStream ->
+                    val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
+                    var eventType = parser.eventType
+                    var targetProfileActive = false
+
+                    while (eventType != XmlPullParser.END_DOCUMENT) {
+                        val tagName = parser.name
+                        if (eventType == XmlPullParser.START_TAG) {
+                            if (tagName == "diet_profile") {
+                                val id = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
+                                if (id == profileId) {
+                                    targetProfileActive = true
+                                }
+                            } else if (tagName == "flag" && targetProfileActive) {
+                                val nameAttr = parser.getAttributeValue(null, "name")
+                                if (nameAttr == flagName) {
+                                    val valueText = parser.nextText()
+                                    return valueText.trim().equals("true", ignoreCase = true)
+                                }
+                            }
+                        }
+                        eventType = parser.next()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking flag $flagName for profile $profileId", e)
+        }
+        return false
     }
 
     fun getIngredientsFromAssetFile(fileName: String): List<String> {
@@ -494,8 +602,8 @@ class AppSettings(private val context: Context) {
         for (name in possibleNames) {
             try {
                 val localFile = File(File(context.filesDir, "profiles"), name.substringAfter("profiles/"))
-                openedStream = if (localFile.exists()) FileInputStream(localFile) else context.assets.open(name)
-                if (openedStream != null) break
+                (if (localFile.exists()) FileInputStream(localFile) else context.assets.open(name)).also { openedStream = it }
+                break
             } catch (e: Exception) {
                 // Seek alternative file pattern
             }
@@ -529,7 +637,7 @@ class AppSettings(private val context: Context) {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.w(TAG, "Dynamic asset file lookup failed", e)
             }
         }
 
@@ -555,7 +663,7 @@ class AppSettings(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error parsing ingredients stream", e)
         }
         return triggerList
     }
@@ -599,7 +707,7 @@ class AppSettings(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error loading triggers from assets", e)
         }
         return triggerList
     }
@@ -653,7 +761,7 @@ class AppSettings(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error getting active protein rules", e)
         }
 
         return if (ruleDiscovered) {
@@ -707,14 +815,36 @@ class AppSettings(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error getting active nutrient rules", e)
         }
         return accumulatedRules
     }
 
     fun getUserWeight(): Double {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        return prefs.getFloat(KEY_USER_WEIGHT, 0.0f).toDouble()
+        var weight = 0.0f
+
+        try {
+            weight = prefs.getFloat(KEY_USER_WEIGHT, 0.0f)
+        } catch (e: Exception) {
+            try {
+                val str = prefs.getString(KEY_USER_WEIGHT, "0")
+                weight = str?.toFloatOrNull() ?: 0.0f
+            } catch (inner: Exception) {}
+        }
+
+        if (weight == 0.0f) {
+            val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
+            try {
+                weight = defaultPrefs.getFloat(KEY_USER_WEIGHT, 0.0f)
+            } catch (e: Exception) {
+                try {
+                    val str = defaultPrefs.getString(KEY_USER_WEIGHT, "0")
+                    weight = str?.toFloatOrNull() ?: 0.0f
+                } catch (inner: Exception) {}
+            }
+        }
+        return weight.toDouble()
     }
 
     fun setUserWeight(weight: Double) {
@@ -724,7 +854,29 @@ class AppSettings(private val context: Context) {
 
     fun getUserHeightInches(): Double {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        return prefs.getFloat(KEY_USER_HEIGHT_INCHES, 0.0f).toDouble()
+        var height = 0.0f
+
+        try {
+            height = prefs.getFloat(KEY_USER_HEIGHT_INCHES, 0.0f)
+        } catch (e: Exception) {
+            try {
+                val str = prefs.getString(KEY_USER_HEIGHT_INCHES, "0")
+                height = str?.toFloatOrNull() ?: 0.0f
+            } catch (inner: Exception) {}
+        }
+
+        if (height == 0.0f) {
+            val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
+            try {
+                height = defaultPrefs.getFloat(KEY_USER_HEIGHT_INCHES, 0.0f)
+            } catch (e: Exception) {
+                try {
+                    val str = defaultPrefs.getString(KEY_USER_HEIGHT_INCHES, "0")
+                    height = str?.toFloatOrNull() ?: 0.0f
+                } catch (inner: Exception) {}
+            }
+        }
+        return height.toDouble()
     }
 
     fun setUserHeightInches(height: Double) {
@@ -734,7 +886,14 @@ class AppSettings(private val context: Context) {
 
     fun getUserGender(): String {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        return prefs.getString(KEY_USER_GENDER, "UNSPECIFIED") ?: "UNSPECIFIED"
+        var gender = prefs.getString(KEY_USER_GENDER, "UNSPECIFIED") ?: "UNSPECIFIED"
+
+        // Fallback: If not found in custom prefs, check default package preferences
+        if (gender == "UNSPECIFIED") {
+            val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
+            gender = defaultPrefs.getString(KEY_USER_GENDER, "UNSPECIFIED") ?: "UNSPECIFIED"
+        }
+        return gender.uppercase().trim()
     }
 
     fun setUserGender(gender: String) {
@@ -773,20 +932,3 @@ class AppSettings(private val context: Context) {
         return actualWeightLbs
     }
 }
-
-data class DietProfile(val id: String, val displayName: String)
-
-data class ProteinRules(
-    val snackMin: Int = 0,
-    val snackMax: Int = 999,
-    val mealMin: Int = 0,
-    val mealMax: Int = 999,
-    val targetRatio: Float = 0.0f
-)
-
-data class NutrientRule(
-    val name: String,
-    val lowMax: Int,
-    val moderateMax: Int,
-    val isBlacklist: Boolean
-)

@@ -51,9 +51,6 @@ object GeminiAnalyzer {
 
     suspend fun analyzeIngredientsText(
         extractedOcrText: String,
-        condition: String,
-        apiKey: String,
-        modelIdentifier: String,
         backendUrl: String
     ): String = withContext(Dispatchers.IO) {
         try {
@@ -82,9 +79,6 @@ object GeminiAnalyzer {
 
     suspend fun analyzeIngredientsImage(
         imageBitmap: Bitmap,
-        condition: String,
-        apiKey: String,
-        modelIdentifier: String,
         backendUrl: String
     ): String = withContext(Dispatchers.IO) {
         try {
@@ -116,8 +110,6 @@ object GeminiAnalyzer {
 
     suspend fun analyzeProduceImage(
         bitmap: Bitmap,
-        apiKey: String,
-        modelId: String,
         backendUrl: String
     ): String = withContext(Dispatchers.IO) {
         try {

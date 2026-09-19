@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<diet_profile id="ckd_pre_dialysis" name="CKD Pre-Dialysis" exclusivity_group="ckd_renal_stage">
+<diet_profile id="ckd_stage_4_5" name="CKD Stages 4-5 (Pre-Dialysis)" exclusivity_group="ckd_renal_stage">
     <!-- Restrict keto diets from being co-selected -->
     <conflict target="keto" />
 
@@ -8,9 +8,15 @@
     <flag name="enforce_protein_floor">false</flag>
     <flag name="enforce_protein_ceiling">true</flag>
 
-    <!-- CKD Specific Target Metrics -->
-    <nutrient name="sodium" low_max="140" moderate_max="300" is_blacklist="true" />
-    <nutrient name="potassium" low_max="200" moderate_max="550" is_blacklist="true" />
+    <!-- Tactical Culinary Intervention Flags -->
+    <flag name="avoid_phosphate_additives">true</flag>
+    <flag name="strictly_avoid_coconut">true</flag>
+    <flag name="limit_saturated_fats">true</flag>
+    <flag name="prefer_preblended_gf_flour">false</flag>
+
+    <!-- CKD Target Metrics (Strict control to delay dialysis) -->
+    <nutrient name="sodium" low_max="140" moderate_max="200" is_blacklist="true" />
+    <nutrient name="potassium" low_max="150" moderate_max="300" is_blacklist="true" />
     <nutrient name="phosphorus" low_max="100" moderate_max="200" is_blacklist="true" />
     <nutrient name="calcium" low_max="200" moderate_max="400" is_blacklist="false" />
 
@@ -21,7 +27,7 @@
     <nutrient name="added_sugar" low_max="2" moderate_max="5" is_blacklist="false" />
     <nutrient name="carbs" low_max="15" moderate_max="30" is_blacklist="false" />
 
-    <!-- Flat Numeric Protein Evaluation Boundaries (Enforces Max, Ignores Min Floor) -->
+    <!-- Flat Numeric Protein Evaluation Boundaries (Strict Ceilings) -->
     <protein_rules snack_min="0" snack_max="5" meal_min="0" meal_max="15" target_ratio="0.01" />
 
     <!-- Ingredient Substring Token Triggers -->
@@ -34,19 +40,18 @@
     <trigger category="red">POLYPHOSPHATE</trigger>
     <trigger category="red">SODIUM NITRITE</trigger>
     <trigger category="red">SODIUM NITRATE</trigger>
-    <trigger category="red">POTASSIUM CHLORIDE</trigger>
+    <trigger category="red">POTASSIUM CHLORIDE</trigger> <!-- Potassium Chloride is strictly red here -->
+    <trigger category="red">ALMOND FLOUR</trigger>      <!-- Dangerous potassium/phosphorus flour -->
+    <trigger category="red">COCONUT FLOUR</trigger>     <!-- Dangerous potassium/phosphorus flour -->
     <trigger category="red">MONOSODIUM GLUTAMATE</trigger>
     <trigger category="red">MSG</trigger>
-    <trigger category="red">SODIUM BICARBONATE</trigger>
     <trigger category="red">BRINE</trigger>
     <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
     <trigger category="red">NSAID</trigger>
 
-    <!-- Current Yellow Triggers -->
+    <!-- Yellow Triggers (Warning Only) -->
     <trigger category="yellow">SUCRALOSE</trigger>
     <trigger category="yellow">ASPARTAME</trigger>
-
-    <!-- New Yellow Additions -->
     <trigger category="yellow">SODIUM ACETATE</trigger>
     <trigger category="yellow">DISODIUM INOSINATE</trigger>
 </diet_profile>

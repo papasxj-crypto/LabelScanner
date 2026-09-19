@@ -14,6 +14,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.coroutines.delay // Resolves delay() compile support
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : AppCompatActivity() {
 
@@ -55,7 +56,7 @@ class MainActivity : AppCompatActivity() {
                 val remainingTime = minimumDisplayDuration - elapsedTime
 
                 if (remainingTime > 0) {
-                    delay(remainingTime)
+                    delay(remainingTime.milliseconds)
                 }
 
                 // D. Determine user routing once background tasks and 3s limit are met

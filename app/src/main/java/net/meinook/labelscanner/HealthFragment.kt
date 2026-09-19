@@ -14,7 +14,6 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -42,6 +41,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
     // Tab 1 Elements
     private lateinit var etActualWeight: EditText
+    private lateinit var txtToggleWeight: TextView
     private lateinit var etHeightFeet: EditText
     private lateinit var etHeightInches: EditText
     private lateinit var spinnerGender: Spinner
@@ -94,6 +94,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         layoutConditions = view.findViewById(R.id.layoutConditionCheckBoxes)
         layoutAllergens = view.findViewById(R.id.layoutAllergenCheckBoxes)
         etActualWeight = view.findViewById(R.id.etActualWeight)
+        txtToggleWeight = view.findViewById(R.id.txtToggleWeight)
         etHeightFeet = view.findViewById(R.id.etHeightFeet)
         etHeightInches = view.findViewById(R.id.etHeightInches)
         spinnerGender = view.findViewById(R.id.spinnerGender)
@@ -182,6 +183,24 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
         spinnerGender.setSelection(selectionIndex)
 
+        // Dynamic change listener securely captures and saves the gender selection
+        spinnerGender.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val genderStr = when (position) {
+                    1 -> "MALE"
+                    2 -> "FEMALE"
+                    else -> "UNSPECIFIED"
+                }
+                if (appSettings.getUserGender() != genderStr) {
+                    appSettings.setUserGender(genderStr)
+                    appSettings.setPendingSaveFlag(true)
+                    updateCalculatedWeights()
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
         updateCalculatedWeights()
 
         // Setup real-time weight listener
@@ -215,6 +234,26 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             } else {
                 false
             }
+        }
+
+        // Programmatic secure show/hide toggle click logic
+        var isWeightRevealed = false
+        txtToggleWeight.setOnClickListener {
+            if (isWeightRevealed) {
+                // Securely mask weight digits to bullet dots (••••)
+                etActualWeight.transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+                txtToggleWeight.text = "SHOW"
+                txtToggleWeight.setTextColor(Color.parseColor("#99A1B3"))
+                isWeightRevealed = false
+            } else {
+                // Reveal the actual raw digits (e.g. 154)
+                etActualWeight.transformationMethod = android.text.method.HideReturnsTransformationMethod.getInstance()
+                txtToggleWeight.text = "HIDE"
+                txtToggleWeight.setTextColor(Color.parseColor("#F4F5FC"))
+                isWeightRevealed = true
+            }
+            // Keep insertion cursor locked at the end of the text
+            etActualWeight.setSelection(etActualWeight.text?.length ?: 0)
         }
 
         // Separate, isolated Height text change listeners prevent recursive/overlapping overrides
@@ -382,7 +421,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private fun updateAllergenScrollIndicators() {
         val sa = scrollAllergen ?: return
         val up = ivAllergenScrollUp ?: return
-        val down = sa.getChildAt(0)?.height?.let { it - sa.height } ?: 0
         val child = sa.getChildAt(0)
         if (child != null) {
             val scrollRange = child.height - sa.height
@@ -671,7 +709,13 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
                 setOnCheckedChangeListener { _, isChecked ->
                     appSettings.toggleConditionState(profile.id, isChecked)
-                    if (profile.id == "healthy_baseline" || isChecked) {
+
+                    // Rebuild the UI if:
+                    // 1. We toggled the baseline profile
+                    // 2. We checked a new condition (handles conflict unchecking)
+                    // 3. The final active set fell back to healthy_baseline
+                    val currentSelected = appSettings.getSelectedConditions()
+                    if (profile.id == "healthy_baseline" || isChecked || currentSelected.contains("healthy_baseline")) {
                         buildDynamicCheckBoxes()
                     }
                 }

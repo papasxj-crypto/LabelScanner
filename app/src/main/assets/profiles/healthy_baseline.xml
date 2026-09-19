@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <diet_profile id="healthy_baseline" name="Healthy Adult Baseline" exclusivity_group="all">
+    <!-- Protein & Carbohydrate Feature Flags -->
+    <flag name="use_net_carbs">false</flag>
+    <flag name="enforce_protein_ratio">true</flag>
+    <flag name="enforce_protein_floor">true</flag>
+    <flag name="enforce_protein_ceiling">false</flag>
+
+    <!-- Tactical Culinary Intervention Flags -->
+    <flag name="avoid_phosphate_additives">false</flag>
+    <flag name="prefer_preblended_gf_flour">false</flag>
+    <flag name="strictly_avoid_coconut">false</flag>
+    <flag name="limit_saturated_fats">false</flag>
+
     <!-- Core Baseline Nutrition Filters (Standardized Keys) -->
     <nutrient name="sodium" low_max="140" moderate_max="480" is_blacklist="false" />
     <nutrient name="potassium" low_max="350" moderate_max="700" is_blacklist="false" />
@@ -9,10 +21,7 @@
     <nutrient name="added_sugar" low_max="4" moderate_max="9" is_blacklist="true" />
     <nutrient name="carbs" low_max="20" moderate_max="45" is_blacklist="false" />
 
-    <!--
-      Unified Protein Rules Matrix
-      Enforces a baseline floor for meals/snacks; ignores ceilings (999)
-    -->
+    <!-- Unified Protein Rules Matrix -->
     <protein_rules snack_min="5" snack_max="999" meal_min="15" meal_max="999" target_ratio="0.10" />
 
     <!-- Ingredient Substring Token Triggers -->

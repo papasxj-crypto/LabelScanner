@@ -16,7 +16,7 @@
             app:destination="@id/resultDetailFragment" />
     </fragment>
 
-    <!-- Results Detail Fragment -->
+    <!-- Results Detail Fragment (Camera & Barcode OCR Results) -->
     <fragment
         android:id="@+id/resultDetailFragment"
         android:name="net.meinook.labelscanner.ResultDetailFragment"
@@ -41,19 +41,26 @@
         android:label="Custom Watchlist"
         tools:layout="@layout/fragment_custom_watchlist" />
 
-    <!-- Recipe Adjuster Screen Fragment -->
+    <!-- Recipe Adjuster Screen Fragment (Scraper & AI Adjuster) -->
     <fragment
         android:id="@+id/recipeFragment"
         android:name="net.meinook.labelscanner.RecipeFragment"
         android:label="Recipe Adjuster"
         tools:layout="@layout/fragment_recipe" />
 
-    <!-- New History Log Screen Fragment [1] -->
+    <!-- Saved Cookbook Log Fragment -->
     <fragment
         android:id="@+id/navigation_history"
-        android:name="net.meinook.labelscanner.HistoryFragment"
-        android:label="History"
-        tools:layout="@layout/fragment_history" />
+        android:name="net.meinook.labelscanner.SavedFragment"
+        android:label="Saved"
+        tools:layout="@layout/fragment_saved" />
+
+    <!-- Dedicated Cookbook Recipe Reader Fragment -->
+    <fragment
+        android:id="@+id/recipeDetailFragment"
+        android:name="net.meinook.labelscanner.RecipeDetailFragment"
+        android:label="Saved Recipe Detail"
+        tools:layout="@layout/fragment_recipe_detail" />
 
     <!-- Settings Screen Activity -->
     <activity

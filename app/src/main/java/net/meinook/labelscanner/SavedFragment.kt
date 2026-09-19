@@ -16,105 +16,73 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import com.google.android.material.card.MaterialCardView
+import java.util.Locale
 
-data class HistoryItem(
-    val id: String,
-    val timestamp: Long,
-    val title: String,
-    val subtitle: String,
-    val originalGrade: String,
-    val adjustedGrade: String,
-    val activeProfiles: String,
-    val sourceUrl: String = "",       // Saved scraped URL
-    val originalInput: String = "",    // Saved full original ingredients text
-    val adjustedOutput: String = "",   // Saved full adjusted outcome text
-    val itemType: String = "RECIPE",   // Discriminator: RECIPE or SCAN
+class SavedFragment : Fragment() {
 
-    // Reconstruction properties for instant history retrieval
-    val originalViolations: String = "",
-    val originalStats: String = "",
-    val adjustedViolations: String = "",
-    val adjustedStats: String = "",
-    val originalBgColor: Int = 0,
-    val originalTextColor: Int = 0,
-    val adjustedBgColor: Int = 0,
-    val adjustedTextColor: Int = 0
-) : java.io.Serializable
-
-class HistoryFragment : Fragment() {
-
-    private lateinit var layoutHistoryContainer: LinearLayout
-    private lateinit var textEmptyHistory: TextView
+    private lateinit var layoutSavedContainer: LinearLayout
+    private lateinit var textEmptySaved: TextView
     private lateinit var txtSwipeToDeleteHint: TextView
+    private lateinit var appSettings: AppSettings
 
     companion object {
-        // Universal static save hook delegating cleanly to File-Based Persistence
-        fun saveHistoryItem(context: Context, item: HistoryItem) {
-            HistoryPersistenceManager.saveHistoryItem(context, item)
+        fun saveSavedItem(context: Context, item: SavedItem) {
+            SavedPersistenceManager.saveItem(context, item)
         }
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fragment_history, container, false)
-        layoutHistoryContainer = view.findViewById(R.id.layoutHistoryContainer)
-        textEmptyHistory = view.findViewById(R.id.textEmptyHistory)
+        val view = inflater.inflate(R.layout.fragment_saved, container, false)
+        layoutSavedContainer = view.findViewById(R.id.layoutSavedContainer)
+        textEmptySaved = view.findViewById(R.id.textEmptySaved)
         txtSwipeToDeleteHint = view.findViewById(R.id.txtSwipeToDeleteHint)
         return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        populateHistoryLog()
+        appSettings = AppSettings(requireContext())
+        populateSavedLog()
     }
 
-    private fun populateHistoryLog() {
-        val context = context ?: return
-        layoutHistoryContainer.removeAllViews()
+    private fun populateSavedLog() {
+        val ctx = context ?: return
+        layoutSavedContainer.removeAllViews()
 
-        val items = loadHistoryFromFile()
+        val items = loadSavedFromFile()
         if (items.isEmpty()) {
-            textEmptyHistory.visibility = View.VISIBLE
+            textEmptySaved.visibility = View.VISIBLE
             txtSwipeToDeleteHint.visibility = View.GONE
         } else {
-            textEmptyHistory.visibility = View.GONE
+            textEmptySaved.visibility = View.GONE
             txtSwipeToDeleteHint.visibility = View.VISIBLE
             for (item in items) {
-                val cardView = createHistoryCard(context, item)
-                layoutHistoryContainer.addView(cardView)
+                val cardView = createSavedCard(ctx, item)
+                layoutSavedContainer.addView(cardView)
             }
         }
     }
 
-    private fun deleteHistoryItem(item: HistoryItem) {
-        val success = HistoryPersistenceManager.deleteHistoryItem(requireContext(), item.id)
+    private fun deleteSavedItem(item: SavedItem) {
+        val success = SavedPersistenceManager.deleteItem(requireContext(), item.id)
         if (success) {
-            Toast.makeText(context, "Entry removed from journal", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Recipe removed from your cookbook", Toast.LENGTH_SHORT).show()
         }
-        populateHistoryLog()
+        populateSavedLog()
     }
 
-    private fun loadHistoryFromFile(): List<HistoryItem> {
-        val items = HistoryPersistenceManager.loadAllHistory(requireContext())
-        if (items.isEmpty()) {
-            val mockList = getMockHistoryItems()
-            for (mock in mockList) {
-                HistoryPersistenceManager.saveHistoryItem(requireContext(), mock)
-            }
-            return mockList
-        }
-
-        // Filter out Scan items to only load and show recipe adjustments
+    private fun loadSavedFromFile(): List<SavedItem> {
+        val items = SavedPersistenceManager.loadAllItems(requireContext())
         return items.filter { it.itemType == "RECIPE" }
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    private fun createHistoryCard(context: Context, item: HistoryItem): View {
+    private fun createSavedCard(context: Context, item: SavedItem): View {
         val density = resources.displayMetrics.density
 
-        val card = MaterialCardView(context).apply {
+        val card = com.google.android.material.card.MaterialCardView(context).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -154,8 +122,14 @@ class HistoryFragment : Fragment() {
             setTypeface(null, Typeface.BOLD)
         }
 
+        val cleanSubtitle = item.adjustedOutput.lines()
+            .filter { it.isNotBlank() }
+            .take(2)
+            .joinToString(", ") { it.trim().removePrefix("-").trim() }
+            .ifEmpty { "View saved recipe details" }
+
         val subtitleView = TextView(context).apply {
-            text = item.subtitle
+            text = cleanSubtitle
             setTextColor(Color.parseColor("#99A1B3"))
             textSize = 12f
             setPadding(0, (2 * density).toInt(), 0, 0)
@@ -169,24 +143,55 @@ class HistoryFragment : Fragment() {
             }
         }
 
-        val origIcon = when {
-            item.originalGrade.contains("Green", ignoreCase = true) || item.originalGrade.contains("Safe", ignoreCase = true) -> "🟢"
-            item.originalGrade.contains("Yellow", ignoreCase = true) || item.originalGrade.contains("Caution", ignoreCase = true) -> "🟡"
-            else -> "🔴"
-        }
-        val adjIcon = when {
-            item.adjustedGrade.contains("Green", ignoreCase = true) || item.adjustedGrade.contains("Safe", ignoreCase = true) -> "🟢"
-            item.adjustedGrade.contains("Yellow", ignoreCase = true) || item.adjustedGrade.contains("Caution", ignoreCase = true) -> "🟡"
-            else -> "🔴"
+        val activeConditions = appSettings.getSelectedConditions()
+        val customReds = appSettings.getCustomWatchlist("RED")
+
+        val hasCustomViolation = customReds.any { trigger ->
+            item.adjustedOutput.contains(trigger, ignoreCase = true)
         }
 
-        val progressionView = TextView(context).apply {
-            text = "$origIcon ➔ $adjIcon"
-            textSize = 15f
+        val normalizedActiveBases = activeConditions.map { id ->
+            val base = appSettings.getBaseProfileIdForProfile(id)
+            if (base.isNotEmpty()) base else id
+        }.toSet()
+
+        val normalizedItemBase = run {
+            val base = appSettings.getBaseProfileIdForProfile(item.baseProfileId)
+            if (base.isNotEmpty()) base else item.baseProfileId
+        }
+
+        val profileMatches = activeConditions.contains(item.baseProfileId) ||
+                normalizedActiveBases.contains(normalizedItemBase) ||
+                normalizedActiveBases.contains(item.baseProfileId)
+
+        val isOriginallyRed = item.adjustedGrade.lowercase(Locale.ROOT).contains("red") ||
+                item.adjustedGrade.lowercase(Locale.ROOT).contains("avoid")
+        val isOriginallyCaution = item.adjustedGrade.lowercase(Locale.ROOT).contains("yellow") ||
+                item.adjustedGrade.lowercase(Locale.ROOT).contains("caution")
+        val isOriginallySafe = item.adjustedGrade.lowercase(Locale.ROOT).contains("green") ||
+                item.adjustedGrade.lowercase(Locale.ROOT).contains("safe")
+
+        val (safetyText, safetyColor) = when {
+            hasCustomViolation -> Pair("🔴 Avoid (Watchlist)", "#FF6B6B")
+            isOriginallyRed -> Pair("🔴 Avoid (Saved)", "#FF6B6B")
+            !profileMatches -> Pair("🟡 Re-Verify", "#FFD54F")
+            isOriginallyCaution -> Pair("🟡 Caution (Saved)", "#FFD54F")
+            isOriginallySafe -> Pair("🟢 Verified Safe", "#81C784")
+            else -> Pair("🟡 Re-Verify", "#FFD54F")
+        }
+
+        val safetyBadgeView = TextView(context).apply {
+            text = safetyText
+            setTextColor(Color.parseColor(safetyColor))
+            textSize = 12f
+            setTypeface(null, Typeface.BOLD)
         }
 
         val profileView = TextView(context).apply {
-            text = item.activeProfiles
+            val displayName = appSettings.getAvailableDietProfiles().find { it.id == item.baseProfileId }?.displayName
+                ?: appSettings.getAvailableDietProfiles().find { it.id == normalizedItemBase }?.displayName
+                ?: item.baseProfileId
+            text = "For: $displayName"
             setTextColor(Color.parseColor("#8C7A6B"))
             textSize = 10f
             setPadding(0, (4 * density).toInt(), 0, 0)
@@ -195,7 +200,7 @@ class HistoryFragment : Fragment() {
 
         textLayout.addView(titleView)
         textLayout.addView(subtitleView)
-        metaLayout.addView(progressionView)
+        metaLayout.addView(safetyBadgeView)
         metaLayout.addView(profileView)
 
         horizontalLayout.addView(iconView)
@@ -204,30 +209,19 @@ class HistoryFragment : Fragment() {
         card.addView(horizontalLayout)
 
         card.setOnClickListener {
-            val navOptions = androidx.navigation.NavOptions.Builder()
-                .setPopUpTo(R.id.navigation_history, true)
-                .build()
-
             val bundle = Bundle().apply {
-                putString("RECIPE_INPUT", item.originalInput)
+                putString("RECIPE_INPUT", item.adjustedOutput)
                 putString("RECIPE_URL", item.sourceUrl)
                 putString("RECIPE_ADJUSTED_OUTPUT", item.adjustedOutput)
                 putString("HISTORY_ITEM_ID", item.id)
                 putString("RECIPE_TITLE", item.title)
-
-                putString("ORIGINAL_GRADE", item.originalGrade)
-                putString("ORIGINAL_VIOLATIONS", item.originalViolations)
-                putString("ORIGINAL_STATS", item.originalStats)
-                putInt("ORIGINAL_BG_COLOR", item.originalBgColor)
-                putInt("ORIGINAL_TEXT_COLOR", item.originalTextColor)
-
+                putString("RECIPE_INSTRUCTIONS", item.instructions)
+                putString("BASE_PROFILE_ID", item.baseProfileId)
                 putString("ADJUSTED_GRADE", item.adjustedGrade)
-                putString("ADJUSTED_VIOLATIONS", item.adjustedViolations)
-                putString("ADJUSTED_STATS", item.adjustedStats)
-                putInt("ADJUSTED_BG_COLOR", item.adjustedBgColor)
-                putInt("ADJUSTED_TEXT_COLOR", item.adjustedTextColor)
+                putString("ORIGINAL_GRADE", "")
             }
-            findNavController().navigate(R.id.recipeFragment, bundle, navOptions)
+            // Standard forward navigation preserves SavedFragment on the backstack so '<-' returns to Cookbook
+            findNavController().navigate(R.id.recipeDetailFragment, bundle)
         }
 
         card.setOnTouchListener(object : View.OnTouchListener {
@@ -286,7 +280,7 @@ class HistoryFragment : Fragment() {
                                 .alpha(0f)
                                 .setDuration(250)
                                 .withEndAction {
-                                    deleteHistoryItem(item)
+                                    deleteSavedItem(item)
                                 }
                                 .start()
                         } else {
@@ -308,32 +302,5 @@ class HistoryFragment : Fragment() {
         })
 
         return card
-    }
-
-    private fun getMockHistoryItems(): List<HistoryItem> {
-        val now = System.currentTimeMillis()
-        return listOf(
-            HistoryItem(
-                id = "1",
-                timestamp = now - 3600000,
-                title = "Apples & Squash Blend",
-                subtitle = "Tweak: Oats ➔ Barley | Honey ➔ Syrup",
-                originalGrade = "Red - Avoid",
-                adjustedGrade = "Green - Safe",
-                activeProfiles = "CKD Pre-Dialysis",
-                sourceUrl = "https://davita.com/diet-nutrition/recipes/beef-lamb-pork/broccoli-and-beef-stir-fry/",
-                originalInput = "2 cups raw broccoli\n1 lb lean beef sirloin\n2 tbsp soy sauce\n1 tbsp sesame oil\n1 tsp cornstarch",
-                adjustedOutput = "2 cups raw broccoli\n1 lb lean beef sirloin\n2 tbsp coconut aminos\n1 tbsp sesame oil\n1 tsp arrowroot starch",
-                itemType = "RECIPE",
-                originalViolations = "• High Sodium (Soy Sauce)\n• High Potassium",
-                originalStats = "Per Serving:\nCal: 220 | Sod: 920mg | Prot: 24g",
-                adjustedViolations = "None (Compliant)",
-                adjustedStats = "Per Serving:\nCal: 210 | Sod: 110mg | Prot: 24g",
-                originalBgColor = Color.parseColor("#4D5C1D1D"),
-                originalTextColor = Color.WHITE,
-                adjustedBgColor = Color.parseColor("#4D1D5C1D"),
-                adjustedTextColor = Color.WHITE
-            )
-        )
     }
 }

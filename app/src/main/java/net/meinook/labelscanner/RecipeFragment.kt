@@ -50,7 +50,7 @@ import java.util.concurrent.TimeUnit
 class RecipeFragment : Fragment() {
 
     // DUAL-URL INJECTION COMPLIANT - NO HARDCODED "HTTPS://"
-    private val BACKEND_ANALYSIS_URL by lazy {
+    private val backendAnalysisUrl by lazy {
         if (BuildConfig.DEBUG) {
             // PASTE YOUR ACTAL DEV URL (us-central1) HERE:
             getString(R.string.dev_URL)
@@ -101,6 +101,7 @@ class RecipeFragment : Fragment() {
     private var lastDiagnosticError: String? = null
     private var currentInputModeId: Int = R.id.btnModeText
     private var activeHistoryId: String? = null
+    private var forceReprofile: Boolean = false
 
     // Class properties to capture exact metadata states
     private var scrapedRecipeTitle: String? = null
@@ -118,6 +119,7 @@ class RecipeFragment : Fragment() {
             scrapedRecipeTitle = null
             scrapedRecipeUrl = null
             scrapedServings = null
+            forceReprofile = false
         }
     }
 
@@ -220,6 +222,7 @@ class RecipeFragment : Fragment() {
             scrapedRecipeTitle = null
             scrapedRecipeUrl = null
             scrapedServings = null
+            forceReprofile = false
             tilRecipeInput.helperText = null
             tilRecipeInput.hint = "Paste recipe lines or website link here"
             toggleInputMode.check(R.id.btnModeText)
@@ -236,16 +239,30 @@ class RecipeFragment : Fragment() {
                 edtRecipeInput.setText("")
                 clearAnalysisResults()
                 activeHistoryId = null
+                forceReprofile = true
                 scrapeWebpageContents(url)
             }
         }
 
         btnReportAdjusted.setOnClickListener {
+            val userSettings = AppSettings(requireContext())
+            val activeProfiles = userSettings.getSelectedConditions()
+            val conditionsNames = activeProfiles.joinToString(", ") { id ->
+                userSettings.getAvailableDietProfiles().find { it.id == id }?.displayName ?: id
+            }
+            val customReds = userSettings.getCustomWatchlist("RED")
+            val customYellows = userSettings.getCustomWatchlist("YELLOW")
+
             val recipeName = txtAdjustedRecipeHeader.text.toString().removePrefix("Adjusted: ")
             val reportBody = StringBuilder().apply {
                 append("TESTER OBSERVATION / FEEDBACK:\n")
                 append("[Please type what seemed wrong here, e.g., 'cheese swap should be vegan' or 'potassium calculations look off']\n\n")
                 append("=========================================\n")
+                append("USER PROFILE & WATCHLISTS:\n")
+                append("Active Conditions: $conditionsNames\n")
+                append("Custom Watchlist (Avoid - RED): ${customReds.joinToString(", ").ifEmpty { "None" }}\n")
+                append("Custom Watchlist (Caution - YELLOW): ${customYellows.joinToString(", ").ifEmpty { "None" }}\n")
+                append("\n=========================================\n")
                 append("RECIPE METADATA:\n")
                 append("Title: $recipeName\n")
                 if (!scrapedRecipeUrl.isNullOrBlank()) {
@@ -286,6 +303,12 @@ class RecipeFragment : Fragment() {
         btnRetrieveSteps.setOnClickListener { retrieveStepByStepInstructions() }
         btnRetrieveAnalysis.setOnClickListener { retrieveAnalysisData() }
 
+        // Check if navigation requested a forced live re-profile (bypasses cache)
+        if (arguments?.getBoolean("FORCE_REPROFILE", false) == true) {
+            forceReprofile = true
+            arguments?.remove("FORCE_REPROFILE")
+        }
+
         arguments?.getString("RECIPE_INPUT")?.let { recipeText ->
             edtRecipeInput.setText(recipeText)
             tilRecipeInput.hint = "Touch to edit"
@@ -307,15 +330,67 @@ class RecipeFragment : Fragment() {
         activeHistoryId = arguments?.getString("HISTORY_ITEM_ID")
 
         val originalGrade = arguments?.getString("ORIGINAL_GRADE")
-        if (!originalGrade.isNullOrEmpty()) {
-            layoutGradeComparison.visibility = View.VISIBLE
+        val adjustedOutput = arguments?.getString("RECIPE_ADJUSTED_OUTPUT")
+
+        if (!adjustedOutput.isNullOrEmpty()) {
+            val isCookbookMode = originalGrade.isNullOrEmpty()
+
+            if (isCookbookMode) {
+                toggleInputMode.visibility = View.GONE
+                tilRecipeInput.visibility = View.GONE
+                btnAdjustRecipe.visibility = View.GONE
+                layoutOcrActions.visibility = View.GONE
+                btnReportAdjusted.visibility = View.GONE
+                layoutGradeComparison.visibility = View.GONE
+            }
+
+            cardAdjustedResult.visibility = View.VISIBLE
+
+            val savedInstructions = arguments?.getString("RECIPE_INSTRUCTIONS") ?: ""
+            val displayText = if (savedInstructions.isNotBlank()) {
+                "$adjustedOutput\n\nSTEP-BY-STEP PREPARATION:\n$savedInstructions"
+            } else {
+                adjustedOutput
+            }
+            txtAdjustedOutput.text = displayText
+            layoutPostAnalysisActions.visibility = View.VISIBLE
+
+            lastOriginalIngredients = arguments?.getString("RECIPE_INPUT") ?: ""
+            lastAdjustedIngredients = adjustedOutput
 
             val savedTitle = arguments?.getString("RECIPE_TITLE")
-            if (!savedTitle.isNullOrEmpty()) {
-                txtAdjustedRecipeHeader.text = "Adjusted: $savedTitle"
+            txtAdjustedRecipeHeader.text = if (!savedTitle.isNullOrEmpty()) "Adjusted: $savedTitle" else "Adjusted Recipe"
+
+            if (savedInstructions.isNotBlank()) {
+                btnRetrieveSteps.isEnabled = false
+                btnRetrieveSteps.text = "Steps Loaded"
             } else {
-                txtAdjustedRecipeHeader.text = "Adjusted Recipe"
+                btnRetrieveSteps.isEnabled = true
+                btnRetrieveSteps.text = "Get Steps"
             }
+            btnRetrieveAnalysis.isEnabled = true
+            btnRetrieveAnalysis.text = "Get Analysis"
+
+            if (isCookbookMode) {
+                btnCopyAdjusted.text = "Copy Ingredients"
+                btnCopyAdjusted.setOnClickListener {
+                    val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("Recipe", displayText)
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(requireContext(), "Recipe copied to clipboard!", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            scrapedRecipeUrl?.let { url ->
+                if (url.isNotEmpty()) {
+                    txtSourceLink.text = "Source Link: $url (Tap to re-scrape)"
+                    txtSourceLink.visibility = View.VISIBLE
+                }
+            }
+        }
+
+        if (!originalGrade.isNullOrEmpty()) {
+            layoutGradeComparison.visibility = View.VISIBLE
 
             val origBg = arguments?.getInt("ORIGINAL_BG_COLOR") ?: 0
             val origTextCol = arguments?.getInt("ORIGINAL_TEXT_COLOR") ?: 0
@@ -337,26 +412,6 @@ class RecipeFragment : Fragment() {
             txtAdjustedViolations.setTextColor(adjTextCol)
             txtAdjustedStats.text = arguments?.getString("ADJUSTED_STATS")
             txtAdjustedStats.setTextColor(adjTextCol)
-
-            cardAdjustedResult.visibility = View.VISIBLE
-            val adjustedOutput = arguments?.getString("RECIPE_ADJUSTED_OUTPUT") ?: ""
-            txtAdjustedOutput.text = adjustedOutput
-            layoutPostAnalysisActions.visibility = View.VISIBLE
-
-            lastOriginalIngredients = arguments?.getString("RECIPE_INPUT") ?: ""
-            lastAdjustedIngredients = adjustedOutput
-
-            btnRetrieveSteps.isEnabled = true
-            btnRetrieveSteps.text = "Get Steps"
-            btnRetrieveAnalysis.isEnabled = true
-            btnRetrieveAnalysis.text = "Get Analysis"
-
-            scrapedRecipeUrl?.let { url ->
-                if (url.isNotEmpty()) {
-                    txtSourceLink.text = "Source Link: $url (Tap to re-scrape)"
-                    txtSourceLink.visibility = View.VISIBLE
-                }
-            }
         }
 
         arguments?.remove("RECIPE_INPUT")
@@ -364,6 +419,8 @@ class RecipeFragment : Fragment() {
         arguments?.remove("RECIPE_ADJUSTED_OUTPUT")
         arguments?.remove("HISTORY_ITEM_ID")
         arguments?.remove("RECIPE_TITLE")
+        arguments?.remove("RECIPE_INSTRUCTIONS")
+        arguments?.remove("BASE_PROFILE_ID")
         arguments?.remove("ORIGINAL_GRADE")
         arguments?.remove("ORIGINAL_VIOLATIONS")
         arguments?.remove("ORIGINAL_STATS")
@@ -476,6 +533,12 @@ class RecipeFragment : Fragment() {
         btnRetrieveSteps.text = "Get Steps"
         btnRetrieveAnalysis.isEnabled = true
         btnRetrieveAnalysis.text = "Get Analysis"
+
+        toggleInputMode.visibility = View.VISIBLE
+        tilRecipeInput.visibility = View.VISIBLE
+        btnAdjustRecipe.visibility = View.VISIBLE
+        btnAdjustRecipe.setOnClickListener { handleActionSubmit() }
+        btnReportAdjusted.visibility = View.VISIBLE
     }
 
     private fun handleActionSubmit() {
@@ -500,27 +563,75 @@ class RecipeFragment : Fragment() {
 
     private fun sanitizeUrl(url: String): String {
         var cleanUrl = url.trim()
-        if (cleanUrl.contains("?")) cleanUrl = cleanUrl.substringBefore("?")
+
+        if (cleanUrl.contains("?")) {
+            val base = cleanUrl.substringBefore("?")
+            val query = cleanUrl.substringAfter("?")
+            val preservedParams = query.split("&").filter { param ->
+                val key = param.substringBefore("=").lowercase(Locale.ROOT)
+                !key.startsWith("utm_") && key != "fbclid" && key != "gclid" && key != "msclkid"
+            }
+            cleanUrl = if (preservedParams.isNotEmpty()) {
+                "$base?${preservedParams.joinToString("&")}"
+            } else {
+                base
+            }
+        }
+
         if (cleanUrl.endsWith("/print/")) cleanUrl = cleanUrl.removeSuffix("print/")
         else if (cleanUrl.endsWith("/print")) cleanUrl = cleanUrl.removeSuffix("print")
         return cleanUrl
     }
 
-    // Modern, inverted-exclusion regex filters hidden Unicode spaces and leading non-alphanumeric ballot boxes
     private fun sanitizeScrapedIngredients(text: String): String {
         return text.lines()
             .map { line ->
                 var temp = line.trim()
-                // 1. Normalize non-breaking spaces and zero-width spaces first so standard trims work
                 temp = temp.replace('\u00A0', ' ')
                     .replace('\u200B', ' ')
                     .trim()
-                // 2. Erase absolute leading non-alphanumeric, non-fraction symbols (strips ballot boxes, checkmarks, bullets)
-                temp = temp.replace(Regex("^[^a-zA-Z0-9½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞\\d/\\(\\)]+"), "").trim()
+                temp = temp.replace(Regex("""^[^a-zA-Z0-9½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞\d/()]+"""), "").trim()
                 temp
             }
             .filter { it.isNotEmpty() }
             .joinToString("\n")
+    }
+
+    private fun extractRecipeCardSubstring(html: String): String {
+        val lowercaseHtml = html.lowercase(Locale.ROOT)
+        val targets = listOf(
+            "id=\"recipecard\"",
+            "id='recipecard'",
+            "id=recipecard",
+            "class=\"recipecard\"",
+            "class='recipecard'",
+            "recipe-card",
+            "wp-recipe-maker",
+            "mv-create-card",
+            "tasty-recipes",
+            "itemtype=\"http://schema.org/recipe\"",
+            "itemtype='http://schema.org/recipe'",
+            "itemprop=\"recipeingredient\"",
+            "itemprop='recipeingredient'"
+        )
+
+        for (target in targets) {
+            val index = lowercaseHtml.indexOf(target)
+            if (index != -1) {
+                val startAdjusted = (index - 100).coerceAtLeast(0)
+                return html.substring(startAdjusted)
+            }
+        }
+        return html
+    }
+
+    private fun cleanHtmlTagsAndNormalize(html: String): String {
+        var temp = html
+        temp = temp.replace(Regex("<script.*?>.*?</script>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "")
+        temp = temp.replace(Regex("<style.*?>.*?</style>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)), "")
+        temp = temp.replace(Regex("<[^>]+>"), " ")
+        temp = temp.replace(Regex("\\s+"), " ")
+        return temp.trim()
     }
 
     private fun scrapeWebpageContents(urlStr: String) {
@@ -539,7 +650,9 @@ class RecipeFragment : Fragment() {
 
                 val request = Request.Builder()
                     .url(canonicalUrl)
-                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+                    .header("Accept-Language", "en-US,en;q=0.5")
                     .build()
 
                 client.newCall(request).execute().use { response ->
@@ -549,7 +662,6 @@ class RecipeFragment : Fragment() {
                     val ingredientsText = extractStructuredRecipeIngredients(rawHtml)
                     val finalOutput = if (ingredientsText.isNotBlank()) ingredientsText else cleanHtmlToText(rawHtml)
 
-                    // Client-side sanitization scrubs out ballot boxes cleanly
                     val sanitizedOutput = sanitizeScrapedIngredients(finalOutput)
 
                     withContext(Dispatchers.Main) {
@@ -563,7 +675,7 @@ class RecipeFragment : Fragment() {
 
                             edtRecipeInput.setText(sanitizedOutput)
                             toggleInputMode.check(R.id.btnModeText)
-                            tilRecipeInput.hint = "Touch to edit"
+                            switchInputInterface(R.id.btnModeText)
 
                             hideKeyboardAndClipboard()
 
@@ -660,17 +772,38 @@ class RecipeFragment : Fragment() {
     private fun parseServingsFromYield(yieldRaw: Any?): Int? {
         if (yieldRaw == null) return null
         if (yieldRaw is Number) return yieldRaw.toInt()
+        if (yieldRaw is JSONArray) {
+            if (yieldRaw.length() > 0) {
+                return parseServingsFromYield(yieldRaw.opt(0))
+            }
+            return null
+        }
         val str = yieldRaw.toString().trim()
         if (str.isEmpty()) return null
 
-        val numericPart = str.takeWhile { it.isDigit() }
-        return numericPart.toIntOrNull()
+        val match = Regex("\\d+").find(str)
+        return match?.value?.toIntOrNull()
     }
 
     private fun extractServingsFromHtmlFallback(html: String): Int? {
-        val pattern = Regex("(?:Portions|Servings|Yield):\\s*(\\d+)", RegexOption.IGNORE_CASE)
-        val match = pattern.find(html)
-        return match?.groups?.get(1)?.value?.toIntOrNull()
+        val isolatedHtml = extractRecipeCardSubstring(html)
+        val plainText = cleanHtmlTagsAndNormalize(isolatedHtml)
+
+        val pattern1 = Regex("(?:Portions|Servings|Yield|Serves)\\s*[^0-9]{0,25}\\s*(\\d+)", RegexOption.IGNORE_CASE)
+        val match1 = pattern1.find(plainText)
+        if (match1 != null) {
+            val val1 = match1.groups[1]?.value?.toIntOrNull()
+            if (val1 != null) return val1
+        }
+
+        val pattern2 = Regex("(\\d+)\\s*[^0-9]{0,25}\\s*(?:Portions|Servings|Yield|Serves)", RegexOption.IGNORE_CASE)
+        val match2 = pattern2.find(plainText)
+        if (match2 != null) {
+            val val2 = match2.groups[1]?.value?.toIntOrNull()
+            if (val2 != null) return val2
+        }
+
+        return null
     }
 
     private fun extractStructuredRecipeIngredients(html: String): String {
@@ -709,6 +842,11 @@ class RecipeFragment : Fragment() {
                     // Fail silently
                 }
             }
+
+            if (scrapedRecipeTitle.isNullOrBlank()) {
+                scrapedRecipeTitle = extractHtmlTitleFallback(html)
+            }
+
             return fallbackTargetedHtmlIngredients(html)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -716,12 +854,75 @@ class RecipeFragment : Fragment() {
         return ""
     }
 
+    private fun extractHtmlTitleFallback(rawHtml: String): String? {
+        try {
+            val ogPattern = Regex(
+                """<meta\s+[^>]*(?:property|name)\s*=\s*['"](?:og:title|twitter:title)['"][^>]*content\s*=\s*['"](.*?)['"]""",
+                RegexOption.IGNORE_CASE
+            )
+            val ogMatch = ogPattern.find(rawHtml)?.groups?.get(1)?.value
+
+            val ogReversedPattern = Regex(
+                """<meta\s+[^>]*content\s*=\s*['"](.*?)['"][^>]*(?:property|name)\s*=\s*['"](?:og:title|twitter:title)['"]""",
+                RegexOption.IGNORE_CASE
+            )
+            val ogReversedMatch = ogReversedPattern.find(rawHtml)?.groups?.get(1)?.value
+
+            val titlePattern = Regex(
+                """<title[^>]*>(.*?)</title>""",
+                setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+            )
+            val titleMatch = titlePattern.find(rawHtml)?.groups?.get(1)?.value
+
+            val h1Pattern = Regex(
+                """<h1[^>]*>(.*?)</h1>""",
+                setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+            )
+            val h1Match = h1Pattern.find(rawHtml)?.groups?.get(1)?.value
+
+            val rawTitle = ogMatch ?: ogReversedMatch ?: titleMatch ?: h1Match ?: return null
+            return cleanExtractedTitle(rawTitle)
+        } catch (_: Exception) {
+            return null
+        }
+    }
+
+    private fun cleanExtractedTitle(rawTitle: String): String? {
+        var clean = rawTitle.replace(Regex("<[^>]+>"), "")
+        clean = clean.replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&#039;", "'")
+            .replace("&apos;", "'")
+            .replace("&#39;", "'")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .trim()
+
+        if (clean.isBlank()) return null
+
+        val delimiters = listOf(" - ", " | ", " • ", " — ", " – ", " :: ")
+        for (delim in delimiters) {
+            if (clean.contains(delim)) {
+                clean = clean.substringBeforeLast(delim).trim()
+            }
+        }
+
+        return if (clean.isNotBlank() && clean.length <= 100) clean else null
+    }
+
     private fun formatRecipeIngredients(recipe: JSONObject): String {
         val builder = StringBuilder()
-        val ingredientsArray = recipe.optJSONArray("recipeIngredient")
-        if (ingredientsArray != null && ingredientsArray.length() > 0) {
-            for (i in 0 until ingredientsArray.length()) {
-                val ing = ingredientsArray.optString(i, "").trim()
+        val ingredientsObj = recipe.opt("recipeIngredient") ?: recipe.opt("ingredients")
+        if (ingredientsObj != null) {
+            if (ingredientsObj is JSONArray) {
+                for (i in 0 until ingredientsObj.length()) {
+                    val ing = ingredientsObj.optString(i, "").trim()
+                    if (ing.isNotEmpty()) {
+                        builder.append(ing).append("\n")
+                    }
+                }
+            } else if (ingredientsObj is String) {
+                val ing = ingredientsObj.trim()
                 if (ing.isNotEmpty()) {
                     builder.append(ing).append("\n")
                 }
@@ -770,6 +971,7 @@ class RecipeFragment : Fragment() {
         clean = clean.replace("&quot;", "\"")
             .replace("&amp;", "&")
             .replace("&#039;", "'")
+            .replace("&#39;", "'")
             .replace("&lt;", "<")
             .replace("&gt;", ">")
 
@@ -789,12 +991,29 @@ class RecipeFragment : Fragment() {
 
     private fun fallbackTargetedHtmlIngredients(rawHtml: String): String {
         try {
+            val isolatedHtml = extractRecipeCardSubstring(rawHtml)
+            val extractedList = mutableListOf<String>()
+
+            val itempropPattern = Regex(
+                "<[^>]*itemprop\\s*=\\s*['\"]?(?:recipeIngredient|ingredients)['\"][^>]*>(.*?)</[^>]+>",
+                setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+            )
+            val itempropMatches = itempropPattern.findAll(isolatedHtml)
+            for (match in itempropMatches) {
+                val content = match.groups[1]?.value ?: continue
+                val cleanText = cleanHtmlToText(content).trim()
+                if (cleanText.isNotBlank() && !extractedList.contains(cleanText)) {
+                    extractedList.add(cleanText)
+                }
+            }
+
+            if (extractedList.isNotEmpty()) return extractedList.joinToString("\n")
+
             val ingredientBlockPattern = Regex(
                 "<(?:ul|ol|div)[^>]*class\\s*=\\s*['\"][^'\"]*ingredient[^'\"]*['\"][^>]*>(.*?)</(?:ul|ol|div)>",
                 setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
             )
-            val matches = ingredientBlockPattern.findAll(rawHtml)
-            val extractedList = mutableListOf<String>()
+            val matches = ingredientBlockPattern.findAll(isolatedHtml)
 
             for (match in matches) {
                 val blockContent = match.groups[1]?.value ?: continue
@@ -804,7 +1023,9 @@ class RecipeFragment : Fragment() {
                 for (item in items) {
                     val rawLi = item.groups[1]?.value ?: continue
                     val cleanText = cleanHtmlToText(rawLi).trim()
-                    if (cleanText.isNotBlank()) extractedList.add(cleanText)
+                    if (cleanText.isNotBlank() && !extractedList.contains(cleanText)) {
+                        extractedList.add(cleanText)
+                    }
                 }
             }
 
@@ -920,6 +1141,27 @@ class RecipeFragment : Fragment() {
         btnAdjustRecipe.isEnabled = false
         lastDiagnosticError = null
 
+        val userSettings = AppSettings(requireContext())
+        val activeProfiles = userSettings.getSelectedConditions()
+
+        // 1. LOCAL RECIPE CACHE INTERCEPTOR (Skip if user explicitly requested a live re-profile)
+        if (!forceReprofile) {
+            val cachedRecipe = SavedPersistenceManager.findMatchingRecipe(
+                requireContext(),
+                scrapedRecipeUrl ?: "",
+                rawText
+            )
+
+            if (cachedRecipe != null && cachedRecipe.adjustedOutput.isNotBlank()) {
+                displayCachedRecipeResult(cachedRecipe, rawText, userSettings, activeProfiles)
+                return
+            }
+        }
+
+        // Reset flag since we are executing a fresh AI analysis
+        forceReprofile = false
+
+        // 2. CACHE MISS: Execute Full AI Analysis via Google Cloud
         cardAdjustedResult.visibility = View.VISIBLE
         txtAdjustedOutput.text = "Substituting ingredients and evaluating clinical profiles... Please wait (usually takes 30-35 seconds)."
         layoutGradeComparison.visibility = View.GONE
@@ -930,8 +1172,6 @@ class RecipeFragment : Fragment() {
         btnRetrieveAnalysis.isEnabled = true
         btnRetrieveAnalysis.text = "Get Analysis"
 
-        val userSettings = AppSettings(requireContext())
-        val activeProfiles = userSettings.getSelectedConditions()
         val progressJob = startAnalysisProgressUpdates()
 
         lifecycleScope.launch {
@@ -963,6 +1203,10 @@ class RecipeFragment : Fragment() {
                     val adjustedIngredientsList = adjustedIngredients.lines()
                         .map { it.trim() }
                         .filter { it.isNotEmpty() }
+
+                    val adjustedIngredientsListForEval = adjustedIngredientsList.map { line ->
+                        line.replace(Regex("\\(.*?\\)"), "").trim()
+                    }.filter { it.isNotEmpty() }
 
                     val originalJson = parsedResult.optJSONObject("original_nutrition")
                     val originalEvalResult = if (originalJson != null) {
@@ -1005,7 +1249,7 @@ class RecipeFragment : Fragment() {
                         }
                         LabelEvaluator.evaluateScanData(
                             jsonResult = adjustedPerServing,
-                            detectedIngredients = adjustedIngredientsList,
+                            detectedIngredients = adjustedIngredientsListForEval,
                             savedProfileIds = activeProfiles,
                             userSettings = userSettings,
                             xmlRedTriggers = dynamicXmlTriggers.keys.toList(),
@@ -1088,6 +1332,7 @@ class RecipeFragment : Fragment() {
                     layoutPostAnalysisActions.visibility = View.VISIBLE
 
                     val saverId = activeHistoryId ?: System.currentTimeMillis().toString()
+                    activeHistoryId = saverId
 
                     val dynamicTitle = scrapedRecipeTitle
                         ?: parsedResult.optString("recipe_name", "").ifEmpty { null }
@@ -1110,36 +1355,33 @@ class RecipeFragment : Fragment() {
 
                     txtAdjustedRecipeHeader.text = "Adjusted: $dynamicTitle"
 
-                    val historyItem = HistoryItem(
-                        id = saverId,
-                        timestamp = System.currentTimeMillis(),
-                        title = dynamicTitle,
-                        subtitle = "Tweak: ${adjustedIngredients.lines().filter { it.isNotBlank() }.take(2).joinToString(", ")}",
-                        originalGrade = originalEvalResult?.gradeTitle ?: "Unknown",
-                        adjustedGrade = adjustedEvalResult?.gradeTitle ?: "Unknown",
-                        activeProfiles = activeProfiles.joinToString(", ") { id ->
-                            userSettings.getAvailableDietProfiles().find { it.id == id }?.displayName ?: id
-                        },
-                        sourceUrl = scrapedRecipeUrl ?: "",
-                        originalInput = rawText,
-                        adjustedOutput = adjustedIngredients,
-                        itemType = "RECIPE",
-                        originalViolations = originalViolationsText,
-                        originalStats = originalStatsText,
-                        adjustedViolations = adjustedViolationsText,
-                        adjustedStats = adjustedStatsText,
-                        originalBgColor = originalEvalResult?.bgColor ?: 0,
-                        originalTextColor = originalEvalResult?.textColor ?: 0,
-                        adjustedBgColor = adjustedEvalResult?.bgColor ?: 0,
-                        adjustedTextColor = adjustedEvalResult?.textColor ?: 0
-                    )
-                    HistoryFragment.saveHistoryItem(requireContext(), historyItem)
-
+                    btnCopyAdjusted.text = "Save to Cookbook"
+                    btnCopyAdjusted.isEnabled = true
                     btnCopyAdjusted.setOnClickListener {
-                        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Adjusted Ingredients", adjustedIngredients)
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(requireContext(), "Adjusted ingredients copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        val baseProfileId = activeProfiles.map { pid ->
+                            val bId = userSettings.getBaseProfileIdForProfile(pid)
+                            if (bId.isNotEmpty()) bId else pid
+                        }.firstOrNull() ?: "healthy_baseline"
+
+                        val savedItem = SavedItem(
+                            id = saverId,
+                            timestamp = System.currentTimeMillis(),
+                            title = dynamicTitle,
+                            baseProfileId = baseProfileId,
+                            adjustedGrade = adjustedEvalResult?.gradeTitle ?: "Unknown",
+                            sourceUrl = scrapedRecipeUrl ?: "",
+                            originalInput = rawText,
+                            adjustedOutput = adjustedIngredients,
+                            instructions = "",
+                            originalNutrition = originalJson?.toString() ?: "",
+                            adjustedNutrition = adjustedJson?.toString() ?: "",
+                            servings = servings,
+                            itemType = "RECIPE"
+                        )
+                        SavedPersistenceManager.saveItem(requireContext(), savedItem)
+                        btnCopyAdjusted.text = "Saved in Cookbook"
+                        btnCopyAdjusted.isEnabled = false
+                        Toast.makeText(requireContext(), "Recipe saved to your Clinical Cookbook!", Toast.LENGTH_SHORT).show()
                     }
 
                 } catch (e: Exception) {
@@ -1153,7 +1395,200 @@ class RecipeFragment : Fragment() {
 
             btnAdjustRecipe.isEnabled = true
             btnAdjustRecipe.text = "Profile & Adjust"
+            btnAdjustRecipe.setOnClickListener { handleActionSubmit() }
         }
+    }
+
+    private fun displayCachedRecipeResult(
+        cachedRecipe: SavedItem,
+        rawText: String,
+        userSettings: AppSettings,
+        activeProfiles: Set<String>
+    ) {
+        lastOriginalIngredients = rawText
+        lastAdjustedIngredients = cachedRecipe.adjustedOutput
+        activeHistoryId = cachedRecipe.id
+        scrapedRecipeTitle = cachedRecipe.title
+
+        txtAdjustedRecipeHeader.text = if (cachedRecipe.title.isNotBlank()) "Adjusted: ${cachedRecipe.title}" else "Adjusted Recipe"
+
+        val displayText = if (cachedRecipe.instructions.isNotBlank()) {
+            "${cachedRecipe.adjustedOutput}\n\nSTEP-BY-STEP PREPARATION:\n${cachedRecipe.instructions}"
+        } else {
+            cachedRecipe.adjustedOutput
+        }
+        txtAdjustedOutput.text = displayText
+
+        val servings = cachedRecipe.servings.coerceAtLeast(1)
+
+        val originalJson = try {
+            if (cachedRecipe.originalNutrition.isNotBlank()) JSONObject(cachedRecipe.originalNutrition) else null
+        } catch (_: Exception) { null }
+
+        val adjustedJson = try {
+            if (cachedRecipe.adjustedNutrition.isNotBlank()) JSONObject(cachedRecipe.adjustedNutrition) else null
+        } catch (_: Exception) { null }
+
+        val dynamicXmlTriggers = mutableMapOf<String, String>()
+        for (profileId in activeProfiles) {
+            val triggers = userSettings.getIngredientsFromAssetFile(profileId)
+            for (trigger in triggers) {
+                dynamicXmlTriggers[trigger.uppercase(Locale.ROOT).trim()] = profileId
+            }
+        }
+
+        val originalIngredientsList = rawText.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        val adjustedIngredientsList = cachedRecipe.adjustedOutput.lines()
+            .map { line -> line.replace(Regex("\\(.*?\\)"), "").trim() }
+            .filter { it.isNotEmpty() }
+
+        val originalPerServing = if (originalJson != null) {
+            JSONObject().apply {
+                put("calories", originalJson.optDouble("calories", 0.0) / servings)
+                put("sodium_mg", originalJson.optDouble("sodium_mg", 0.0) / servings)
+                put("protein_g", originalJson.optDouble("protein_g", 0.0) / servings)
+                put("potassium_mg", originalJson.optDouble("potassium_mg", 0.0) / servings)
+                put("total_carbohydrates_g", originalJson.optDouble("total_carbohydrates_g", 0.0) / servings)
+                put("fiber_g", originalJson.optDouble("fiber_g", 0.0) / servings)
+                put("total_sugar_g", originalJson.optDouble("total_sugar_g", 0.0) / servings)
+                put("saturated_fat_g", originalJson.optDouble("saturated_fat_g", 0.0) / servings)
+                put("total_fat_g", originalJson.optDouble("total_fat_g", 0.0) / servings)
+            }
+        } else null
+
+        val originalEvalResult = if (originalPerServing != null) {
+            LabelEvaluator.evaluateScanData(
+                jsonResult = originalPerServing,
+                detectedIngredients = originalIngredientsList,
+                savedProfileIds = activeProfiles,
+                userSettings = userSettings,
+                xmlRedTriggers = dynamicXmlTriggers.keys.toList(),
+                customRedWatchlist = userSettings.getCustomWatchlist("RED"),
+                customYellowWatchlist = userSettings.getCustomWatchlist("YELLOW"),
+                isProduce = false,
+                isRecipe = true
+            )
+        } else null
+
+        val adjustedPerServing = if (adjustedJson != null) {
+            JSONObject().apply {
+                put("calories", adjustedJson.optDouble("calories", 0.0) / servings)
+                put("sodium_mg", adjustedJson.optDouble("sodium_mg", 0.0) / servings)
+                put("protein_g", adjustedJson.optDouble("protein_g", 0.0) / servings)
+                put("potassium_mg", adjustedJson.optDouble("potassium_mg", 0.0) / servings)
+                put("total_carbohydrates_g", adjustedJson.optDouble("total_carbohydrates_g", 0.0) / servings)
+                put("fiber_g", adjustedJson.optDouble("fiber_g", 0.0) / servings)
+                put("total_sugar_g", adjustedJson.optDouble("total_sugar_g", 0.0) / servings)
+                put("saturated_fat_g", adjustedJson.optDouble("saturated_fat_g", 0.0) / servings)
+                put("total_fat_g", adjustedJson.optDouble("total_fat_g", 0.0) / servings)
+            }
+        } else null
+
+        val adjustedEvalResult = if (adjustedPerServing != null) {
+            LabelEvaluator.evaluateScanData(
+                jsonResult = adjustedPerServing,
+                detectedIngredients = adjustedIngredientsList,
+                savedProfileIds = activeProfiles,
+                userSettings = userSettings,
+                xmlRedTriggers = dynamicXmlTriggers.keys.toList(),
+                customRedWatchlist = userSettings.getCustomWatchlist("RED"),
+                customYellowWatchlist = userSettings.getCustomWatchlist("YELLOW"),
+                isProduce = false,
+                isRecipe = true
+            )
+        } else null
+
+        if (originalEvalResult != null && adjustedEvalResult != null && originalJson != null && adjustedJson != null) {
+            layoutGradeComparison.visibility = View.VISIBLE
+
+            cardOriginalHealthGrade.setCardBackgroundColor(originalEvalResult.bgColor)
+            txtOriginalGradeTitle.text = "Original: ${originalEvalResult.gradeTitle}"
+            txtOriginalGradeTitle.setTextColor(originalEvalResult.textColor)
+
+            val originalReds = originalEvalResult.redViolations.distinct()
+            val originalYellows = originalEvalResult.yellowViolations.distinct()
+            val originalViosToDisplay = if (originalReds.isNotEmpty()) originalReds.take(3) else originalYellows.take(3)
+            val originalViolationsText = if (originalViosToDisplay.isNotEmpty()) {
+                originalViosToDisplay.joinToString("\n• ", prefix = "• ")
+            } else {
+                "None"
+            }
+            txtOriginalViolations.text = "Violations:\n$originalViolationsText"
+            txtOriginalViolations.setTextColor(originalEvalResult.textColor)
+
+            val origCal = originalJson.optDouble("calories", 0.0) / servings
+            val origSod = originalJson.optDouble("sodium_mg", 0.0) / servings
+            val origPot = originalJson.optDouble("potassium_mg", 0.0) / servings
+            val origCarb = (originalJson.optDouble("total_carbohydrates_g", 0.0) - originalJson.optDouble("fiber_g", 0.0)).coerceAtLeast(0.0) / servings
+            val origProt = originalJson.optDouble("protein_g", 0.0) / servings
+
+            txtOriginalStats.text = String.format(
+                Locale.ROOT,
+                "Per Serving (%d Servings):\nCal: %.0f | Sod: %.0fmg | Prot: %.1fg\nPot: %.0fmg | Carbs: %.1fg",
+                servings, origCal, origSod, origProt, origPot, origCarb
+            )
+            txtOriginalStats.setTextColor(originalEvalResult.textColor)
+
+            cardAdjustedHealthGrade.setCardBackgroundColor(adjustedEvalResult.bgColor)
+            txtAdjustedGradeTitle.text = "Adjusted: ${adjustedEvalResult.gradeTitle}"
+            txtAdjustedGradeTitle.setTextColor(adjustedEvalResult.textColor)
+
+            val adjustedReds = adjustedEvalResult.redViolations.distinct()
+            val adjustedYellows = adjustedEvalResult.yellowViolations.distinct()
+            val adjustedViosToDisplay = if (adjustedReds.isNotEmpty()) adjustedReds.take(3) else adjustedYellows.take(3)
+            val adjustedViolationsText = if (adjustedViosToDisplay.isNotEmpty()) {
+                adjustedViosToDisplay.joinToString("\n• ", prefix = "• ")
+            } else {
+                "None (Compliant)"
+            }
+            txtAdjustedViolations.text = "Violations:\n$adjustedViolationsText"
+            txtAdjustedViolations.setTextColor(adjustedEvalResult.textColor)
+
+            val adjCal = adjustedJson.optDouble("calories", 0.0) / servings
+            val adjSod = adjustedJson.optDouble("sodium_mg", 0.0) / servings
+            val adjPot = adjustedJson.optDouble("potassium_mg", 0.0) / servings
+            val adjCarb = (adjustedJson.optDouble("total_carbohydrates_g", 0.0) - adjustedJson.optDouble("fiber_g", 0.0)).coerceAtLeast(0.0) / servings
+            val adjProt = adjustedJson.optDouble("protein_g", 0.0) / servings
+
+            txtAdjustedStats.text = String.format(
+                Locale.ROOT,
+                "Per Serving (%d Servings):\nCal: %.0f | Sod: %.0fmg | Prot: %.1fg\nPot: %.0fmg | Carbs: %.1fg",
+                servings, adjCal, adjSod, adjProt, adjPot, adjCarb
+            )
+            txtAdjustedStats.setTextColor(adjustedEvalResult.textColor)
+        } else {
+            layoutGradeComparison.visibility = View.GONE
+        }
+
+        cardAdjustedResult.visibility = View.VISIBLE
+        layoutPostAnalysisActions.visibility = View.VISIBLE
+
+        if (cachedRecipe.instructions.isNotBlank()) {
+            btnRetrieveSteps.isEnabled = false
+            btnRetrieveSteps.text = "Steps Loaded"
+        } else {
+            btnRetrieveSteps.isEnabled = true
+            btnRetrieveSteps.text = "Get Steps"
+        }
+        btnRetrieveAnalysis.isEnabled = true
+        btnRetrieveAnalysis.text = "Get Analysis"
+
+        btnCopyAdjusted.text = "Saved in Cookbook"
+        btnCopyAdjusted.isEnabled = false
+
+        // Tapping while in cached state bypasses cache and triggers a fresh live AI re-profile
+        btnAdjustRecipe.isEnabled = true
+        btnAdjustRecipe.text = "Loaded from Cache (Tap to Re-Profile)"
+        btnAdjustRecipe.setOnClickListener {
+            forceReprofile = true
+            handleActionSubmit()
+        }
+
+        cardAdjustedResult.post {
+            cardAdjustedResult.parent?.requestChildFocus(cardAdjustedResult, cardAdjustedResult)
+        }
+
+        Toast.makeText(requireContext(), "Loaded instantly from local cache!", Toast.LENGTH_SHORT).show()
     }
 
     private suspend fun fetchRecipeNutritionFromBackend(
@@ -1161,7 +1596,7 @@ class RecipeFragment : Fragment() {
         activeProfiles: Set<String>
     ): String? = withContext(Dispatchers.IO) {
         try {
-            val url = URL(BACKEND_ANALYSIS_URL)
+            val url = URL(backendAnalysisUrl)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")
@@ -1171,11 +1606,23 @@ class RecipeFragment : Fragment() {
 
             val context = requireContext()
             val userSettings = AppSettings(context)
+
             val userAllergiesList = try {
-                userSettings.getCustomWatchlist("RED").toList()
+                userSettings.getCustomWatchlist("RED").toMutableList()
             } catch (e: Exception) {
-                emptyList<String>()
+                mutableListOf()
             }
+
+            for (profileId in activeProfiles) {
+                try {
+                    val triggers = userSettings.getIngredientsFromAssetFile(profileId)
+                    userAllergiesList.addAll(triggers)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            val uniqueAllergies = userAllergiesList.map { it.trim().uppercase() }.distinct()
 
             val thresholdsObj = JSONObject()
             val targetNutrientKeys = listOf(
@@ -1194,13 +1641,26 @@ class RecipeFragment : Fragment() {
                 }
             }
 
+            val conditionsList = activeProfiles.map { profileId ->
+                val baseId = userSettings.getBaseProfileIdForProfile(profileId)
+                if (baseId.isNotEmpty()) baseId else profileId
+            }.distinct()
+
             val jsonRequest = JSONObject().apply {
                 put("action", "analyze")
                 put("recipe_text", recipeText)
-                put("conditions", JSONArray(activeProfiles.toList()))
-                put("allergies", JSONArray(userAllergiesList))
+                put("conditions", JSONArray(conditionsList))
+                put("allergies", JSONArray(uniqueAllergies))
                 put("thresholds", thresholdsObj)
                 put("bypass_cache", true)
+
+                val interventionsObj = JSONObject().apply {
+                    put("avoid_phosphate_additives", userSettings.isFeatureFlagActive("avoid_phosphate_additives"))
+                    put("prefer_preblended_gf_flour", userSettings.isFeatureFlagActive("prefer_preblended_gf_flour"))
+                    put("strictly_avoid_coconut", userSettings.isFeatureFlagActive("strictly_avoid_coconut"))
+                    put("limit_saturated_fats", userSettings.isFeatureFlagActive("limit_saturated_fats"))
+                }
+                put("interventions", interventionsObj)
 
                 scrapedServings?.let { put("servings", it) }
             }
@@ -1248,6 +1708,11 @@ class RecipeFragment : Fragment() {
                         txtAdjustedOutput.text = updatedInstructions
 
                         btnRetrieveSteps.text = "Steps Loaded"
+
+                        activeHistoryId?.let { id ->
+                            SavedPersistenceManager.updateItemInstructions(requireContext(), id, instructions)
+                        }
+
                         btnCopyAdjusted.setOnClickListener {
                             val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val clip = ClipData.newPlainText("Recipe & Instructions", updatedInstructions)
@@ -1322,7 +1787,7 @@ class RecipeFragment : Fragment() {
 
     private suspend fun fetchCustomActionFromBackend(requestBody: JSONObject): String? = withContext(Dispatchers.IO) {
         try {
-            val url = URL(BACKEND_ANALYSIS_URL)
+            val url = URL(backendAnalysisUrl)
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json")

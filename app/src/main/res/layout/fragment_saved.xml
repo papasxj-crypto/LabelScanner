@@ -37,7 +37,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Clinical Food Journal"
+                        android:text="Clinical Cookbook"
                         android:textColor="#FFFFFF"
                         android:textSize="22sp"
                         android:textStyle="bold"
@@ -47,7 +47,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="Your recent recipe adjustments"
+                        android:text="Your collection of safe, adjusted recipes"
                         android:textColor="#FFFFFF"
                         android:textSize="13sp"
                         android:gravity="center"/>
@@ -57,20 +57,20 @@
 
             <!-- Empty State Warning Text -->
             <TextView
-                android:id="@+id/textEmptyHistory"
+                android:id="@+id/textEmptySaved"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="64dp"
                 android:gravity="center"
-                android:text="Your food journal is empty.\nAdjust a recipe to begin!"
+                android:text="Your cookbook is empty.\nAdjust and save a recipe to begin!"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:visibility="gone" />
 
-            <!-- Dynamic History List Container -->
+            <!-- Dynamic Saved List Container -->
             <LinearLayout
-                android:id="@+id/layoutHistoryContainer"
+                android:id="@+id/layoutSavedContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />

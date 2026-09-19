@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="ckd_stage_1_3" name="CKD Stages 1-3" exclusivity_group="ckd_renal_stage">
+    <!-- Restrict keto diets from being co-selected -->
+    <conflict target="keto" />
+
+    <!-- Protein & Carbohydrate Feature Flags -->
+    <flag name="use_net_carbs">false</flag>
+    <flag name="enforce_protein_ratio">false</flag>
+    <flag name="enforce_protein_floor">false</flag>
+    <flag name="enforce_protein_ceiling">true</flag>
+
+    <!-- Tactical Culinary Intervention Flags -->
+    <flag name="avoid_phosphate_additives">true</flag>
+    <flag name="strictly_avoid_coconut">true</flag>
+    <flag name="limit_saturated_fats">true</flag>
+    <flag name="prefer_preblended_gf_flour">false</flag>
+
+    <!-- CKD Target Metrics (Mild restrictions to slow progression) -->
+    <nutrient name="sodium" low_max="140" moderate_max="300" is_blacklist="true" />
+    <nutrient name="potassium" low_max="350" moderate_max="700" is_blacklist="false" />
+    <nutrient name="phosphorus" low_max="200" moderate_max="400" is_blacklist="false" />
+    <nutrient name="calcium" low_max="200" moderate_max="600" is_blacklist="false" />
+
+    <!-- Core Baseline Nutrition Filters -->
+    <nutrient name="saturated_fat" low_max="2" moderate_max="5" is_blacklist="true" />
+    <nutrient name="total_fat" low_max="5" moderate_max="15" is_blacklist="false" />
+    <nutrient name="total_sugar" low_max="10" moderate_max="25" is_blacklist="false" />
+    <nutrient name="added_sugar" low_max="5" moderate_max="12" is_blacklist="false" />
+    <nutrient name="carbs" low_max="20" moderate_max="45" is_blacklist="false" />
+
+    <!-- Flat Numeric Protein Evaluation Boundaries -->
+    <protein_rules snack_min="0" snack_max="8" meal_min="0" meal_max="20" target_ratio="0.01" />
+
+    <!-- Ingredient Substring Token Triggers (Red - Avoid) -->
+    <trigger category="red">SODIUM PHOSPHATE</trigger>
+    <trigger category="red">DISODIUM PHOSPHATE</trigger>
+    <trigger category="red">TRISODIUM PHOSPHATE</trigger>
+    <trigger category="red">DICALCIUM PHOSPHATE</trigger>
+    <trigger category="red">HEXAMETAPHOSPHATE</trigger>
+    <trigger category="red">PYROPHOSPHATE</trigger>
+    <trigger category="red">POLYPHOSPHATE</trigger>
+    <trigger category="red">PHOSPHORIC ACID</trigger>
+    <trigger category="red">SODIUM NITRITE</trigger>
+    <trigger category="red">SODIUM NITRATE</trigger>
+    <trigger category="red">MONOSODIUM GLUTAMATE</trigger>
+    <trigger category="red">MSG</trigger>
+    <trigger category="red">BRINE</trigger>
+    <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
+    <trigger category="red">NSAID</trigger>
+
+    <!-- Yellow Triggers (Warning Only) -->
+    <trigger category="yellow">SUCRALOSE</trigger>
+    <trigger category="yellow">ASPARTAME</trigger>
+    <trigger category="yellow">POTASSIUM CHLORIDE</trigger>
+    <trigger category="yellow">SODIUM ACETATE</trigger>
+    <trigger category="yellow">DISODIUM INOSINATE</trigger>
+</diet_profile>
