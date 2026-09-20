@@ -152,32 +152,25 @@ object LabelEvaluator {
         // 3. ROUTING & STATE CONTROLLER
         val nutritionFactsFound = jsonResult.optBoolean("nutrition_facts_found", true)
 
-        fun hasNutrient(xmlId: String): Boolean {
-            if (!nutritionFactsFound) return false
-            val validKeys = nutrientRegistry.filter { it.xmlId == xmlId }.map { it.jsonKey }
-            return validKeys.any { jsonResult.has(it) && !jsonResult.isNull(it) }
+        val anyNutrientFound = nutritionFactsFound && nutrientRegistry.any { map ->
+            jsonResult.has(map.jsonKey) && !jsonResult.isNull(map.jsonKey)
         }
-
-        val hasCalories = hasNutrient("calories")
-        val hasSodium = hasNutrient("sodium")
         val hasIngredients = cleanIngredients.isNotEmpty()
 
-        val isIngredientsOnlyMode = !isProduce && (!hasCalories || !hasSodium) && hasIngredients
-
-        if (isIngredientsOnlyMode) {
-            return finalizeResult(redViolations, yellowViolations, isIngredientsOnly = true)
-        }
-
-        if (!isProduce && (!hasCalories || !hasSodium) && !hasIngredients) {
-            // Recalculated to a highly visible, neutral dark Grey theme
-            return EvaluationResult(
-                bgColor = "#2B2D31".toColorInt(),
-                textColor = "#9EA1A8".toColorInt(),
-                subtextColor = "#D1D2D5".toColorInt(),
-                gradeTitle = "Incomplete Scan",
-                redViolations = emptyList(),
-                yellowViolations = listOf("Missing core nutrition data (Calories/Sodium) and ingredients list.") + yellowViolations
-            )
+        // If no nutrients exist at all, handle pure ingredients or empty scan
+        if (!isProduce && !anyNutrientFound) {
+            return if (hasIngredients) {
+                finalizeResult(redViolations, yellowViolations, isIngredientsOnly = true)
+            } else {
+                EvaluationResult(
+                    bgColor = "#2B2D31".toColorInt(),
+                    textColor = "#9EA1A8".toColorInt(),
+                    subtextColor = "#D1D2D5".toColorInt(),
+                    gradeTitle = "Incomplete Scan",
+                    redViolations = emptyList(),
+                    yellowViolations = listOf("No nutrition data or ingredients detected.") + yellowViolations
+                )
+            }
         }
 
         if (redViolations.isNotEmpty()) {
@@ -204,20 +197,18 @@ object LabelEvaluator {
             val caloriesVal = getVal("calories")
             val isMeal = caloriesVal > 250.0f
 
-            if (isMeal) {
-                if (enforceCeiling && proteinVal > proteinRules.mealMax) {
-                    redViolations.add("Protein exceeds meal limit: found ${proteinVal.toInt()}g (limit: ${proteinRules.mealMax}g)")
-                }
-                if (enforceFloor && proteinVal < proteinRules.mealMin) {
-                    yellowViolations.add("Protein is below meal requirement: found ${proteinVal.toInt()}g (needs: ${proteinRules.mealMin}g)")
-                }
-            } else {
-                if (enforceCeiling && proteinVal > proteinRules.snackMax) {
-                    redViolations.add("Protein exceeds snack limit: found ${proteinVal.toInt()}g (limit: ${proteinRules.snackMax}g)")
-                }
-                if (enforceFloor && proteinVal < proteinRules.snackMin) {
-                    yellowViolations.add("Protein is below snack requirement: found ${proteinVal.toInt()}g (needs: ${proteinRules.snackMin}g)")
-                }
+            // Check A: Absolute single-sitting overload (Exceeds full meal ceiling -> RED)
+            if (enforceCeiling && proteinVal > proteinRules.mealMax) {
+                redViolations.add("Protein exceeds meal ceiling: found ${proteinVal.toInt()}g (max limit: ${proteinRules.mealMax.toInt()}g)")
+            }
+            // Check B: Full meal with inadequate protein for dialysis requirements
+            else if (isMeal && enforceFloor && proteinVal < proteinRules.mealMin) {
+                yellowViolations.add("Protein is below meal target: found ${proteinVal.toInt()}g (target: ${proteinRules.mealMin.toInt()}g)")
+            }
+            // Check C: Low-calorie but high protein density (e.g. Sausage, Chicken, Tuna)
+            else if (!isMeal && enforceCeiling && proteinVal > proteinRules.snackMax) {
+                // If it easily fits a meal allocation, classify as a Meal Component rather than a toxic snack
+                yellowViolations.add("Meal Component: ${proteinVal.toInt()}g protein fits meal allowance (max: ${proteinRules.mealMax.toInt()}g), but exceeds standalone snack target (${proteinRules.snackMax.toInt()}g).")
             }
         }
 

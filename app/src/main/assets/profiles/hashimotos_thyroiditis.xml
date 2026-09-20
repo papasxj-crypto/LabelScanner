@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<profile id="hashimotos_thyroiditis" displayName="Hashimoto's Thyroiditis" category="Autoimmune">
+
+    <description>
+        Autoimmune thyroid protocol targeting molecular mimicry antigens, TPO enzyme inhibitors, and concentrated iodine spikes.
+    </description>
+
+    <!-- 1. RED TRIGGERS (Strict Avoidance / High Autoimmune Flares) -->
+    <triggers tier="red">
+        <!-- Gluten & Wheat Derivatives (Molecular Mimicry) -->
+        <ingredient>WHEAT</ingredient>
+        <ingredient>GLUTEN</ingredient>
+        <ingredient>VITAL WHEAT GLUTEN</ingredient>
+        <ingredient>BARLEY</ingredient>
+        <ingredient>RYE</ingredient>
+        <ingredient>SPELT</ingredient>
+        <ingredient>FARRO</ingredient>
+        <ingredient>BULGUR</ingredient>
+        <ingredient>SEMOLINA</ingredient>
+        <ingredient>MALT</ingredient>
+        <ingredient>BARLEY MALT</ingredient>
+        <ingredient>TRITICALE</ingredient>
+        <ingredient>SEITAN</ingredient>
+        <ingredient>DURUM</ingredient>
+        <ingredient>COUSCOUS</ingredient>
+        <ingredient>GRAHAM FLOUR</ingredient>
+        <ingredient>ENRICHED BLEACHED FLOUR</ingredient>
+
+        <!-- Concentrated Soy Isoflavones (TPO Inhibitors & Levothyroxine Blockers) -->
+        <ingredient>SOY PROTEIN ISOLATE</ingredient>
+        <ingredient>SOY PROTEIN CONCENTRATE</ingredient>
+        <ingredient>TEXTURED VEGETABLE PROTEIN</ingredient>
+        <ingredient>SOY FLOUR</ingredient>
+        <ingredient>TOFU</ingredient>
+        <ingredient>TEMPEH</ingredient>
+        <ingredient>EDAMAME</ingredient>
+        <ingredient>SOY MILK</ingredient>
+
+        <!-- Concentrated Seaweed / Mega-Dose Iodine Extracts -->
+        <ingredient>KELP</ingredient>
+        <ingredient>BLADDERWRACK</ingredient>
+        <ingredient>DULSE</ingredient>
+        <ingredient>SEAWEED EXTRACT</ingredient>
+        <ingredient>POTASSIUM IODATE</ingredient>
+        <ingredient>CALCIUM IODATE</ingredient>
+
+        <!-- Persistent Goitrogenic Grains (Heat-Resistant Flavones) -->
+        <ingredient>MILLET</ingredient>
+        <ingredient>MILLET FLOUR</ingredient>
+    </triggers>
+
+    <!-- 2. YELLOW TRIGGERS (Caution / Moderation / Context Dependent) -->
+    <triggers tier="yellow">
+        <!-- Dairy / Casein (Secondary Cross-Reactivity Subset) -->
+        <ingredient>CASEIN</ingredient>
+        <ingredient>SODIUM CASEINATE</ingredient>
+        <ingredient>MILK PROTEIN CONCENTRATE</ingredient>
+        <ingredient>WHEY PROTEIN ISOLATE</ingredient>
+
+        <!-- Raw Goitrogen Concentrates (Safe when cooked, caution in raw powders/extracts) -->
+        <ingredient>BROCCOLI POWDER</ingredient>
+        <ingredient>KALE POWDER</ingredient>
+        <ingredient>CABBAGE EXTRACT</ingredient>
+        <ingredient>BRUSSELS SPROUTS EXTRACT</ingredient>
+        <ingredient>MUSTARD GREENS EXTRACT</ingredient>
+
+        <!-- Inflammatory / Blood Sugar Spikes (Aggravates Autoimmune Cascades) -->
+        <ingredient>HIGH FRUCTOSE CORN SYRUP</ingredient>
+        <ingredient>CORN SYRUP SOLIDS</ingredient>
+        <ingredient>SOY LECITHIN</ingredient>
+        <ingredient>SOYBEAN OIL</ingredient>
+    </triggers>
+
+    <!-- 3. CLINICAL THRESHOLDS (Per Serving) -->
+    <thresholds>
+        <nutrient id="added_sugar" yellowWarning="6.0" redLimit="15.0" />
+        <nutrient id="total_sugar" yellowWarning="12.0" redLimit="25.0" />
+        <nutrient id="sodium" yellowWarning="400.0" redLimit="750.0" />
+    </thresholds>
+
+    <!-- 4. CLINICAL INTERVENTION FLAGS -->
+    <interventions>
+        <flag id="strictly_gluten_free" value="true" />
+        <flag id="strictly_avoid_soy_isoflavones" value="true" />
+        <flag id="avoid_concentrated_kelp_iodine" value="true" />
+        <flag id="prefer_cooked_cruciferous" value="true" />
+        <flag id="limit_added_sugars" value="true" />
+    </interventions>
+
+</profile>

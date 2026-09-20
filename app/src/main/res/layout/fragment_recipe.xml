@@ -19,354 +19,651 @@
             android:padding="16dp"
             android:paddingBottom="80dp">
 
-            <!-- Header Card (Borderless, Floating Title) -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp"
-                app:cardBackgroundColor="@android:color/transparent">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingVertical="12dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Recipe Profile &amp; Adjust"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
-                        android:gravity="center"/>
-
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Input Mode Selector Toggle (Unified Text/Link + Photo, Shaded box removed!) -->
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/toggleInputMode"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:singleSelection="true"
-                app:selectionRequired="true"
-                app:checkedButton="@+id/btnModeText">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnModeText"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="@color/textPrimary"
-                    app:strokeColor="@color/surfaceStrokeColor"
-                    android:text="Text / Link" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnModeOcr"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="@color/textPrimary"
-                    app:strokeColor="@color/surfaceStrokeColor"
-                    android:text="Photo" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-            <!-- Primary Trigger Action Button (Color updated to soft brown) -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnAdjustRecipe"
-                style="@style/Widget.LabelScanner.Button.Primary"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginBottom="16dp"
-                app:backgroundTint="#2B1F16"
-                android:text="Profile &amp; Adjust" />
-
-            <!-- Side-by-Side Grade Comparison Cards -->
+            <!-- ======================================================== -->
+            <!-- STATE 1: RECIPE INPUT SECTION (Hidden during Results)    -->
+            <!-- ======================================================== -->
             <LinearLayout
-                android:id="@+id/layoutGradeComparison"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal"
-                android:weightSum="2"
-                android:visibility="gone"
-                tools:visibility="visible">
-
-                <!-- Card 1: Original Recipe Health Grade -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardOriginalHealthGrade"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="4dp"
-                    android:layout_weight="1"
-                    app:cardCornerRadius="16dp"
-                    app:strokeWidth="1.5dp"
-                    app:strokeColor="@color/surfaceStrokeColor"
-                    app:cardElevation="2dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:id="@+id/txtOriginalGradeTitle"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Original Grade"
-                            android:textColor="@color/textPrimary"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/txtOriginalViolations"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:textColor="@color/textPrimary"
-                            android:textSize="13sp" />
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:layout_marginVertical="8dp"
-                            android:background="#40FFFFFF" />
-
-                        <TextView
-                            android:id="@+id/txtOriginalStats"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/textSecondary"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Card 2: Adjusted Recipe Health Grade -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardAdjustedHealthGrade"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:layout_weight="1"
-                    app:cardCornerRadius="16dp"
-                    app:strokeWidth="1.5dp"
-                    app:strokeColor="@color/surfaceStrokeColor"
-                    app:cardElevation="2dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-                        <TextView
-                            android:id="@+id/txtAdjustedGradeTitle"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Adjusted Grade"
-                            android:textColor="@color/textPrimary"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/txtAdjustedViolations"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:textColor="@color/textPrimary"
-                            android:textSize="13sp" />
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:layout_marginVertical="8dp"
-                            android:background="#40FFFFFF" />
-
-                        <TextView
-                            android:id="@+id/txtAdjustedStats"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:textColor="@color/textSecondary"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-            </LinearLayout>
-
-            <!-- Clickable Source Link Label (Tap to Re-scrape) -->
-            <TextView
-                android:id="@+id/txtSourceLink"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="Source Link: "
-                android:textColor="#FFF7E6"
-                android:textSize="12sp"
-                android:textStyle="bold|italic"
-                android:gravity="start"
-                android:visibility="gone" />
-
-            <!-- 5. Original Input Box (Translucent Smoke Background & White Hint) -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilRecipeInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Paste recipe lines or website link here"
-                app:hintTextColor="@color/white"
-                android:textColorHint="@color/white"
-                app:boxBackgroundMode="outline"
-                app:boxStrokeColor="@color/surfaceStrokeColor"
-                app:boxStrokeWidth="1dp"
-                app:boxBackgroundColor="#4D000000"
-                app:boxCornerRadiusTopStart="12dp"
-                app:boxCornerRadiusTopEnd="12dp"
-                app:boxCornerRadiusBottomStart="12dp"
-                app:boxCornerRadiusBottomEnd="12dp">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edtRecipeInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:inputType="textMultiLine"
-                    android:minLines="5"
-                    android:textCursorDrawable="@null"
-                    android:textColor="@color/textPrimary"
-                    android:textSize="15sp" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <!-- Option B: Camera OCR Select Action -->
-            <LinearLayout
-                android:id="@+id/layoutOcrActions"
+                android:id="@+id/layoutInputSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginBottom="16dp"
-                android:visibility="gone">
+                android:visibility="visible">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnSelectPhoto"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:textColor="@color/textPrimary"
-                    app:strokeColor="@color/surfaceStrokeColor"
-                    android:text="Select Photo from Gallery"
-                    app:icon="@android:drawable/ic_menu_gallery" />
-            </LinearLayout>
-
-            <!-- 6. Adjusted Clipboard Output Box (Translucent Smoke Card) -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardAdjustedResult"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="@color/surfaceStrokeColor"
-                app:cardBackgroundColor="#4D000000">
-
-                <LinearLayout
+                <!-- Single Integrated Input Surface -->
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+                    android:layout_marginBottom="12dp"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#3A2D28"
+                    app:cardBackgroundColor="#251B18">
 
-                    <!-- Upgraded 2-Row Container Panel (Flipped: Buttons above Adjusted Recipe Header) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:layout_marginBottom="8dp">
+                        android:orientation="vertical">
 
-                        <!-- Row 1 (Flipped): Action Button Panel aligned neatly to the right -->
+                        <!-- Input Header: Inline Camera Import + Servings Counter -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
-                            android:gravity="end"
-                            android:layout_marginBottom="4dp">
+                            android:gravity="center_vertical"
+                            android:background="#1F1714"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="8dp">
+
+                            <!-- Inline Photo Import Action -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnPhotoImport"
+                                style="@style/Widget.MaterialComponents.Button.TextButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:text="📷 Photo"
+                                android:textColor="#FFD54F"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:paddingHorizontal="8dp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp" />
+
+                            <View
+                                android:layout_width="0dp"
+                                android:layout_height="1dp"
+                                android:layout_weight="1" />
+
+                            <!-- Inline Servings Counter -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Servings:"
+                                android:textColor="#A89890"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:layout_marginEnd="6dp" />
+
+                            <EditText
+                                android:id="@+id/edtServingsInput"
+                                android:layout_width="48dp"
+                                android:layout_height="32dp"
+                                android:background="#2E221D"
+                                android:gravity="center"
+                                android:inputType="number"
+                                android:imeOptions="actionDone"
+                                android:maxLength="3"
+                                android:padding="2dp"
+                                android:text="4"
+                                android:textColor="#F4F5FC"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                android:selectAllOnFocus="true" />
+                        </LinearLayout>
+
+                        <!-- Multi-line Text Area (Enlarged and Brightened) -->
+                        <EditText
+                            android:id="@+id/edtRecipeInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:minLines="7"
+                            android:gravity="top|start"
+                            android:inputType="textMultiLine"
+                            android:background="@android:color/transparent"
+                            android:padding="16dp"
+                            android:hint="Paste recipe ingredients or website link here..."
+                            android:textColorHint="#A89890"
+                            android:textColor="#F4F5FC"
+                            android:textSize="15sp"
+                            android:lineSpacingExtra="4dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Primary Action Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAdjustRecipe"
+                    style="@style/Widget.LabelScanner.Button.Primary"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginBottom="8dp"
+                    app:backgroundTint="#2B1F16"
+                    android:text="Profile &amp; Adjust" />
+            </LinearLayout>
+
+            <!-- ======================================================== -->
+            <!-- STATE 2: RESULTS SECTION (Activated after Analysis)      -->
+            <!-- ======================================================== -->
+            <LinearLayout
+                android:id="@+id/layoutResultsSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <!-- Top Result Action Bar (Clean Source Badge + Edit Button) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="10dp">
+
+                    <TextView
+                        android:id="@+id/txtSourceLink"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🌐 davita.com (Re-scrape)"
+                        android:textColor="#FFD54F"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="end"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNewRecipe"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:text="✎ Edit Input"
+                        android:textColor="#F4F5FC"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:paddingHorizontal="8dp" />
+                </LinearLayout>
+
+                <!-- ======================================================== -->
+                <!-- HORIZONTAL DIFFERENTIAL GAUGE HUD CARD                    -->
+                <!-- ======================================================== -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardClinicalGauge"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#3A2D28"
+                    app:cardBackgroundColor="#251B18">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <!-- Header -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="10dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="CLINICAL IMPACT"
+                                android:textColor="#81C784"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.1" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Tap for diagnostics ➔"
+                                android:textColor="#A89890"
+                                android:textSize="10sp"
+                                android:textStyle="italic" />
+                        </LinearLayout>
+
+                        <!-- GAUGE ROW 1: SODIUM -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="SODIUM"
+                            android:textColor="#A89890"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="2dp">
+
+                            <TextView
+                                android:layout_width="26dp"
+                                android:layout_height="wrap_content"
+                                android:text="OG"
+                                android:textColor="#60544E"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                            <net.meinook.labelscanner.ClinicalGaugeBar
+                                android:id="@+id/barSodiumOg"
+                                android:layout_width="0dp"
+                                android:layout_height="8dp"
+                                android:layout_weight="1"
+                                android:layout_marginHorizontal="8dp" />
+
+                            <TextView
+                                android:id="@+id/txtSodiumOgVal"
+                                android:layout_width="100dp"
+                                android:layout_height="wrap_content"
+                                android:text="499 mg"
+                                android:textColor="#F4F5FC"
+                                android:textSize="11sp"
+                                android:gravity="end" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="3dp"
+                            android:layout_marginBottom="8dp">
+
+                            <TextView
+                                android:layout_width="26dp"
+                                android:layout_height="wrap_content"
+                                android:text="ADJ"
+                                android:textColor="#81C784"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                            <net.meinook.labelscanner.ClinicalGaugeBar
+                                android:id="@+id/barSodiumAdj"
+                                android:layout_width="0dp"
+                                android:layout_height="8dp"
+                                android:layout_weight="1"
+                                android:layout_marginHorizontal="8dp" />
+
+                            <TextView
+                                android:id="@+id/txtSodiumAdjVal"
+                                android:layout_width="100dp"
+                                android:layout_height="wrap_content"
+                                android:text="378 mg (-24%)"
+                                android:textColor="#F4F5FC"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:gravity="end" />
+                        </LinearLayout>
+
+                        <!-- GAUGE ROW 2: POTASSIUM -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="POTASSIUM"
+                            android:textColor="#A89890"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="2dp">
+
+                            <TextView
+                                android:layout_width="26dp"
+                                android:layout_height="wrap_content"
+                                android:text="OG"
+                                android:textColor="#60544E"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                            <net.meinook.labelscanner.ClinicalGaugeBar
+                                android:id="@+id/barPotassiumOg"
+                                android:layout_width="0dp"
+                                android:layout_height="8dp"
+                                android:layout_weight="1"
+                                android:layout_marginHorizontal="8dp" />
+
+                            <TextView
+                                android:id="@+id/txtPotassiumOgVal"
+                                android:layout_width="100dp"
+                                android:layout_height="wrap_content"
+                                android:text="425 mg"
+                                android:textColor="#F4F5FC"
+                                android:textSize="11sp"
+                                android:gravity="end" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="3dp"
+                            android:layout_marginBottom="8dp">
+
+                            <TextView
+                                android:layout_width="26dp"
+                                android:layout_height="wrap_content"
+                                android:text="ADJ"
+                                android:textColor="#81C784"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                            <net.meinook.labelscanner.ClinicalGaugeBar
+                                android:id="@+id/barPotassiumAdj"
+                                android:layout_width="0dp"
+                                android:layout_height="8dp"
+                                android:layout_weight="1"
+                                android:layout_marginHorizontal="8dp" />
+
+                            <TextView
+                                android:id="@+id/txtPotassiumAdjVal"
+                                android:layout_width="100dp"
+                                android:layout_height="wrap_content"
+                                android:text="352 mg (-17%)"
+                                android:textColor="#F4F5FC"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:gravity="end" />
+                        </LinearLayout>
+
+                        <!-- GAUGE ROW 3: CARBS -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CARBS (NET)"
+                            android:textColor="#A89890"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="2dp">
+
+                            <TextView
+                                android:layout_width="26dp"
+                                android:layout_height="wrap_content"
+                                android:text="OG"
+                                android:textColor="#60544E"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                            <net.meinook.labelscanner.ClinicalGaugeBar
+                                android:id="@+id/barCarbsOg"
+                                android:layout_width="0dp"
+                                android:layout_height="8dp"
+                                android:layout_weight="1"
+                                android:layout_marginHorizontal="8dp" />
+
+                            <TextView
+                                android:id="@+id/txtCarbsOgVal"
+                                android:layout_width="100dp"
+                                android:layout_height="wrap_content"
+                                android:text="9.1 g"
+                                android:textColor="#F4F5FC"
+                                android:textSize="11sp"
+                                android:gravity="end" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="3dp"
+                            android:layout_marginBottom="8dp">
+
+                            <TextView
+                                android:layout_width="26dp"
+                                android:layout_height="wrap_content"
+                                android:text="ADJ"
+                                android:textColor="#81C784"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                            <net.meinook.labelscanner.ClinicalGaugeBar
+                                android:id="@+id/barCarbsAdj"
+                                android:layout_width="0dp"
+                                android:layout_height="8dp"
+                                android:layout_weight="1"
+                                android:layout_marginHorizontal="8dp" />
+
+                            <TextView
+                                android:id="@+id/txtCarbsAdjVal"
+                                android:layout_width="100dp"
+                                android:layout_height="wrap_content"
+                                android:text="31.9 g"
+                                android:textColor="#F4F5FC"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:gravity="end" />
+                        </LinearLayout>
+
+                        <!-- GAUGE ROW 4: PROTEIN -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="PROTEIN"
+                            android:textColor="#A89890"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="2dp">
+
+                            <TextView
+                                android:layout_width="26dp"
+                                android:layout_height="wrap_content"
+                                android:text="OG"
+                                android:textColor="#60544E"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                            <net.meinook.labelscanner.ClinicalGaugeBar
+                                android:id="@+id/barProteinOg"
+                                android:layout_width="0dp"
+                                android:layout_height="8dp"
+                                android:layout_weight="1"
+                                android:layout_marginHorizontal="8dp" />
+
+                            <TextView
+                                android:id="@+id/txtProteinOgVal"
+                                android:layout_width="100dp"
+                                android:layout_height="wrap_content"
+                                android:text="19.7 g"
+                                android:textColor="#F4F5FC"
+                                android:textSize="11sp"
+                                android:gravity="end" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="3dp">
+
+                            <TextView
+                                android:layout_width="26dp"
+                                android:layout_height="wrap_content"
+                                android:text="ADJ"
+                                android:textColor="#81C784"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                            <net.meinook.labelscanner.ClinicalGaugeBar
+                                android:id="@+id/barProteinAdj"
+                                android:layout_width="0dp"
+                                android:layout_height="8dp"
+                                android:layout_weight="1"
+                                android:layout_marginHorizontal="8dp" />
+
+                            <TextView
+                                android:id="@+id/txtProteinAdjVal"
+                                android:layout_width="100dp"
+                                android:layout_height="wrap_content"
+                                android:text="17.3 g (-12%)"
+                                android:textColor="#F4F5FC"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:gravity="end" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Dedicated Adjusted Recipe Output Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardAdjustedResult"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#3A2D28"
+                    app:cardBackgroundColor="#251B18"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <!-- Recipe Header & Actions -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginBottom="10dp">
+
+                            <TextView
+                                android:id="@+id/txtAdjustedRecipeHeader"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Adjusted Recipe"
+                                android:textColor="#F4F5FC"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btnReportAdjusted"
                                 style="@style/Widget.MaterialComponents.Button.TextButton"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Report"
-                                android:textColor="@color/textPrimary"
-                                android:layout_marginEnd="4dp" />
+                                android:layout_height="32dp"
+                                android:text="Report Issue"
+                                android:textColor="#99A1B3"
+                                android:textSize="11sp"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:paddingHorizontal="4dp" />
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btnCopyAdjusted"
                                 style="@style/Widget.MaterialComponents.Button.TextButton"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Copy"
-                                android:textColor="@color/textPrimary" />
+                                android:layout_height="32dp"
+                                android:text="Save"
+                                android:textColor="#81C784"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:insetTop="0dp"
+                                android:insetBottom="0dp"
+                                android:paddingHorizontal="6dp" />
                         </LinearLayout>
 
-                        <!-- Row 2 (Flipped): Full-Width Recipe Name wraps naturally to multiple lines -->
+                        <!-- Indeterminate Progress Indicator (Active while analyzing) -->
+                        <com.google.android.material.progressindicator.LinearProgressIndicator
+                            android:id="@+id/progressAnalysisIndicator"
+                            android:layout_width="match_parent"
+                            android:layout_height="4dp"
+                            android:indeterminate="true"
+                            app:indicatorColor="#FFD54F"
+                            app:trackColor="#1F1714"
+                            android:layout_marginBottom="8dp"
+                            android:visibility="gone" />
+
+                        <!-- Formatted Adjusted Ingredients -->
                         <TextView
-                            android:id="@+id/txtAdjustedRecipeHeader"
+                            android:id="@+id/txtAdjustedOutput"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Adjusted Recipe"
-                            android:textColor="@color/textPrimary"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+                            android:textColor="#F4F5FC"
+                            android:textSize="14sp"
+                            android:lineSpacingExtra="4dp" />
 
-                    <!-- Output floats completely directly on the scale illustration -->
-                    <TextView
-                        android:id="@+id/txtAdjustedOutput"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="14sp"
-                        android:background="@android:color/transparent"
-                        android:padding="12dp" />
-
-                    <!-- Phase 2 & 3 Trigger Actions Button Group -->
-                    <LinearLayout
-                        android:id="@+id/layoutPostAnalysisActions"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="4dp"
-                        android:visibility="gone"
-                        tools:visibility="visible">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnRetrieveSteps"
-                            style="@style/Widget.LabelScanner.Button.Secondary"
-                            android:layout_width="0dp"
+                        <!-- On-Demand Cooking Steps & Rationale -->
+                        <LinearLayout
+                            android:id="@+id/layoutPostAnalysisActions"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:textColor="@color/textPrimary"
-                            android:layout_marginEnd="4dp"
-                            android:text="Get Steps" />
+                            android:orientation="horizontal"
+                            android:layout_marginTop="14dp">
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btnRetrieveAnalysis"
-                            style="@style/Widget.LabelScanner.Button.Secondary"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:textColor="@color/textPrimary"
-                            android:layout_marginStart="4dp"
-                            android:text="Get Analysis" />
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnRetrieveSteps"
+                                style="@style/Widget.LabelScanner.Button.Secondary"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textColor="#F4F5FC"
+                                android:layout_marginEnd="4dp"
+                                android:text="Get Steps"
+                                android:textSize="12sp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnRetrieveAnalysis"
+                                style="@style/Widget.LabelScanner.Button.Secondary"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textColor="#F4F5FC"
+                                android:layout_marginStart="4dp"
+                                android:text="Get Analysis"
+                                android:textSize="12sp" />
+                        </LinearLayout>
                     </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Collapsible Original Ingredients Drawer (High Contrast) -->
+                <TextView
+                    android:id="@+id/txtToggleOriginalInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="▶ View Original Ingredients"
+                    android:textColor="#D1D2D5"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:padding="10dp"
+                    android:gravity="center" />
+
+                <TextView
+                    android:id="@+id/txtOriginalInputCollapsed"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#99A1B3"
+                    android:textSize="13sp"
+                    android:lineSpacingExtra="3dp"
+                    android:padding="12dp"
+                    android:background="#1F1714"
+                    android:visibility="gone" />
+            </LinearLayout>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

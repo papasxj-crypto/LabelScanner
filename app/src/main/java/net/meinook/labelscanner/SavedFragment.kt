@@ -144,10 +144,12 @@ class SavedFragment : Fragment() {
         }
 
         val activeConditions = appSettings.getSelectedConditions()
-        val customReds = appSettings.getCustomWatchlist("RED")
+        val customReds = appSettings.getCustomWatchlist("RED").map { it.trim().uppercase(Locale.US) }.filter { it.isNotEmpty() }
+        val adjustedLines = item.adjustedOutput.lines().map { it.trim().uppercase(Locale.US) }.filter { it.isNotEmpty() }
 
         val hasCustomViolation = customReds.any { trigger ->
-            item.adjustedOutput.contains(trigger, ignoreCase = true)
+            val boundaryRegex = "\\b${Regex.escape(trigger)}\\b".toRegex()
+            adjustedLines.any { it.contains(boundaryRegex) || it == trigger }
         }
 
         val normalizedActiveBases = activeConditions.map { id ->

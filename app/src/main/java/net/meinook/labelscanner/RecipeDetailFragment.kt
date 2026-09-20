@@ -11,6 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
@@ -71,9 +72,12 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         txtIngredients.text = adjustedOutput
 
         val activeConditions = appSettings.getSelectedConditions()
-        val customReds = appSettings.getCustomWatchlist("RED")
+        val customReds = appSettings.getCustomWatchlist("RED").map { it.trim().uppercase(Locale.US) }.filter { it.isNotEmpty() }
+        val adjustedLines = adjustedOutput.lines().map { it.trim().uppercase(Locale.US) }.filter { it.isNotEmpty() }
+
         val hasCustomViolation = customReds.any { trigger ->
-            adjustedOutput.contains(trigger, ignoreCase = true)
+            val boundaryRegex = "\\b${Regex.escape(trigger)}\\b".toRegex()
+            adjustedLines.any { it.contains(boundaryRegex) || it == trigger }
         }
 
         val normalizedActiveBases = activeConditions.map { id ->
@@ -122,10 +126,10 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             ?: baseProfileId
         txtProfile.text = "For: $displayName"
 
-        // Re-Profile Trigger: Passes FORCE_REPROFILE to skip local cache and run fresh AI analysis
+        // Re-Profile Trigger: Pops backstack so SavedFragment remains clean
         fun triggerReProfile() {
             val bundle = Bundle().apply {
-                putBoolean("FORCE_REPROFILE", true) // Forces RecipeFragment to bypass cache
+                putBoolean("FORCE_REPROFILE", true)
                 if (sourceUrl.isNotBlank()) {
                     putString("recipe_url", sourceUrl)
                     putString("RECIPE_URL", sourceUrl)
@@ -133,7 +137,11 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
                     putString("RECIPE_INPUT", adjustedOutput)
                 }
             }
-            findNavController().navigate(R.id.recipeFragment, bundle)
+            val navOptions = NavOptions.Builder()
+                .setPopUpTo(R.id.navigation_history, false)
+                .setLaunchSingleTop(true)
+                .build()
+            findNavController().navigate(R.id.recipeFragment, bundle, navOptions)
         }
 
         btnReProfile.setOnClickListener {

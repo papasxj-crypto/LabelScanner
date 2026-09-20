@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.Manifest
-import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -42,6 +41,7 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -141,15 +141,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
         textCondition.setOnClickListener {
             showProfileSelectorDialog()
-        }
-
-        val bottomNav = activity?.findViewById(R.id.bottom_navigation)
-            ?: activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.nav_host_fragment)
-
-        bottomNav?.setOnItemReselectedListener { item ->
-            if (item.itemId == R.id.navigation_home) {
-                resetUI()
-            }
         }
 
         view.findViewById<View>(R.id.btnSettings)?.setOnClickListener {
@@ -442,17 +433,36 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             userSettings.getCustomWatchlist("YELLOW")
                         )
 
-                        val suggestionsList = ArrayList<ProductAlternative>()
-                        val tempYellowSuggestions = ArrayList<ProductAlternative>()
+                        val productName = product.optString("product_name", "Product")
+                        val calories = evalJson.optInt("calories", 0)
+                        val protein = evalJson.optDouble("protein", 0.0).toFloat()
+                        val sodium = evalJson.optInt("sodium", 0)
+                        val potassium = evalJson.optDouble("potassium", 0.0).toFloat()
+                        val carbs = evalJson.optDouble("carbs", 0.0).toFloat()
+                        val netCarbs = (evalJson.optDouble("carbs", 0.0) - evalJson.optDouble("fiber", 0.0)).toFloat()
+                        val sugar = evalJson.optDouble("sugar", 0.0).toFloat()
+                        val isKeto = userSettings.getSelectedConditions().contains("keto")
 
-                        Log.d("LabelScanner", "Category Search: Target category code = $categoryTag, product grade = ${evalResult.gradeTitle}")
+                        activity?.runOnUiThread {
+                            displaySummaryCard(
+                                evalResult,
+                                productName,
+                                calories,
+                                protein,
+                                sodium,
+                                potassium,
+                                carbs,
+                                netCarbs,
+                                sugar,
+                                isKeto,
+                                suggestions = null
+                            )
+                        }
 
                         if (!categoryTag.isNullOrEmpty() && (evalResult.gradeTitle.startsWith("Red") || evalResult.gradeTitle.startsWith("Yellow"))) {
                             try {
                                 val cleanCategory = categoryTag.removePrefix("en:").trim()
                                 val searchUrl = URL("https://world.openfoodfacts.org/api/v2/search?categories_tags_en=$cleanCategory&fields=code,product_name,brands,ingredients_text,nutriments&page_size=15")
-
-                                Log.d("LabelScanner", "Category Search: Querying URL = $searchUrl")
 
                                 val searchConnection = searchUrl.openConnection() as HttpURLConnection
                                 searchConnection.requestMethod = "GET"
@@ -463,7 +473,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                     val searchJson = JSONObject(searchResponse)
                                     val productsArr = searchJson.optJSONArray("products")
 
-                                    Log.d("LabelScanner", "Category Search: Found raw products = ${productsArr?.length() ?: 0}")
+                                    val suggestionsList = ArrayList<ProductAlternative>()
+                                    val tempYellowSuggestions = ArrayList<ProductAlternative>()
 
                                     if (productsArr != null) {
                                         for (j in 0 until productsArr.length()) {
@@ -500,8 +511,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                                 userSettings.getCustomWatchlist("YELLOW")
                                             )
 
-                                            Log.d("LabelScanner", "Category Search: Evaluated alt ${altProduct.optString("product_name")} -> Grade: ${altEvalResult.gradeTitle}")
-
                                             if (altEvalResult.gradeTitle.startsWith("Green")) {
                                                 suggestionsList.add(
                                                     ProductAlternative(
@@ -528,29 +537,27 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                             if (suggestionsList.size >= 3) break
                                             suggestionsList.add(yellowOpt)
                                         }
+
+                                        if (suggestionsList.isNotEmpty()) {
+                                            activity?.runOnUiThread {
+                                                if (cardSummary.visibility == View.VISIBLE && cachedEval == evalResult) {
+                                                    cachedSuggestions = suggestionsList
+                                                    val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
+                                                    textTapPrompt?.text = "Alternatives Found! Tap for details ➔"
+                                                    val pulseAnimation = android.view.animation.AlphaAnimation(0.4f, 1.0f).apply {
+                                                        duration = 1000
+                                                        repeatMode = android.view.animation.Animation.REVERSE
+                                                        repeatCount = android.view.animation.Animation.INFINITE
+                                                    }
+                                                    textTapPrompt?.startAnimation(pulseAnimation)
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             } catch (e: Exception) {
-                                Log.e("LabelScanner", "Error querying dynamic safer alternatives", e)
+                                Log.e("LabelScanner", "Async safer alternatives query error", e)
                             }
-                        }
-
-                        Log.d("LabelScanner", "Category Search: Compiled suggestion list size = ${suggestionsList.size}")
-
-                        activity?.runOnUiThread {
-                            displaySummaryCard(
-                                evalResult,
-                                product.optString("product_name", "Product"),
-                                evalJson.optInt("calories", 0),
-                                evalJson.optDouble("protein", 0.0).toFloat(),
-                                evalJson.optInt("sodium", 0),
-                                evalJson.optDouble("potassium", 0.0).toFloat(),
-                                evalJson.optDouble("carbs", 0.0).toFloat(),
-                                (evalJson.optDouble("carbs", 0.0) - evalJson.optDouble("fiber", 0.0)).toFloat(),
-                                evalJson.optDouble("sugar", 0.0).toFloat(),
-                                userSettings.getSelectedConditions().contains("keto"),
-                                suggestions = suggestionsList
-                            )
                         }
                     }
                 }
@@ -561,6 +568,113 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 }
             }
         }
+    }
+
+    // --- HIGH-ACCURACY DETERMINISTIC ON-DEVICE NUTRITION PARSER ---
+    private fun tryParseNutritionLocally(rawText: String): Pair<JSONObject, List<String>>? {
+        val lines = rawText.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        val lowerText = rawText.lowercase(Locale.US)
+
+        fun extractFirstMatch(vararg patterns: Regex): Double? {
+            for (p in patterns) {
+                val match = p.find(rawText)
+                if (match != null) {
+                    val numStr = match.groups[1]?.value?.replace(",", ".")
+                    val parsed = numStr?.toDoubleOrNull()
+                    if (parsed != null) return parsed
+                }
+            }
+            return null
+        }
+
+        // Mandatory regex anchors with explicit metric units (prevents % DV confusion)
+        val cal = extractFirstMatch(
+            Regex("""(?i)\bCalories\s*[:]?\s*(\d{1,4})\b"""),
+            Regex("""(?i)\bEnergy\s*[:]?\s*(\d{1,4})\s*k?cal\b""")
+        )?.toInt()
+
+        val sod = extractFirstMatch(
+            Regex("""(?i)\bSodium\s*[:]?\s*(\d{1,5})\s*mg\b"""),
+            Regex("""(?i)\bSodium\s+(\d{1,5})\b""")
+        )?.toInt()
+
+        val pro = extractFirstMatch(
+            Regex("""(?i)\bProtein\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b""")
+        )
+
+        val carb = extractFirstMatch(
+            Regex("""(?i)\bTotal\s+Carbohydrate\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b"""),
+            Regex("""(?i)\bCarbohydrate\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b"""),
+            Regex("""(?i)\bCarbs\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b""")
+        )
+
+        val fiber = extractFirstMatch(
+            Regex("""(?i)\bDietary\s+Fiber\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b"""),
+            Regex("""(?i)\bFiber\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b""")
+        ) ?: 0.0
+
+        val sug = extractFirstMatch(
+            Regex("""(?i)\bTotal\s+Sugars?\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b"""),
+            Regex("""(?i)\bSugars?\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b""")
+        )
+
+        val pot = extractFirstMatch(
+            Regex("""(?i)\bPotassium\s*[:]?\s*(\d{1,5})\s*mg\b""")
+        )
+
+        // Extract clean ingredients list
+        val ingredientsList = mutableListOf<String>()
+        val ingIndex = lowerText.indexOf("ingredients")
+        if (ingIndex != -1) {
+            val ingSubstring = rawText.substring(ingIndex)
+                .replace(Regex("""(?i)^ingredients\s*[:]?\s*"""), "")
+                .takeWhile { it != '.' && it != '\n' || it == ',' }
+
+            ingredientsList.addAll(
+                ingSubstring.split(",")
+                    .map { it.trim().uppercase(Locale.US) }
+                    .filter { it.length > 1 }
+            )
+        } else {
+            // Ingredient-only scan detection (single words or lines like "Sugar", "Bleached Flour")
+            if (cal == null && sod == null && carb == null) {
+                val nonMacroLines = lines.filter { line ->
+                    val l = line.lowercase(Locale.US)
+                    !l.contains("facts") && !l.contains("serving") && !l.contains("daily value")
+                }
+                if (nonMacroLines.isNotEmpty()) {
+                    for (line in nonMacroLines) {
+                        ingredientsList.addAll(
+                            line.split(",")
+                                .map { it.trim().uppercase(Locale.US) }
+                                .filter { it.length > 1 }
+                        )
+                    }
+                }
+            }
+        }
+
+        // CONFIDENCE GATE: Must have clear Nutrition anchors OR clear ingredients to trust local result
+        val hasClearNutritionBox = (cal != null || sod != null || carb != null || sug != null)
+        val hasClearIngredients = ingredientsList.isNotEmpty()
+
+        if (!hasClearNutritionBox && !hasClearIngredients) {
+            return null // Ambiguous scan -> fall back to Cloud Run
+        }
+
+        val json = JSONObject().apply {
+            put("nutrition_facts_found", hasClearNutritionBox)
+            if (cal != null) put("calories", cal)
+            if (sod != null) put("sodium", sod)
+            if (pro != null) put("protein", pro)
+            if (carb != null) put("carbs", carb)
+            put("fiber", fiber)
+            if (sug != null) put("sugar", sug)
+            if (pot != null) put("potassium", pot)
+            put("ingredients", org.json.JSONArray(ingredientsList))
+        }
+
+        return Pair(json, ingredientsList)
     }
 
     private fun extractIngredientsFromJson(json: JSONObject): List<String> {
@@ -629,8 +743,46 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             .addOnSuccessListener { visionText ->
                 val extractedText = visionText.text
                 if (extractedText.isNotBlank()) {
-                    activity?.runOnUiThread { textExplanation.text = "Analyzing text..." }
-                    executeTextBasedAnalysis(extractedText)
+                    // FAST-PATH: Try instant on-device deterministic parse first
+                    val localResult = tryParseNutritionLocally(extractedText)
+                    if (localResult != null) {
+                        val (json, ingredients) = localResult
+                        val userSettings = AppSettings(requireContext())
+                        val loadedRedTriggers = userSettings.loadTriggersFromAssets("red")
+
+                        val evalResult = LabelEvaluator.evaluateScanData(
+                            json,
+                            ingredients,
+                            userSettings.getSelectedConditions(),
+                            userSettings,
+                            loadedRedTriggers,
+                            userSettings.getCustomWatchlist("RED"),
+                            userSettings.getCustomWatchlist("YELLOW")
+                        )
+
+                        val fiber = json.optDouble("fiber", 0.0)
+                        val carbs = json.optDouble("carbs", 0.0)
+                        val potVal = optDoubleResilient(json, "potassium_mg", "potassium")
+                        val sugVal = optDoubleResilient(json, "total_sugar_g", "sugar")
+
+                        isAnalyzing = false
+                        displaySummaryCard(
+                            evalResult,
+                            "Scan Result",
+                            json.optInt("calories", 0),
+                            json.optDouble("protein", 0.0).toFloat(),
+                            json.optInt("sodium", 0),
+                            potVal.toFloat(),
+                            carbs.toFloat(),
+                            (carbs - fiber).coerceAtLeast(0.0).toFloat(),
+                            sugVal.toFloat(),
+                            userSettings.getSelectedConditions().contains("keto")
+                        )
+                    } else {
+                        // Ambiguous layout: Fallback to Cloud Run
+                        activity?.runOnUiThread { textExplanation.text = "Analyzing text..." }
+                        executeTextBasedAnalysis(extractedText)
+                    }
                 } else {
                     activity?.runOnUiThread { textExplanation.text = "Using visual fallback..." }
                     executeVisionBasedAnalysis(imageBitmap)
@@ -694,9 +846,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
         val ingredients = extractIngredientsFromJson(json)
         val loadedRedTriggers = userSettings.loadTriggersFromAssets("red")
-
-        Log.d("LabelScanner", "HomeFragment: Loaded red triggers = $loadedRedTriggers")
-        Log.d("LabelScanner", "HomeFragment: Safely Extracted Ingredients = $ingredients")
 
         val evalResult = LabelEvaluator.evaluateScanData(
             json,
@@ -779,7 +928,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     return@launch
                 }
 
-                // If valid food, proceed with standard clinical evaluation
                 val evalResult = LabelEvaluator.evaluateScanData(
                     json,
                     listOf(name.uppercase().trim()),
@@ -920,22 +1068,21 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
+    fun resetToReadyState() {
+        resetUI()
+    }
+
     private fun resetUI() {
         activity?.runOnUiThread {
             cardSummary.visibility = View.GONE
             cachedEval = null
+            cachedSub = ""
+            cachedMacros = null
             cachedSuggestions = null
             textExplanation.text = "Ready..."
             textExplanation.setTextColor(android.graphics.Color.WHITE)
         }
     }
-
-    private fun getConditionsString(s: AppSettings, ids: Set<String>) =
-        if (ids.isNotEmpty()) {
-            ids.joinToString(", ") { id -> s.getAvailableDietProfiles().find { it.id == id }?.displayName ?: id }
-        } else {
-            "Standard"
-        }
 
     private fun updateConditionText() {
         textCondition.text = "Profile: ${AppSettings(requireContext()).getActiveProfile()}"
@@ -943,7 +1090,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     override fun onResume() {
         super.onResume()
-        isNavigatingToDetail = false
+        if (isNavigatingToDetail) {
+            resetUI()
+            isNavigatingToDetail = false
+        }
         updateConditionText()
         rebuildComposeMenu()
     }
@@ -981,10 +1131,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     override fun onStop() {
         super.onStop()
         if (!isNavigatingToDetail) {
-            cachedEval = null
-            cachedSub = ""
-            cachedMacros = null
-            cachedSuggestions = null
+            resetUI()
         }
     }
 }

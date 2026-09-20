@@ -8,10 +8,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import kotlinx.coroutines.delay // Resolves delay() compile support
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.time.Duration.Companion.milliseconds
@@ -93,7 +94,54 @@ class MainActivity : AppCompatActivity() {
         navController = navHostFragment.navController
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
-        bottomNav.setupWithNavController(navController)
+
+        // 1. Global Tab Navigation: Always land on the Root screen of each tab (no state trapping)
+        bottomNav.setOnItemSelectedListener { item ->
+            val navOptions = NavOptions.Builder()
+                .setLaunchSingleTop(true)
+                .setRestoreState(false)
+                .setPopUpTo(
+                    navController.graph.findStartDestination().id,
+                    inclusive = false,
+                    saveState = false
+                )
+                .build()
+
+            try {
+                navController.navigate(item.itemId, null, navOptions)
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        // 2. Tab Reselection: Hard reset and root pop handler
+        bottomNav.setOnItemReselectedListener { item ->
+            when (item.itemId) {
+                R.id.navigation_home -> {
+                    val currentDestId = navController.currentDestination?.id
+                    if (currentDestId != null && currentDestId != R.id.navigation_home) {
+                        navController.popBackStack(R.id.navigation_home, false)
+                    }
+                    val currentFragment = navHostFragment.childFragmentManager.fragments.firstOrNull()
+                    if (currentFragment is HomeFragment) {
+                        currentFragment.resetToReadyState()
+                    }
+                }
+                R.id.recipeFragment -> {
+                    val currentFragment = navHostFragment.childFragmentManager.fragments.firstOrNull()
+                    if (currentFragment is RecipeFragment) {
+                        currentFragment.resetToCleanInput()
+                    }
+                }
+                R.id.navigation_history -> {
+                    val currentDestId = navController.currentDestination?.id
+                    if (currentDestId != null && currentDestId != R.id.navigation_history) {
+                        navController.popBackStack(R.id.navigation_history, false)
+                    }
+                }
+            }
+        }
 
         bottomNav.post {
             handleIncomingShareIntent(intent)
