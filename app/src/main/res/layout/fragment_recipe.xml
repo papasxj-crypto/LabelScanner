@@ -45,27 +45,27 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
 
-                        <!-- Input Header: Inline Camera Import + Servings Counter -->
+                        <!-- Input Header: Inline Import Hub + Servings Counter -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:gravity="center_vertical"
                             android:background="#1F1714"
-                            android:paddingHorizontal="12dp"
-                            android:paddingVertical="8dp">
+                            android:paddingHorizontal="14dp"
+                            android:paddingVertical="10dp">
 
-                            <!-- Inline Photo Import Action -->
+                            <!-- Unified Import Hub Action (Clipboard, Text File, Photo) -->
                             <com.google.android.material.button.MaterialButton
-                                android:id="@+id/btnPhotoImport"
+                                android:id="@+id/btnImportHub"
                                 style="@style/Widget.MaterialComponents.Button.TextButton"
                                 android:layout_width="wrap_content"
-                                android:layout_height="36dp"
-                                android:text="📷 Photo"
-                                android:textColor="#FFD54F"
-                                android:textSize="12sp"
+                                android:layout_height="38dp"
+                                android:text="📂 Import"
+                                android:textColor="#F4F5FC"
+                                android:textSize="13sp"
                                 android:textStyle="bold"
-                                android:paddingHorizontal="8dp"
+                                android:paddingHorizontal="10dp"
                                 android:insetTop="0dp"
                                 android:insetBottom="0dp" />
 
@@ -74,34 +74,34 @@
                                 android:layout_height="1dp"
                                 android:layout_weight="1" />
 
-                            <!-- Inline Servings Counter -->
+                            <!-- Enlarged Servings Counter -->
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Servings:"
                                 android:textColor="#A89890"
-                                android:textSize="12sp"
+                                android:textSize="14sp"
                                 android:textStyle="bold"
-                                android:layout_marginEnd="6dp" />
+                                android:layout_marginEnd="8dp" />
 
                             <EditText
                                 android:id="@+id/edtServingsInput"
-                                android:layout_width="48dp"
-                                android:layout_height="32dp"
+                                android:layout_width="60dp"
+                                android:layout_height="38dp"
                                 android:background="#2E221D"
                                 android:gravity="center"
                                 android:inputType="number"
                                 android:imeOptions="actionDone"
                                 android:maxLength="3"
-                                android:padding="2dp"
+                                android:padding="4dp"
                                 android:text="4"
                                 android:textColor="#F4F5FC"
-                                android:textSize="13sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold"
                                 android:selectAllOnFocus="true" />
                         </LinearLayout>
 
-                        <!-- Multi-line Text Area (Enlarged and Brightened) -->
+                        <!-- Multi-line Text Area -->
                         <EditText
                             android:id="@+id/edtRecipeInput"
                             android:layout_width="match_parent"
@@ -141,40 +141,53 @@
                 android:visibility="gone"
                 tools:visibility="visible">
 
-                <!-- Top Result Action Bar (Clean Source Badge + Edit Button) -->
+                <!-- Top Result Header Bar (Recipe Name + Re-Profile + Edit Actions) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginBottom="10dp">
+                    android:layout_marginBottom="12dp">
 
                     <TextView
-                        android:id="@+id/txtSourceLink"
+                        android:id="@+id/txtTopRecipeTitle"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="🌐 davita.com (Re-scrape)"
-                        android:textColor="#FFD54F"
+                        android:text="Recipe Name"
+                        android:textColor="#F4F5FC"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:maxLines="2"
+                        android:ellipsize="end" />
+
+                    <!-- Re-Profile Action (Forces Live AI / Skips Cache) -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnReProfile"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="↻ Re-Profile"
+                        android:textColor="#D1D2D5"
                         android:textSize="12sp"
                         android:textStyle="bold"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:paddingHorizontal="6dp" />
 
+                    <!-- Edit Input Action (Preserves Text for Tweak) -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnNewRecipe"
                         style="@style/Widget.MaterialComponents.Button.TextButton"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="36dp"
                         android:text="✎ Edit Input"
                         android:textColor="#F4F5FC"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:insetTop="0dp"
                         android:insetBottom="0dp"
-                        android:paddingHorizontal="8dp" />
+                        android:paddingHorizontal="6dp" />
                 </LinearLayout>
 
                 <!-- ======================================================== -->
@@ -206,11 +219,12 @@
                             android:layout_marginBottom="10dp">
 
                             <TextView
+                                android:id="@+id/txtClinicalImpactHeader"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="CLINICAL IMPACT"
-                                android:textColor="#81C784"
+                                android:textColor="#A89890"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:letterSpacing="0.1" />
@@ -277,7 +291,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="ADJ"
-                                android:textColor="#81C784"
+                                android:textColor="#D1D2D5"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -352,7 +366,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="ADJ"
-                                android:textColor="#81C784"
+                                android:textColor="#D1D2D5"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -427,7 +441,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="ADJ"
-                                android:textColor="#81C784"
+                                android:textColor="#D1D2D5"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -501,7 +515,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="ADJ"
-                                android:textColor="#81C784"
+                                android:textColor="#D1D2D5"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -544,7 +558,7 @@
                         android:orientation="vertical"
                         android:padding="16dp">
 
-                        <!-- Recipe Header & Actions -->
+                        <!-- Ingredients Header & Card Action Buttons -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -557,10 +571,11 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Adjusted Recipe"
-                                android:textColor="#F4F5FC"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                                android:text="INGREDIENTS (ADJUSTED)"
+                                android:textColor="#A89890"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:letterSpacing="0.1" />
 
                             <com.google.android.material.button.MaterialButton
                                 android:id="@+id/btnReportAdjusted"
@@ -580,7 +595,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="32dp"
                                 android:text="Save"
-                                android:textColor="#81C784"
+                                android:textColor="#F4F5FC"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:insetTop="0dp"
@@ -588,13 +603,13 @@
                                 android:paddingHorizontal="6dp" />
                         </LinearLayout>
 
-                        <!-- Indeterminate Progress Indicator (Active while analyzing) -->
+                        <!-- Indeterminate Progress Indicator -->
                         <com.google.android.material.progressindicator.LinearProgressIndicator
                             android:id="@+id/progressAnalysisIndicator"
                             android:layout_width="match_parent"
                             android:layout_height="4dp"
                             android:indeterminate="true"
-                            app:indicatorColor="#FFD54F"
+                            app:indicatorColor="#D1D2D5"
                             app:trackColor="#1F1714"
                             android:layout_marginBottom="8dp"
                             android:visibility="gone" />
@@ -641,7 +656,7 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Collapsible Original Ingredients Drawer (High Contrast) -->
+                <!-- Collapsible Original Ingredients Drawer -->
                 <TextView
                     android:id="@+id/txtToggleOriginalInput"
                     android:layout_width="match_parent"

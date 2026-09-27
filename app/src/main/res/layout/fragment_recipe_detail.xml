@@ -107,7 +107,7 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <!-- Header Row: Dynamic Title (Left) + Re-Profile Action (Right) -->
+                <!-- Header Row: Dynamic Title (Left) + Vivid Re-Profile Action (Right) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -121,7 +121,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="INGREDIENTS (ADJUSTED)"
-                        android:textColor="#4CAF50"
+                        android:textColor="#81C784"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.1" />
@@ -132,7 +132,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="↻ Re-Profile"
-                        android:textColor="#FFD54F"
+                        android:textColor="#82B1FF"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:paddingStart="8dp"
@@ -186,7 +186,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="STEP-BY-STEP PREPARATION"
-                    android:textColor="#FFD54F"
+                    android:textColor="#82B1FF"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.1"
@@ -207,7 +207,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:backgroundTint="#3A2D28"
-                    android:textColor="#FFD54F"
+                    android:textColor="#82B1FF"
                     android:text="Get Steps"
                     android:textSize="12sp"
                     app:cornerRadius="8dp" />

@@ -47,7 +47,7 @@ class ClinicalGaugeBar @JvmOverloads constructor(
         this.currentValue = value.toFloat().coerceAtLeast(0f)
         this.yellowThreshold = yellowLimit.toFloat().coerceAtLeast(1f)
         this.redThreshold = redLimit.toFloat().coerceAtLeast(this.yellowThreshold)
-        this.maxScale = scaleMax.toFloat().coerceAtLeast(this.redThreshold * 1.1f)
+        this.maxScale = scaleMax.toFloat().coerceAtLeast(1f)
         invalidate()
     }
 
@@ -83,13 +83,13 @@ class ClinicalGaugeBar @JvmOverloads constructor(
             canvas.drawRect(0f, 0f, gEnd, h, greenPaint)
         }
 
-        // 4. Draw Yellow Caution Zone (if value crossed caution threshold)
+        // 4. Draw Yellow Caution Zone
         if (valueEndX > greenEndX) {
             val yEnd = minOf(valueEndX, yellowEndX)
             canvas.drawRect(greenEndX, 0f, yEnd, h, yellowPaint)
         }
 
-        // 5. Draw Red Danger Zone (if value blew past redline)
+        // 5. Draw Red Danger Zone
         if (valueEndX > yellowEndX) {
             canvas.drawRect(yellowEndX, 0f, valueEndX, h, redPaint)
         }

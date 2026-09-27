@@ -207,7 +207,6 @@ object LabelEvaluator {
             }
             // Check C: Low-calorie but high protein density (e.g. Sausage, Chicken, Tuna)
             else if (!isMeal && enforceCeiling && proteinVal > proteinRules.snackMax) {
-                // If it easily fits a meal allocation, classify as a Meal Component rather than a toxic snack
                 yellowViolations.add("Meal Component: ${proteinVal.toInt()}g protein fits meal allowance (max: ${proteinRules.mealMax.toInt()}g), but exceeds standalone snack target (${proteinRules.snackMax.toInt()}g).")
             }
         }
@@ -291,7 +290,6 @@ object LabelEvaluator {
                 yellowViolations = yellows.distinct()
             )
             isIngredientsOnly -> EvaluationResult(
-                // Upgraded to a clean, high-contrast Slate/Navy Blue theme [1]
                 bgColor = "#1A2F4C".toColorInt(),
                 textColor = "#6BA4FF".toColorInt(),
                 subtextColor = "#B5D3FF".toColorInt(),

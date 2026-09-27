@@ -189,11 +189,21 @@ class MainActivity : AppCompatActivity() {
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             val url = extractUrlFromText(sharedText)
 
+            // Consume intent extras to prevent duplicate processing on rotate/restart
+            intent.removeExtra(Intent.EXTRA_TEXT)
+            intent.action = null
+
             if (!url.isNullOrEmpty()) {
                 val bundle = Bundle().apply {
                     putString("recipe_url", url)
                 }
-
+                if (::navController.isInitialized) {
+                    navController.navigate(R.id.recipeFragment, bundle)
+                }
+            } else if (!sharedText.isNullOrBlank()) {
+                val bundle = Bundle().apply {
+                    putString("RECIPE_INPUT", sharedText)
+                }
                 if (::navController.isInitialized) {
                     navController.navigate(R.id.recipeFragment, bundle)
                 }
