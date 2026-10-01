@@ -1,8 +1,8 @@
 package net.meinook.labelscanner
 
-import android.graphics.Color
-import androidx.core.graphics.toColorInt
+import android.content.Context
 import android.util.Log
+import androidx.core.content.ContextCompat
 import org.json.JSONObject
 import java.util.Locale
 
@@ -90,6 +90,7 @@ object LabelEvaluator {
 
         val redViolations = mutableListOf<String>()
         val yellowViolations = mutableListOf<String>()
+        val context = userSettings.context
 
         val cleanIngredients = detectedIngredients.map { ingredient ->
             ingredient?.replace("\u00A0", " ")
@@ -160,12 +161,12 @@ object LabelEvaluator {
         // If no nutrients exist at all, handle pure ingredients or empty scan
         if (!isProduce && !anyNutrientFound) {
             return if (hasIngredients) {
-                finalizeResult(redViolations, yellowViolations, isIngredientsOnly = true)
+                finalizeResult(redViolations, yellowViolations, isIngredientsOnly = true, context = context)
             } else {
                 EvaluationResult(
-                    bgColor = "#2B2D31".toColorInt(),
-                    textColor = "#9EA1A8".toColorInt(),
-                    subtextColor = "#D1D2D5".toColorInt(),
+                    bgColor = ContextCompat.getColor(context, R.color.cardSurface),
+                    textColor = ContextCompat.getColor(context, R.color.textMuted),
+                    subtextColor = ContextCompat.getColor(context, R.color.textSecondary),
                     gradeTitle = "Incomplete Scan",
                     redViolations = emptyList(),
                     yellowViolations = listOf("No nutrition data or ingredients detected.") + yellowViolations
@@ -174,7 +175,7 @@ object LabelEvaluator {
         }
 
         if (redViolations.isNotEmpty()) {
-            return finalizeResult(redViolations, yellowViolations)
+            return finalizeResult(redViolations, yellowViolations, isIngredientsOnly = false, context = context)
         }
 
         fun getVal(xmlId: String): Float {
@@ -264,43 +265,44 @@ object LabelEvaluator {
             processed.add(map.xmlId)
         }
 
-        return finalizeResult(redViolations, yellowViolations)
+        return finalizeResult(redViolations, yellowViolations, isIngredientsOnly = false, context = context)
     }
 
     private fun finalizeResult(
         reds: List<String>,
         yellows: List<String>,
-        isIngredientsOnly: Boolean = false
+        isIngredientsOnly: Boolean = false,
+        context: Context
     ): EvaluationResult {
         return when {
             reds.isNotEmpty() -> EvaluationResult(
-                bgColor = "#321414".toColorInt(),
-                textColor = "#E57373".toColorInt(),
-                subtextColor = "#FFCDD2".toColorInt(),
+                bgColor = ContextCompat.getColor(context, R.color.gradeAvoidBackground),
+                textColor = ContextCompat.getColor(context, R.color.gradeAvoid),
+                subtextColor = ContextCompat.getColor(context, R.color.gradeAvoidSubtext),
                 gradeTitle = if (isIngredientsOnly) "Red - Avoid (Watchlist)" else "Red - Avoid",
                 redViolations = reds.distinct(),
                 yellowViolations = yellows.distinct()
             )
             yellows.isNotEmpty() -> EvaluationResult(
-                bgColor = "#332500".toColorInt(),
-                textColor = "#FFD54F".toColorInt(),
-                subtextColor = "#FFF9C4".toColorInt(),
+                bgColor = ContextCompat.getColor(context, R.color.gradeCautionBackground),
+                textColor = ContextCompat.getColor(context, R.color.gradeCaution),
+                subtextColor = ContextCompat.getColor(context, R.color.gradeCautionSubtext),
                 gradeTitle = if (isIngredientsOnly) "Yellow - Caution (Watchlist)" else "Yellow - Caution",
                 redViolations = emptyList(),
                 yellowViolations = yellows.distinct()
             )
             isIngredientsOnly -> EvaluationResult(
-                bgColor = "#1A2F4C".toColorInt(),
-                textColor = "#6BA4FF".toColorInt(),
-                subtextColor = "#B5D3FF".toColorInt(),
+                bgColor = ContextCompat.getColor(context, R.color.gradeUnrated),
+                textColor = ContextCompat.getColor(context, R.color.gradeUnratedText),
+                subtextColor = ContextCompat.getColor(context, R.color.gradeUnratedSubtext),
                 gradeTitle = "Watchlist Clear (Unrated)",
                 redViolations = emptyList(),
                 yellowViolations = listOf("No blacklisted ingredients found. Nutrition facts not scanned.")
             )
             else -> EvaluationResult(
-                bgColor = "#14321A".toColorInt(),
-                textColor = "#81C784".toColorInt(),
-                subtextColor = "#C8E6C9".toColorInt(),
+                bgColor = ContextCompat.getColor(context, R.color.gradeSafeBackground),
+                textColor = ContextCompat.getColor(context, R.color.gradeSafe),
+                subtextColor = ContextCompat.getColor(context, R.color.gradeSafeSubtext),
                 gradeTitle = "Green - Safe",
                 redViolations = emptyList(),
                 yellowViolations = emptyList()

@@ -1,15 +1,13 @@
 package net.meinook.labelscanner
 
 import android.content.Context
-import android.graphics.Color
-import android.graphics.Typeface
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
@@ -21,8 +19,8 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
-import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
@@ -32,7 +30,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import java.util.Locale
 
-// Aligned constructor cleanly maps to your fragment_health layout resource ID
 class HealthFragment : Fragment(R.layout.fragment_health) {
 
     private lateinit var tabLayoutHealth: TabLayout
@@ -50,14 +47,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private lateinit var layoutConditions: LinearLayout
     private lateinit var layoutAllergens: LinearLayout
 
-    private var scrollCondition: NestedScrollView? = null
-    private var ivScrollUp: ImageView? = null
-    private var ivScrollDown: ImageView? = null
-
-    private var scrollAllergen: NestedScrollView? = null
-    private var ivAllergenScrollUp: ImageView? = null
-    private var ivAllergenScrollDown: ImageView? = null
-
     // Tab 2 Elements
     private lateinit var etCustomIngredient: EditText
     private lateinit var btnAddRed: MaterialButton
@@ -65,18 +54,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private lateinit var chipGroupCommonAdds: ChipGroup
     private lateinit var layoutActiveReds: LinearLayout
     private lateinit var layoutActiveYellows: LinearLayout
-
-    private var scrollCommon: NestedScrollView? = null
-    private var ivCommonScrollUp: ImageView? = null
-    private var ivCommonScrollDown: ImageView? = null
-
-    private var scrollRed: NestedScrollView? = null
-    private var ivRedScrollUp: ImageView? = null
-    private var ivRedScrollDown: ImageView? = null
-
-    private var scrollYellow: NestedScrollView? = null
-    private var ivYellowScrollUp: ImageView? = null
-    private var ivYellowScrollDown: ImageView? = null
 
     private lateinit var appSettings: AppSettings
 
@@ -109,19 +86,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         layoutActiveReds = view.findViewById(R.id.layoutActiveReds)
         layoutActiveYellows = view.findViewById(R.id.layoutActiveYellows)
 
-        // Bind Tab 2 Scroll Overlays
-        scrollCommon = view.findViewById(R.id.scrollCommonAdds)
-        ivCommonScrollUp = view.findViewById(R.id.ivCommonScrollUpIndicator)
-        ivCommonScrollDown = view.findViewById(R.id.ivCommonScrollDownIndicator)
-
-        scrollRed = view.findViewById(R.id.scrollActiveReds)
-        ivRedScrollUp = view.findViewById(R.id.ivRedScrollUpIndicator)
-        ivRedScrollDown = view.findViewById(R.id.ivRedScrollDownIndicator)
-
-        scrollYellow = view.findViewById(R.id.scrollActiveYellows)
-        ivYellowScrollUp = view.findViewById(R.id.ivYellowScrollUpIndicator)
-        ivYellowScrollDown = view.findViewById(R.id.ivYellowScrollDownIndicator)
-
         setupTabLayout()
         setupTab1Profiles()
         setupTab2CustomWatchlist()
@@ -150,10 +114,14 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     }
 
     private fun setupTab1Profiles() {
-        spinnerGender.setPopupBackgroundDrawable(Color.parseColor("#2E221D").toDrawable())
+        val context = requireContext()
+
+        spinnerGender.setPopupBackgroundDrawable(
+            ContextCompat.getColor(context, R.color.inputSurface).toDrawable()
+        )
 
         val genderAdapter = ArrayAdapter(
-            requireContext(),
+            context,
             android.R.layout.simple_spinner_item,
             arrayOf("Unspecified", "Male", "Female")
         ).apply {
@@ -161,7 +129,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
         spinnerGender.adapter = genderAdapter
 
-        // Load metrics states
         val savedWeight = appSettings.getUserWeight()
         if (savedWeight > 0.0) {
             etActualWeight.setText(savedWeight.toString())
@@ -183,7 +150,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
         spinnerGender.setSelection(selectionIndex)
 
-        // Dynamic change listener securely captures and saves the gender selection
         spinnerGender.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val genderStr = when (position) {
@@ -203,7 +169,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
         updateCalculatedWeights()
 
-        // Setup real-time weight listener
         etActualWeight.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -215,20 +180,18 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         })
 
-        // Setup Weight Focus & Highlight (Now completely aligned to matches Height aesthetics)
         etActualWeight.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
-                etActualWeight.setBackgroundColor(Color.parseColor("#4E3B34")) // Focus Highlight
+                etActualWeight.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurfaceHighlight))
             } else {
-                etActualWeight.setBackgroundColor(Color.parseColor("#2E221D")) // Standard background
+                etActualWeight.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurface))
             }
         }
 
-        // Weight keyboard "Done" listener
         etActualWeight.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 etActualWeight.clearFocus()
-                val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 imm?.hideSoftInputFromWindow(etActualWeight.windowToken, 0)
                 true
             } else {
@@ -236,27 +199,22 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
-        // Programmatic secure show/hide toggle click logic
         var isWeightRevealed = false
         txtToggleWeight.setOnClickListener {
             if (isWeightRevealed) {
-                // Securely mask weight digits to bullet dots (••••)
                 etActualWeight.transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
                 txtToggleWeight.text = "SHOW"
-                txtToggleWeight.setTextColor(Color.parseColor("#99A1B3"))
+                txtToggleWeight.setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
                 isWeightRevealed = false
             } else {
-                // Reveal the actual raw digits (e.g. 154)
                 etActualWeight.transformationMethod = android.text.method.HideReturnsTransformationMethod.getInstance()
                 txtToggleWeight.text = "HIDE"
-                txtToggleWeight.setTextColor(Color.parseColor("#F4F5FC"))
+                txtToggleWeight.setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
                 isWeightRevealed = true
             }
-            // Keep insertion cursor locked at the end of the text
             etActualWeight.setSelection(etActualWeight.text?.length ?: 0)
         }
 
-        // Separate, isolated Height text change listeners prevent recursive/overlapping overrides
         etHeightFeet.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -283,16 +241,14 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         })
 
-        // Feet Focus & Highlight
         etHeightFeet.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
-                etHeightFeet.setBackgroundColor(Color.parseColor("#4E3B34")) // Focus Highlight
+                etHeightFeet.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurfaceHighlight))
             } else {
-                etHeightFeet.setBackgroundColor(Color.parseColor("#2E221D")) // Standard background
+                etHeightFeet.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurface))
             }
         }
 
-        // Feet keyboard "Next" listener
         etHeightFeet.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_NEXT) {
                 etHeightInches.requestFocus()
@@ -302,20 +258,18 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
-        // Inches Focus & Highlight
         etHeightInches.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
-                etHeightInches.setBackgroundColor(Color.parseColor("#4E3B34")) // Focus Highlight
+                etHeightInches.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurfaceHighlight))
             } else {
-                etHeightInches.setBackgroundColor(Color.parseColor("#2E221D")) // Standard background
+                etHeightInches.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurface))
             }
         }
 
-        // Inches keyboard "Done" listener
         etHeightInches.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 etHeightInches.clearFocus()
-                val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 imm?.hideSoftInputFromWindow(etHeightInches.windowToken, 0)
                 true
             } else {
@@ -323,41 +277,19 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
-        // Inches touch interceptor redirects all touches to highlight/focus "Feet" instead [1]
         etHeightInches.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
                 etHeightFeet.requestFocus()
-                val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 imm?.showSoftInput(etHeightFeet, InputMethodManager.SHOW_IMPLICIT)
             }
             true
         }
 
-        // Setup Scroll Bindings for Targets (Card 2)
-        scrollCondition = view?.findViewById(R.id.scrollConditionCheckBoxes)
-        ivScrollUp = view?.findViewById(R.id.ivScrollUpIndicator)
-        ivScrollDown = view?.findViewById(R.id.ivScrollDownIndicator)
-
-        scrollCondition?.post { updateScrollIndicators() }
-        scrollCondition?.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
-            updateScrollIndicators()
-        })
-
-        // Setup Scroll Bindings for Allergens (Card 3)
-        scrollAllergen = view?.findViewById(R.id.scrollAllergenCheckBoxes)
-        ivAllergenScrollUp = view?.findViewById(R.id.ivAllergenScrollUpIndicator)
-        ivAllergenScrollDown = view?.findViewById(R.id.ivAllergenScrollDownIndicator)
-
-        scrollAllergen?.post { updateAllergenScrollIndicators() }
-        scrollAllergen?.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
-            updateAllergenScrollIndicators()
-        })
-
         buildDynamicCheckBoxes()
     }
 
     private fun setupTab2CustomWatchlist() {
-        // Red (Avoid) Direct Add Button
         btnAddRed.setOnClickListener {
             val text = etCustomIngredient.text.toString().trim()
             if (text.isNotEmpty()) {
@@ -371,7 +303,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
-        // Yellow (Caution) Direct Add Button
         btnAddYellow.setOnClickListener {
             val text = etCustomIngredient.text.toString().trim()
             if (text.isNotEmpty()) {
@@ -385,108 +316,8 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
-        // Bind Tab 2 Scroll Listeners
-        scrollCommon?.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
-            updateCommonScrollIndicators()
-        })
-        scrollRed?.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
-            updateRedScrollIndicators()
-        })
-        scrollYellow?.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
-            updateYellowScrollIndicators()
-        })
-
         setupCommonQuickAddChips()
         populateActiveWatchlists()
-    }
-
-    private fun updateScrollIndicators() {
-        val sc = scrollCondition ?: return
-        val up = ivScrollUp ?: return
-        val down = ivScrollDown ?: return
-        val child = sc.getChildAt(0)
-        if (child != null) {
-            val scrollRange = child.height - sc.height
-            if (scrollRange > 0) {
-                val scrollY = sc.scrollY
-                up.visibility = if (scrollY > 15) View.VISIBLE else View.GONE
-                down.visibility = if (scrollY < scrollRange - 15) View.VISIBLE else View.GONE
-            } else {
-                up.visibility = View.GONE
-                down.visibility = View.GONE
-            }
-        }
-    }
-
-    private fun updateAllergenScrollIndicators() {
-        val sa = scrollAllergen ?: return
-        val up = ivAllergenScrollUp ?: return
-        val child = sa.getChildAt(0)
-        if (child != null) {
-            val scrollRange = child.height - sa.height
-            if (scrollRange > 0) {
-                val scrollY = sa.scrollY
-                up.visibility = if (scrollY > 15) View.VISIBLE else View.GONE
-                sa.findViewById<ImageView>(R.id.ivAllergenScrollDownIndicator)?.visibility = if (scrollY < scrollRange - 15) View.VISIBLE else View.GONE
-            } else {
-                up.visibility = View.GONE
-                sa.findViewById<ImageView>(R.id.ivAllergenScrollDownIndicator)?.visibility = View.GONE
-            }
-        }
-    }
-
-    private fun updateCommonScrollIndicators() {
-        val sc = scrollCommon ?: return
-        val up = ivCommonScrollUp ?: return
-        val down = ivCommonScrollDown ?: return
-        val child = sc.getChildAt(0)
-        if (child != null) {
-            val scrollRange = child.height - sc.height
-            if (scrollRange > 0) {
-                val scrollY = sc.scrollY
-                up.visibility = if (scrollY > 15) View.VISIBLE else View.GONE
-                down.visibility = if (scrollY < scrollRange - 15) View.VISIBLE else View.GONE
-            } else {
-                up.visibility = View.GONE
-                down.visibility = View.GONE
-            }
-        }
-    }
-
-    private fun updateRedScrollIndicators() {
-        val sc = scrollRed ?: return
-        val up = ivRedScrollUp ?: return
-        val down = ivRedScrollDown ?: return
-        val child = sc.getChildAt(0)
-        if (child != null) {
-            val scrollRange = child.height - sc.height
-            if (scrollRange > 0) {
-                val scrollY = sc.scrollY
-                up.visibility = if (scrollY > 15) View.VISIBLE else View.GONE
-                down.visibility = if (scrollY < scrollRange - 15) View.VISIBLE else View.GONE
-            } else {
-                up.visibility = View.GONE
-                down.visibility = View.GONE
-            }
-        }
-    }
-
-    private fun updateYellowScrollIndicators() {
-        val sc = scrollYellow ?: return
-        val up = ivYellowScrollUp ?: return
-        val down = ivYellowScrollDown ?: return
-        val child = sc.getChildAt(0)
-        if (child != null) {
-            val scrollRange = child.height - sc.height
-            if (scrollRange > 0) {
-                val scrollY = sc.scrollY
-                up.visibility = if (scrollY > 15) View.VISIBLE else View.GONE
-                down.visibility = if (scrollY < scrollRange - 15) View.VISIBLE else View.GONE
-            } else {
-                up.visibility = View.GONE
-                down.visibility = View.GONE
-            }
-        }
     }
 
     private fun updateCalculatedWeights() {
@@ -510,6 +341,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
     private fun setupCommonQuickAddChips() {
         chipGroupCommonAdds.removeAllViews()
+        val context = requireContext()
         val commonIngredients = resources.getStringArray(R.array.common_watchlist_items)
         val density = resources.displayMetrics.density
 
@@ -540,25 +372,25 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         for (ingredient in commonIngredients) {
             val ingUpper = ingredient.uppercase().trim()
 
-            val (chipBgColor, chipTextColor) = when {
+            val (chipBgRes, chipTextRes) = when {
                 redCustom.contains(ingUpper) || isCommonIngredientActive(ingredient, activeTriggers) -> {
-                    Pair("#FF6B6B", "#FFFFFF")
+                    Pair(R.color.gradeAvoid, R.color.white)
                 }
                 yellowCustom.contains(ingUpper) -> {
-                    Pair("#FFD54F", "#14161F")
+                    Pair(R.color.gradeCaution, R.color.black)
                 }
                 else -> {
-                    Pair("#222630", "#F4F5FC")
+                    Pair(R.color.inputSurface, R.color.textPrimary)
                 }
             }
 
-            val chip = Chip(requireContext()).apply {
+            val chip = Chip(context).apply {
                 text = ingredient
                 isCheckable = false
                 isClickable = true
-                setTextColor(Color.parseColor(chipTextColor))
-                setChipBackgroundColor(android.content.res.ColorStateList.valueOf(Color.parseColor(chipBgColor)))
-                setChipStrokeColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#3A2D28")))
+                setTextColor(ContextCompat.getColor(context, chipTextRes))
+                chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(context, chipBgRes))
+                chipStrokeColor = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.surfaceStroke))
                 chipStrokeWidth = density * 1f
 
                 setOnClickListener {
@@ -567,8 +399,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
             chipGroupCommonAdds.addView(chip)
         }
-
-        scrollCommon?.post { updateCommonScrollIndicators() }
     }
 
     private fun showQuickAddSelectionDialog(chipView: View, ingredient: String) {
@@ -605,14 +435,14 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private fun populateActiveWatchlists() {
         layoutActiveReds.removeAllViews()
         layoutActiveYellows.removeAllViews()
+        val context = requireContext()
 
         val redItems = appSettings.getCustomWatchlist("RED")
         val yellowItems = appSettings.getCustomWatchlist("YELLOW")
-
         val density = resources.displayMetrics.density
 
         fun createActiveItemView(item: String, tier: String): View {
-            val row = LinearLayout(requireContext()).apply {
+            val row = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
@@ -621,21 +451,21 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 ).apply {
                     setMargins(0, 0, 0, (6 * density).toInt())
                 }
-                setPadding((8 * density).toInt(), (6 * density).toInt(), (8 * density).toInt(), (6 * density).toInt())
-                setBackgroundColor(Color.parseColor("#222630"))
+                setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
+                setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurface))
             }
 
-            val label = TextView(requireContext()).apply {
+            val label = TextView(context).apply {
                 text = item
-                setTextColor(Color.parseColor("#F4F5FC"))
+                setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
                 textSize = 14f
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f)
             }
 
-            val deleteIcon = ImageView(requireContext()).apply {
+            val deleteIcon = ImageView(context).apply {
                 layoutParams = LinearLayout.LayoutParams((24 * density).toInt(), (24 * density).toInt())
                 setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-                imageTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#FF6B6B"))
+                imageTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.gradeAvoid))
                 setOnClickListener {
                     appSettings.removeWatchlistIngredient(item)
                     setupCommonQuickAddChips()
@@ -649,9 +479,9 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
 
         if (redItems.isEmpty()) {
-            val emptyText = TextView(requireContext()).apply {
+            val emptyText = TextView(context).apply {
                 text = "No custom items to avoid."
-                setTextColor(Color.parseColor("#99A1B3"))
+                setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
                 textSize = 12f
                 setPadding(0, 0, 0, (12 * density).toInt())
             }
@@ -663,9 +493,9 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
 
         if (yellowItems.isEmpty()) {
-            val emptyText = TextView(requireContext()).apply {
+            val emptyText = TextView(context).apply {
                 text = "No custom caution markers."
-                setTextColor(Color.parseColor("#99A1B3"))
+                setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
                 textSize = 12f
                 setPadding(0, 0, 0, (12 * density).toInt())
             }
@@ -675,45 +505,39 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 layoutActiveYellows.addView(createActiveItemView(item, "YELLOW"))
             }
         }
-
-        scrollRed?.post { updateRedScrollIndicators() }
-        scrollYellow?.post { updateYellowScrollIndicators() }
     }
 
     private fun buildDynamicCheckBoxes() {
         val allProfiles = appSettings.getAvailableDietProfiles()
         val selectedIds = appSettings.getSelectedConditions()
+        val context = requireContext()
 
         layoutConditions.removeAllViews()
         layoutAllergens.removeAllViews()
 
-        val checkboxColorStateList = android.content.res.ColorStateList(
+        val checkboxColorStateList = ColorStateList(
             arrayOf(
                 intArrayOf(-android.R.attr.state_checked),
                 intArrayOf(android.R.attr.state_checked)
             ),
             intArrayOf(
-                Color.parseColor("#A89890"),
-                Color.parseColor("#4CAF50")
+                ContextCompat.getColor(context, R.color.textUnselected),
+                ContextCompat.getColor(context, R.color.accentVivid)
             )
         )
 
         for (profile in allProfiles) {
-            val checkBox = MaterialCheckBox(requireContext()).apply {
+            val checkBox = MaterialCheckBox(context).apply {
                 text = profile.displayName
                 isChecked = selectedIds.contains(profile.id)
-                setTextColor(Color.parseColor("#F4F5FC"))
+                setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
                 textSize = 15f
-                setPadding(0, 24, 0, 24)
+                setPadding(0, 20, 0, 20)
                 buttonTintList = checkboxColorStateList
 
                 setOnCheckedChangeListener { _, isChecked ->
                     appSettings.toggleConditionState(profile.id, isChecked)
 
-                    // Rebuild the UI if:
-                    // 1. We toggled the baseline profile
-                    // 2. We checked a new condition (handles conflict unchecking)
-                    // 3. The final active set fell back to healthy_baseline
                     val currentSelected = appSettings.getSelectedConditions()
                     if (profile.id == "healthy_baseline" || isChecked || currentSelected.contains("healthy_baseline")) {
                         buildDynamicCheckBoxes()
@@ -732,9 +556,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 layoutConditions.addView(checkBox)
             }
         }
-
-        scrollCondition?.post { updateScrollIndicators() }
-        scrollAllergen?.post { updateAllergenScrollIndicators() }
     }
 
     private fun showAllergenDetails(profileId: String, title: String) {

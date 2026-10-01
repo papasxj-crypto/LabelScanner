@@ -10,7 +10,7 @@
         android:id="@+id/topShade"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="#80000000"
+        android:background="@color/surfaceTranslucent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@+id/viewfinderFrame"
         app:layout_constraintStart_toStartOf="parent"
@@ -31,7 +31,7 @@
     <View
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="#80000000"
+        android:background="@color/surfaceTranslucent"
         app:layout_constraintTop_toBottomOf="@+id/viewfinderFrame"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -41,7 +41,7 @@
     <View
         android:layout_width="0dp"
         android:layout_height="180dp"
-        android:background="#80000000"
+        android:background="@color/surfaceTranslucent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/viewfinderFrame"
         app:layout_constraintTop_toTopOf="@+id/viewfinderFrame" />
@@ -49,7 +49,7 @@
     <View
         android:layout_width="0dp"
         android:layout_height="180dp"
-        android:background="#80000000"
+        android:background="@color/surfaceTranslucent"
         app:layout_constraintStart_toEndOf="@+id/viewfinderFrame"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/viewfinderFrame" />
@@ -57,11 +57,15 @@
     <!-- MANUAL FALLBACK BUTTON -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnManualLabel"
+        style="@style/Widget.LabelScanner.Button.Primary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="SCAN LABEL"
-        android:visibility="gone"
+        android:textColor="@color/buttonPrimaryText"
+        app:backgroundTint="@color/buttonPrimaryBackground"
+        app:iconTint="@color/buttonPrimaryText"
         app:icon="@android:drawable/ic_menu_camera"
+        android:visibility="gone"
         android:layout_marginBottom="24dp"
         app:layout_constraintBottom_toBottomOf="@+id/viewfinderFrame"
         app:layout_constraintStart_toStartOf="parent"

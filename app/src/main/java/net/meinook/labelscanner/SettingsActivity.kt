@@ -1,13 +1,13 @@
 package net.meinook.labelscanner
 
-import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.view.Window
 import android.widget.Button
 import android.widget.CheckBox
-import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import com.google.android.material.snackbar.Snackbar
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -24,32 +24,35 @@ class SettingsActivity : AppCompatActivity() {
         val buttonSave = findViewById<Button>(R.id.buttonSaveSettings)
         val btnCreateCustomProfile = findViewById<Button>(R.id.btnCreateCustomProfile)
 
-        // Populate left-handed check state (Checked if NOT right-handed) [1]
+        // Populate left-handed check state (Checked if NOT right-handed)
         cbLeftHanded.isChecked = !settings.isRightHanded()
 
-        // Master Save button preference listener [2]
+        // Master Save button preference listener
         buttonSave.setOnClickListener {
             saveUserConfigurationSettings()
         }
 
-        // Launch custom profile creator flow [SettingsActivity.kt]
+        // Launch custom profile creator flow
         btnCreateCustomProfile.setOnClickListener {
             CustomProfileManager.showCreateCustomProfileDialog(this, settings) {
-                // Set the pending save flag so fragments recreate the check lists cleanly [SettingsActivity.kt]
+                // Set the pending save flag so fragments recreate the check lists cleanly
                 settings.setPendingSaveFlag(true)
             }
         }
     }
 
     /**
-     * Persists the lefty preference, signals a home menu update, and closesSettings [1, 2]
+     * Persists the lefty preference, signals a home menu update, and closes Settings
      */
     private fun saveUserConfigurationSettings() {
-        // Save inverse of lefty check state as your RightHanded preference [1]
+        // Save inverse of lefty check state as your RightHanded preference
         settings.setRightHanded(!cbLeftHanded.isChecked)
 
         val rootView = findViewById<View>(Window.ID_ANDROID_CONTENT)
-        Snackbar.make(rootView, getString(R.string.toast_settings_saved), Snackbar.LENGTH_SHORT).show()
+        Snackbar.make(rootView, getString(R.string.toast_settings_saved), Snackbar.LENGTH_SHORT)
+            .setBackgroundTint(ContextCompat.getColor(this, R.color.cardSurface))
+            .setTextColor(ContextCompat.getColor(this, R.color.textPrimary))
+            .show()
 
         // Set the pending save flag so HomeFragment recreates and flips the Compose menu
         settings.setPendingSaveFlag(true)

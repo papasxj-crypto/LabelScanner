@@ -37,8 +37,8 @@
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1dp"
-                    app:strokeColor="#3A2D28"
-                    app:cardBackgroundColor="#251B18">
+                    app:strokeColor="@color/surfaceStroke"
+                    app:cardBackgroundColor="@color/cardSurface">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -51,7 +51,7 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal"
                             android:gravity="center_vertical"
-                            android:background="#1F1714"
+                            android:background="@color/headerSurface"
                             android:paddingHorizontal="14dp"
                             android:paddingVertical="10dp">
 
@@ -62,7 +62,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="38dp"
                                 android:text="📂 Import"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="13sp"
                                 android:textStyle="bold"
                                 android:paddingHorizontal="10dp"
@@ -79,7 +79,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Servings:"
-                                android:textColor="#A89890"
+                                android:textColor="@color/textMuted"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
                                 android:layout_marginEnd="8dp" />
@@ -88,14 +88,14 @@
                                 android:id="@+id/edtServingsInput"
                                 android:layout_width="60dp"
                                 android:layout_height="38dp"
-                                android:background="#2E221D"
+                                android:background="@color/inputSurface"
                                 android:gravity="center"
                                 android:inputType="number"
                                 android:imeOptions="actionDone"
                                 android:maxLength="3"
                                 android:padding="4dp"
                                 android:text="4"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="16sp"
                                 android:textStyle="bold"
                                 android:selectAllOnFocus="true" />
@@ -109,11 +109,11 @@
                             android:minLines="7"
                             android:gravity="top|start"
                             android:inputType="textMultiLine"
-                            android:background="@android:color/transparent"
+                            android:background="@color/transparent"
                             android:padding="16dp"
                             android:hint="Paste recipe ingredients or website link here..."
-                            android:textColorHint="#A89890"
-                            android:textColor="#F4F5FC"
+                            android:textColorHint="@color/textHint"
+                            android:textColor="@color/textPrimary"
                             android:textSize="15sp"
                             android:lineSpacingExtra="4dp" />
                     </LinearLayout>
@@ -126,7 +126,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="54dp"
                     android:layout_marginBottom="8dp"
-                    app:backgroundTint="#2B1F16"
+                    app:backgroundTint="@color/buttonPrimaryBackground"
                     android:text="Profile &amp; Adjust" />
             </LinearLayout>
 
@@ -155,7 +155,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Recipe Name"
-                        android:textColor="#F4F5FC"
+                        android:textColor="@color/textPrimary"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:maxLines="2"
@@ -168,7 +168,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
                         android:text="↻ Re-Profile"
-                        android:textColor="#D1D2D5"
+                        android:textColor="@color/textSecondary"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:insetTop="0dp"
@@ -182,7 +182,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="36dp"
                         android:text="✎ Edit Input"
-                        android:textColor="#F4F5FC"
+                        android:textColor="@color/textPrimary"
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:insetTop="0dp"
@@ -201,8 +201,8 @@
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1dp"
-                    app:strokeColor="#3A2D28"
-                    app:cardBackgroundColor="#251B18">
+                    app:strokeColor="@color/surfaceStroke"
+                    app:cardBackgroundColor="@color/cardSurface">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -224,7 +224,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="CLINICAL IMPACT"
-                                android:textColor="#A89890"
+                                android:textColor="@color/textMuted"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:letterSpacing="0.1" />
@@ -233,7 +233,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Tap for diagnostics ➔"
-                                android:textColor="#A89890"
+                                android:textColor="@color/textMuted"
                                 android:textSize="10sp"
                                 android:textStyle="italic" />
                         </LinearLayout>
@@ -243,7 +243,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="SODIUM"
-                            android:textColor="#A89890"
+                            android:textColor="@color/textMuted"
                             android:textSize="10sp"
                             android:textStyle="bold" />
 
@@ -258,7 +258,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="OG"
-                                android:textColor="#60544E"
+                                android:textColor="@color/textHint"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -274,7 +274,7 @@
                                 android:layout_width="100dp"
                                 android:layout_height="wrap_content"
                                 android:text="499 mg"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="11sp"
                                 android:gravity="end" />
                         </LinearLayout>
@@ -291,7 +291,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="ADJ"
-                                android:textColor="#D1D2D5"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -307,7 +307,7 @@
                                 android:layout_width="100dp"
                                 android:layout_height="wrap_content"
                                 android:text="378 mg (-24%)"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:gravity="end" />
@@ -318,7 +318,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="POTASSIUM"
-                            android:textColor="#A89890"
+                            android:textColor="@color/textMuted"
                             android:textSize="10sp"
                             android:textStyle="bold" />
 
@@ -333,7 +333,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="OG"
-                                android:textColor="#60544E"
+                                android:textColor="@color/textHint"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -349,7 +349,7 @@
                                 android:layout_width="100dp"
                                 android:layout_height="wrap_content"
                                 android:text="425 mg"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="11sp"
                                 android:gravity="end" />
                         </LinearLayout>
@@ -366,7 +366,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="ADJ"
-                                android:textColor="#D1D2D5"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -382,7 +382,7 @@
                                 android:layout_width="100dp"
                                 android:layout_height="wrap_content"
                                 android:text="352 mg (-17%)"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:gravity="end" />
@@ -393,7 +393,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="CARBS (NET)"
-                            android:textColor="#A89890"
+                            android:textColor="@color/textMuted"
                             android:textSize="10sp"
                             android:textStyle="bold" />
 
@@ -408,7 +408,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="OG"
-                                android:textColor="#60544E"
+                                android:textColor="@color/textHint"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -424,7 +424,7 @@
                                 android:layout_width="100dp"
                                 android:layout_height="wrap_content"
                                 android:text="9.1 g"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="11sp"
                                 android:gravity="end" />
                         </LinearLayout>
@@ -441,7 +441,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="ADJ"
-                                android:textColor="#D1D2D5"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -457,7 +457,7 @@
                                 android:layout_width="100dp"
                                 android:layout_height="wrap_content"
                                 android:text="31.9 g"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:gravity="end" />
@@ -468,7 +468,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="PROTEIN"
-                            android:textColor="#A89890"
+                            android:textColor="@color/textMuted"
                             android:textSize="10sp"
                             android:textStyle="bold" />
 
@@ -483,7 +483,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="OG"
-                                android:textColor="#60544E"
+                                android:textColor="@color/textHint"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -499,7 +499,7 @@
                                 android:layout_width="100dp"
                                 android:layout_height="wrap_content"
                                 android:text="19.7 g"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="11sp"
                                 android:gravity="end" />
                         </LinearLayout>
@@ -515,7 +515,7 @@
                                 android:layout_width="26dp"
                                 android:layout_height="wrap_content"
                                 android:text="ADJ"
-                                android:textColor="#D1D2D5"
+                                android:textColor="@color/textSecondary"
                                 android:textSize="10sp"
                                 android:textStyle="bold" />
 
@@ -531,7 +531,7 @@
                                 android:layout_width="100dp"
                                 android:layout_height="wrap_content"
                                 android:text="17.3 g (-12%)"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:gravity="end" />
@@ -548,8 +548,8 @@
                     app:cardCornerRadius="16dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="1dp"
-                    app:strokeColor="#3A2D28"
-                    app:cardBackgroundColor="#251B18"
+                    app:strokeColor="@color/surfaceStroke"
+                    app:cardBackgroundColor="@color/cardSurface"
                     android:layout_marginBottom="12dp">
 
                     <LinearLayout
@@ -572,7 +572,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
                                 android:text="INGREDIENTS (ADJUSTED)"
-                                android:textColor="#A89890"
+                                android:textColor="@color/textMuted"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:letterSpacing="0.1" />
@@ -583,7 +583,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="32dp"
                                 android:text="Report Issue"
-                                android:textColor="#99A1B3"
+                                android:textColor="@color/buttonSecondaryText"
                                 android:textSize="11sp"
                                 android:insetTop="0dp"
                                 android:insetBottom="0dp"
@@ -595,7 +595,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="32dp"
                                 android:text="Save"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
                                 android:insetTop="0dp"
@@ -609,8 +609,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="4dp"
                             android:indeterminate="true"
-                            app:indicatorColor="#D1D2D5"
-                            app:trackColor="#1F1714"
+                            app:indicatorColor="@color/textSecondary"
+                            app:trackColor="@color/indicatorTrack"
                             android:layout_marginBottom="8dp"
                             android:visibility="gone" />
 
@@ -619,7 +619,7 @@
                             android:id="@+id/txtAdjustedOutput"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textColor="#F4F5FC"
+                            android:textColor="@color/textPrimary"
                             android:textSize="14sp"
                             android:lineSpacingExtra="4dp" />
 
@@ -637,7 +637,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:layout_marginEnd="4dp"
                                 android:text="Get Steps"
                                 android:textSize="12sp" />
@@ -648,7 +648,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:textColor="#F4F5FC"
+                                android:textColor="@color/textPrimary"
                                 android:layout_marginStart="4dp"
                                 android:text="Get Analysis"
                                 android:textSize="12sp" />
@@ -662,7 +662,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="▶ View Original Ingredients"
-                    android:textColor="#D1D2D5"
+                    android:textColor="@color/textSecondary"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:padding="10dp"
@@ -672,11 +672,11 @@
                     android:id="@+id/txtOriginalInputCollapsed"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#99A1B3"
+                    android:textColor="@color/buttonSecondaryText"
                     android:textSize="13sp"
                     android:lineSpacingExtra="3dp"
                     android:padding="12dp"
-                    android:background="#1F1714"
+                    android:background="@color/headerSurface"
                     android:visibility="gone" />
             </LinearLayout>
 

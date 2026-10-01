@@ -2,12 +2,12 @@ package net.meinook.labelscanner
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
+import androidx.core.content.ContextCompat
 
 class ClinicalGaugeBar @JvmOverloads constructor(
     context: Context,
@@ -21,22 +21,22 @@ class ClinicalGaugeBar @JvmOverloads constructor(
     private var maxScale: Float = 600f
 
     private val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#1F1714")
+        color = ContextCompat.getColor(context, R.color.indicatorTrack)
         style = Paint.Style.FILL
     }
 
     private val greenPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#81C784")
+        color = ContextCompat.getColor(context, R.color.gradeSafe)
         style = Paint.Style.FILL
     }
 
     private val yellowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#FFD54F")
+        color = ContextCompat.getColor(context, R.color.gradeCaution)
         style = Paint.Style.FILL
     }
 
     private val redPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#FF6B6B")
+        color = ContextCompat.getColor(context, R.color.gradeAvoid)
         style = Paint.Style.FILL
     }
 

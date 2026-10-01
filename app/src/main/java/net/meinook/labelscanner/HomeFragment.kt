@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -266,7 +267,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         onBarcodeClick: () -> Unit,
         onProduceClick: () -> Unit
     ) {
-        val unifiedButtonColor = Color(0xFF32221A)
+        val unifiedButtonColor = colorResource(id = R.color.cardSurface)
 
         val produceIcon = ImageVector.vectorResource(id = R.drawable.ic_produce)
         val barcodeIcon = ImageVector.vectorResource(id = R.drawable.ic_barcode)
@@ -347,7 +348,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             activity?.runOnUiThread {
                 resetUI()
                 textExplanation.text = "This is a store-packaged variable weight item. Please use 'Camera Scan' to evaluate its ingredient label directly!"
-                textExplanation.setTextColor(android.graphics.Color.WHITE)
+                textExplanation.setTextColor(ContextCompat.getColor(requireContext(), R.color.textPrimary))
             }
             return
         }
@@ -570,7 +571,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
-    // --- HIGH-ACCURACY DETERMINISTIC ON-DEVICE NUTRITION PARSER ---
     private fun tryParseNutritionLocally(rawText: String): Pair<JSONObject, List<String>>? {
         val lines = rawText.lines().map { it.trim() }.filter { it.isNotEmpty() }
         val lowerText = rawText.lowercase(Locale.US)
@@ -587,7 +587,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             return null
         }
 
-        // Mandatory regex anchors with explicit metric units (prevents % DV confusion)
         val cal = extractFirstMatch(
             Regex("""(?i)\bCalories\s*[:]?\s*(\d{1,4})\b"""),
             Regex("""(?i)\bEnergy\s*[:]?\s*(\d{1,4})\s*k?cal\b""")
@@ -622,7 +621,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             Regex("""(?i)\bPotassium\s*[:]?\s*(\d{1,5})\s*mg\b""")
         )
 
-        // Extract clean ingredients list
         val ingredientsList = mutableListOf<String>()
         val ingIndex = lowerText.indexOf("ingredients")
         if (ingIndex != -1) {
@@ -636,7 +634,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     .filter { it.length > 1 }
             )
         } else {
-            // Ingredient-only scan detection (single words or lines like "Sugar", "Bleached Flour")
             if (cal == null && sod == null && carb == null) {
                 val nonMacroLines = lines.filter { line ->
                     val l = line.lowercase(Locale.US)
@@ -654,12 +651,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
         }
 
-        // CONFIDENCE GATE: Must have clear Nutrition anchors OR clear ingredients to trust local result
         val hasClearNutritionBox = (cal != null || sod != null || carb != null || sug != null)
         val hasClearIngredients = ingredientsList.isNotEmpty()
 
         if (!hasClearNutritionBox && !hasClearIngredients) {
-            return null // Ambiguous scan -> fall back to Cloud Run
+            return null
         }
 
         val json = JSONObject().apply {
@@ -743,7 +739,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             .addOnSuccessListener { visionText ->
                 val extractedText = visionText.text
                 if (extractedText.isNotBlank()) {
-                    // FAST-PATH: Try instant on-device deterministic parse first
                     val localResult = tryParseNutritionLocally(extractedText)
                     if (localResult != null) {
                         val (json, ingredients) = localResult
@@ -779,7 +774,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             userSettings.getSelectedConditions().contains("keto")
                         )
                     } else {
-                        // Ambiguous layout: Fallback to Cloud Run
                         activity?.runOnUiThread { textExplanation.text = "Analyzing text..." }
                         executeTextBasedAnalysis(extractedText)
                     }
@@ -896,7 +890,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 val json = JSONObject(rawResponse.replace("```json", "").replace("```", "").trim())
                 val name = json.optString("item_name", "Produce")
 
-                // --- REALITY CHECK GUARDRAIL ---
                 val isNonFood = !json.optBoolean("is_food", true) ||
                         name.contains("non-food", ignoreCase = true) ||
                         name.startsWith("none", ignoreCase = true)
@@ -906,9 +899,9 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         isAnalyzing = false
                         val nonFoodResult = EvaluationResult(
                             gradeTitle = "Not Edible Produce",
-                            textColor = android.graphics.Color.parseColor("#F4F5FC"),
-                            subtextColor = android.graphics.Color.parseColor("#99A1B3"),
-                            bgColor = android.graphics.Color.parseColor("#2E221D"),
+                            textColor = ContextCompat.getColor(requireContext(), R.color.textPrimary),
+                            subtextColor = ContextCompat.getColor(requireContext(), R.color.textSecondary),
+                            bgColor = ContextCompat.getColor(requireContext(), R.color.cardSurface),
                             redViolations = emptyList(),
                             yellowViolations = emptyList()
                         )
@@ -1080,7 +1073,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             cachedMacros = null
             cachedSuggestions = null
             textExplanation.text = "Ready..."
-            textExplanation.setTextColor(android.graphics.Color.WHITE)
+            context?.let { textExplanation.setTextColor(ContextCompat.getColor(it, R.color.textPrimary)) }
         }
     }
 

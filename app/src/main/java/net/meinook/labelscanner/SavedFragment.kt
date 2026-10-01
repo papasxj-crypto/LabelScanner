@@ -2,7 +2,7 @@ package net.meinook.labelscanner
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Color
+import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
@@ -14,6 +14,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import java.util.Locale
@@ -92,8 +93,8 @@ class SavedFragment : Fragment() {
             cardElevation = 0f
             radius = (12 * density)
             strokeWidth = (1 * density).toInt()
-            strokeColor = Color.parseColor("#313542")
-            setCardBackgroundColor(Color.parseColor("#EA14161F"))
+            strokeColor = ContextCompat.getColor(context, R.color.surfaceStroke)
+            setCardBackgroundColor(ContextCompat.getColor(context, R.color.surfaceTranslucent))
         }
 
         val horizontalLayout = LinearLayout(context).apply {
@@ -105,7 +106,7 @@ class SavedFragment : Fragment() {
         val iconView = ImageView(context).apply {
             layoutParams = LinearLayout.LayoutParams((32 * density).toInt(), (32 * density).toInt())
             setImageResource(R.drawable.ic_recipe)
-            imageTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#FFF7E6"))
+            imageTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.textPrimary))
         }
 
         val textLayout = LinearLayout(context).apply {
@@ -117,7 +118,7 @@ class SavedFragment : Fragment() {
 
         val titleView = TextView(context).apply {
             text = item.title
-            setTextColor(Color.parseColor("#F4F5FC"))
+            setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
             textSize = 15f
             setTypeface(null, Typeface.BOLD)
         }
@@ -130,7 +131,7 @@ class SavedFragment : Fragment() {
 
         val subtitleView = TextView(context).apply {
             text = cleanSubtitle
-            setTextColor(Color.parseColor("#99A1B3"))
+            setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
             textSize = 12f
             setPadding(0, (2 * density).toInt(), 0, 0)
         }
@@ -173,18 +174,18 @@ class SavedFragment : Fragment() {
         val isOriginallySafe = item.adjustedGrade.lowercase(Locale.ROOT).contains("green") ||
                 item.adjustedGrade.lowercase(Locale.ROOT).contains("safe")
 
-        val (safetyText, safetyColor) = when {
-            hasCustomViolation -> Pair("🔴 Avoid (Watchlist)", "#FF6B6B")
-            isOriginallyRed -> Pair("🔴 Avoid (Saved)", "#FF6B6B")
-            !profileMatches -> Pair("🟡 Re-Verify", "#FFD54F")
-            isOriginallyCaution -> Pair("🟡 Caution (Saved)", "#FFD54F")
-            isOriginallySafe -> Pair("🟢 Verified Safe", "#81C784")
-            else -> Pair("🟡 Re-Verify", "#FFD54F")
+        val (safetyText, safetyColorRes) = when {
+            hasCustomViolation -> Pair("🔴 Avoid (Watchlist)", R.color.gradeAvoid)
+            isOriginallyRed -> Pair("🔴 Avoid (Saved)", R.color.gradeAvoid)
+            !profileMatches -> Pair("🟡 Re-Verify", R.color.gradeCaution)
+            isOriginallyCaution -> Pair("🟡 Caution (Saved)", R.color.gradeCaution)
+            isOriginallySafe -> Pair("🟢 Verified Safe", R.color.gradeSafe)
+            else -> Pair("🟡 Re-Verify", R.color.gradeCaution)
         }
 
         val safetyBadgeView = TextView(context).apply {
             text = safetyText
-            setTextColor(Color.parseColor(safetyColor))
+            setTextColor(ContextCompat.getColor(context, safetyColorRes))
             textSize = 12f
             setTypeface(null, Typeface.BOLD)
         }
@@ -194,7 +195,7 @@ class SavedFragment : Fragment() {
                 ?: appSettings.getAvailableDietProfiles().find { it.id == normalizedItemBase }?.displayName
                 ?: item.baseProfileId
             text = "For: $displayName"
-            setTextColor(Color.parseColor("#8C7A6B"))
+            setTextColor(ContextCompat.getColor(context, R.color.textMuted))
             textSize = 10f
             setPadding(0, (4 * density).toInt(), 0, 0)
             setTypeface(null, Typeface.BOLD)
@@ -222,7 +223,6 @@ class SavedFragment : Fragment() {
                 putString("ADJUSTED_GRADE", item.adjustedGrade)
                 putString("ORIGINAL_GRADE", "")
             }
-            // Standard forward navigation preserves SavedFragment on the backstack so '<-' returns to Cookbook
             findNavController().navigate(R.id.recipeDetailFragment, bundle)
         }
 

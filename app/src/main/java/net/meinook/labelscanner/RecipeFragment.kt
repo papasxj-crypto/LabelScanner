@@ -762,12 +762,17 @@ class RecipeFragment : Fragment() {
     private fun sanitizeScrapedIngredients(text: String): String {
         return text.lines()
             .map { line ->
-                var temp = line.trim()
-                temp = temp.replace('\u00A0', ' ')
-                    .replace('\u200B', ' ')
-                    .trim()
+                var temp = line.trim().replace('\u00A0', ' ').replace('\u200B', ' ').trim()
                 temp = temp.replace(Regex("""^[^a-zA-Z0-9½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞\d/()]+"""), "").trim()
-                temp
+                // 1. Collapse double measurement units (e.g. "4 oz 1 cup" -> "4 oz")
+                temp = temp.replace(Regex("""(?i)(\b\d+(?:\s+\d+/\d+|\.\d+|/\d+)?\s*(?:oz|ounces?|g|grams?|lbs?|pounds?|ml))\s+\d+(?:\s+\d+/\d+|\.\d+|/\d+)?\s*(?:cups?|tbsp?|tsp?|tablespoons?|teaspoons?)\b"""), "$1")
+                // 2. Clean nested parentheses (e.g. "((optional))" -> "(optional)")
+                temp = temp.replace(Regex("""\({2,}"""), "(").replace(Regex("""\){2,}"""), ")")
+                // 3. Strip conversational serving suffixes
+                temp = temp.replace(Regex("""(?i)\s+(?:cut into \d+ wedges\s+)?to serve\b"""), "")
+                    .replace(Regex("""(?i)\s+\(or to taste\)\b"""), "")
+                    .replace(Regex("""(?i)\s+to taste\b"""), "")
+                temp.trim()
             }
             .filter { it.isNotEmpty() }
             .joinToString("\n")

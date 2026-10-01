@@ -1,12 +1,12 @@
 package net.meinook.labelscanner
 
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.button.MaterialButton
@@ -17,6 +17,8 @@ class ResultDetailFragment : Fragment(R.layout.fragment_result_detail) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val context = requireContext()
 
         // 1. Unpack Arguments safely
         @Suppress("DEPRECATION")
@@ -81,10 +83,10 @@ class ResultDetailFragment : Fragment(R.layout.fragment_result_detail) {
                 layoutViolations.visibility = View.VISIBLE
                 if (evaluation.redViolations.isNotEmpty()) {
                     textViolationsHeader.text = "Avoidance Criteria Triggered:"
-                    textViolationsHeader.setTextColor(Color.parseColor("#E57373"))
+                    textViolationsHeader.setTextColor(ContextCompat.getColor(context, R.color.gradeAvoid))
                 } else {
                     textViolationsHeader.text = "Cautionary Notes:"
-                    textViolationsHeader.setTextColor(Color.parseColor("#FFD54F"))
+                    textViolationsHeader.setTextColor(ContextCompat.getColor(context, R.color.gradeCaution))
                 }
                 textViolationsList.text = allViolations.joinToString("\n") { "• $it" }
             } else {

@@ -1,7 +1,6 @@
 package net.meinook.labelscanner
 
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -10,6 +9,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -95,9 +95,9 @@ class CustomWatchlistFragment : Fragment(R.layout.fragment_custom_watchlist) {
         refreshWatchlists()
     }
 
-    // Runs disk I/O on background thread, preventing frame drops on UI thread
     private fun setupCommonItemsChips() {
         chipGroupCommonItems.removeAllViews()
+        val context = requireContext()
 
         val redWatchlist = appSettings.getCustomWatchlist("RED").toSet()
         val yellowWatchlist = appSettings.getCustomWatchlist("YELLOW").toSet()
@@ -106,7 +106,6 @@ class CustomWatchlistFragment : Fragment(R.layout.fragment_custom_watchlist) {
         val availableDietProfiles = appSettings.getAvailableDietProfiles()
 
         lifecycleScope.launch {
-            // Offload disk reads to Background thread
             val profileTriggersMap = withContext(Dispatchers.Default) {
                 val map = mutableMapOf<String, String>()
                 for (profileId in activeProfiles) {
@@ -119,9 +118,8 @@ class CustomWatchlistFragment : Fragment(R.layout.fragment_custom_watchlist) {
                 map
             }
 
-            // Draw chips on UI thread
             for (item in commonWatchlistItems) {
-                val chip = Chip(requireContext()).apply {
+                val chip = Chip(context).apply {
                     isCloseIconVisible = false
                     isClickable = true
 
@@ -136,30 +134,30 @@ class CustomWatchlistFragment : Fragment(R.layout.fragment_custom_watchlist) {
                     when {
                         isProfileCovered -> {
                             text = "$item (Profile)"
-                            chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#1A237E"))
-                            setTextColor(Color.WHITE)
+                            chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.gradeUnrated))
+                            setTextColor(ContextCompat.getColor(context, R.color.white))
                         }
                         isRed -> {
                             text = item
-                            chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#C62828"))
-                            setTextColor(Color.WHITE)
+                            chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.gradeAvoid))
+                            setTextColor(ContextCompat.getColor(context, R.color.white))
                         }
                         isYellow -> {
                             text = item
-                            chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#FBC02D"))
-                            setTextColor(Color.BLACK)
+                            chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.gradeCaution))
+                            setTextColor(ContextCompat.getColor(context, R.color.black))
                         }
                         else -> {
                             text = item
-                            chipBackgroundColor = ColorStateList.valueOf(Color.parseColor("#2C2C2C"))
-                            setTextColor(Color.WHITE)
+                            chipBackgroundColor = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.inputSurface))
+                            setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
                         }
                     }
 
                     setOnClickListener {
                         if (isProfileCovered) {
                             val coveringProfile = coveredProfileName ?: "Active Profile"
-                            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                            androidx.appcompat.app.AlertDialog.Builder(context)
                                 .setTitle("Clinical Profile Protection")
                                 .setMessage("'$item' is already being monitored automatically because you have the '$coveringProfile' profile active in My Health.\n\nYou do not need to add it to your custom watchlist.")
                                 .setPositiveButton("OK", null)
@@ -196,21 +194,22 @@ class CustomWatchlistFragment : Fragment(R.layout.fragment_custom_watchlist) {
     private fun showConfirmationBanner(ingredient: String, tier: String) {
         pendingDeleteIngredient = ingredient
         tvConfirmMessage.text = "Remove '$ingredient'?"
+        val context = requireContext()
 
         if (tier == "RED") {
-            layoutConfirmBanner.setBackgroundColor(Color.parseColor("#C62828"))
-            tvConfirmMessage.setTextColor(Color.WHITE)
-            btnCancelDelete.setColorFilter(Color.WHITE)
+            layoutConfirmBanner.setBackgroundColor(ContextCompat.getColor(context, R.color.gradeAvoid))
+            tvConfirmMessage.setTextColor(ContextCompat.getColor(context, R.color.white))
+            btnCancelDelete.setColorFilter(ContextCompat.getColor(context, R.color.white))
 
-            btnConfirmDelete.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
-            btnConfirmDelete.setTextColor(Color.parseColor("#C62828"))
+            btnConfirmDelete.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.white))
+            btnConfirmDelete.setTextColor(ContextCompat.getColor(context, R.color.gradeAvoid))
         } else {
-            layoutConfirmBanner.setBackgroundColor(Color.parseColor("#FBC02D"))
-            tvConfirmMessage.setTextColor(Color.BLACK)
-            btnCancelDelete.setColorFilter(Color.BLACK)
+            layoutConfirmBanner.setBackgroundColor(ContextCompat.getColor(context, R.color.gradeCaution))
+            tvConfirmMessage.setTextColor(ContextCompat.getColor(context, R.color.black))
+            btnCancelDelete.setColorFilter(ContextCompat.getColor(context, R.color.black))
 
-            btnConfirmDelete.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#212121"))
-            btnConfirmDelete.setTextColor(Color.WHITE)
+            btnConfirmDelete.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.buttonPrimaryBackground))
+            btnConfirmDelete.setTextColor(ContextCompat.getColor(context, R.color.white))
         }
 
         layoutConfirmBanner.visibility = View.VISIBLE
@@ -246,7 +245,9 @@ class CustomWatchlistFragment : Fragment(R.layout.fragment_custom_watchlist) {
     }
 
     private fun createWatchlistRow(ingredient: String, onDeleteRequest: () -> Unit): View {
-        val rowLayout = LinearLayout(requireContext()).apply {
+        val context = requireContext()
+
+        val rowLayout = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -255,16 +256,16 @@ class CustomWatchlistFragment : Fragment(R.layout.fragment_custom_watchlist) {
             setPadding(8, 16, 8, 16)
         }
 
-        val textView = TextView(requireContext()).apply {
+        val textView = TextView(context).apply {
             text = ingredient
-            setTextColor(Color.WHITE)
+            setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
             textSize = 15f
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
 
-        val deleteButton = ImageView(requireContext()).apply {
+        val deleteButton = ImageView(context).apply {
             setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-            setColorFilter(Color.parseColor("#E57373"))
+            setColorFilter(ContextCompat.getColor(context, R.color.gradeAvoid))
             setPadding(16, 0, 16, 0)
             setOnClickListener { onDeleteRequest() }
         }

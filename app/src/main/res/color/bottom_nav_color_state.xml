@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_checked="true" android:color="#E5C158" /> <!-- Checked: Warm Gold text -->
-    <item android:color="#99A1B3" /> <!-- Unchecked: Muted Slate-Grey text -->
+    <!-- Selected: High-Contrast Bright Text / Icon -->
+    <item android:state_checked="true" android:color="@color/textSelected" />
+
+    <!-- Unselected: Muted Warm Parchment Tone -->
+    <item android:color="@color/textUnselected" />
 </selector>

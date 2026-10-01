@@ -2,14 +2,14 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
 
-    <!-- This makes the center transparent -->
-    <solid android:color="@android:color/transparent" />
+    <!-- Transparent Center Viewport -->
+    <solid android:color="@color/transparent" />
 
-    <!-- This creates the white border -->
+    <!-- High-Contrast Target Viewfinder Border -->
     <stroke
         android:width="2dp"
-        android:color="#FFFFFF" />
+        android:color="@color/textPrimary" />
 
-    <!-- Optional: Slight rounded corners to look professional -->
+    <!-- Rounded Corners for Crisp Instrument Alignment -->
     <corners android:radius="8dp" />
 </shape>

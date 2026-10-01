@@ -1,38 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- ======================================================== -->
+    <!-- 1. ANDROID THEME & MATERIAL COMPATIBILITY TOKENS          -->
+    <!-- ======================================================== -->
+    <color name="colorPrimary">#2B1F16</color>           <!-- Primary App Bar / Button Tint -->
+    <color name="colorPrimaryVariant">#1F1714</color>    <!-- Status Bar / Dark Accent -->
+    <color name="colorOnPrimary">#F4F5FC</color>         <!-- Text on Primary Surfaces -->
+    <color name="colorSecondary">#82B1FF</color>         <!-- Accent / Widgets -->
+    <color name="colorSecondaryVariant">#E89D72</color>  <!-- Secondary Accent -->
+    <color name="colorOnSecondary">#000000</color>       <!-- Text on Secondary Surfaces -->
 
-    <!-- System Colors (Overrides the Android system purple highlights globally!) -->
-    <color name="colorPrimary">#E5C158</color> <!-- Premium warm gold instead of purple -->
-    <color name="colorSecondary">#2B1F16</color> <!-- Soft cocoa-brown instead of purple -->
+    <!-- ======================================================== -->
+    <!-- 2. TEXT & TYPOGRAPHY TOKENS                               -->
+    <!-- ======================================================== -->
+    <color name="textPrimary">#F4F5FC</color>            <!-- Bright off-white for titles & main text -->
+    <color name="textSecondary">#D1D2D5</color>          <!-- High-contrast light gray for subheaders -->
+    <color name="textMuted">#A89890</color>              <!-- Warm parchment muted tone for labels -->
+    <color name="textHint">#A89890</color>               <!-- Input placeholder hints -->
+    <color name="textSelected">#F4F5FC</color>           <!-- Selected tabs & highlighted text -->
+    <color name="textUnselected">#A89890</color>         <!-- Unselected tabs & idle text -->
 
-    <!-- Premium Dark Theme Palette (Tuned for Parchment Background) -->
-    <color name="backgroundColor">#111216</color>
-    <color name="surfaceColor">#EA14161F</color> <!-- 92% opaque deep charcoal -->
-    <color name="surfaceStrokeColor">#313542</color>
-    <color name="textPrimary">#F4F5FC</color>
-    <color name="textSecondary">#99A1B3</color>
-    <color name="textMuted">#6E7585</color>
+    <!-- ======================================================== -->
+    <!-- 3. CARD SURFACES & CONTAINER BACKGROUNDS                  -->
+    <!-- ======================================================== -->
+    <color name="cardSurface">#251B18</color>            <!-- Primary warm dark card surface -->
+    <color name="inputSurface">#2E221D</color>           <!-- Inner input boxes and edit fields -->
+    <color name="inputSurfaceHighlight">#4E3B34</color>  <!-- Focused input field highlight -->
+    <color name="headerSurface">#1F1714</color>          <!-- Dark header strips & sub-containers -->
+    <color name="surfaceStroke">#3A2D28</color>          <!-- Card outlines and section dividers -->
+    <color name="surfaceTranslucent">#EA14161F</color>   <!-- Semi-translucent overlay surfaces -->
 
-    <!-- Balanced Dynamic Dark-Mode Status Colors -->
-    <!-- Safe (Green) -->
-    <color name="safeBg">#14321A</color>
-    <color name="safeAccent">#81C784</color>
-    <color name="safeText">#C8E6C9</color>
+    <!-- ======================================================== -->
+    <!-- 4. BUTTONS & INTERACTIVE CONTROLS                         -->
+    <!-- ======================================================== -->
+    <color name="buttonPrimaryBackground">#2B1F16</color><!-- Main CTA buttons (Profile & Adjust, Done) -->
+    <color name="buttonPrimaryText">#F4F5FC</color>      <!-- Text on primary buttons -->
+    <color name="buttonSecondaryText">#99A1B3</color>    <!-- Text on secondary buttons (Report, etc.) -->
 
-    <!-- Caution (Yellow) -->
-    <color name="cautionBg">#332500</color>
-    <color name="cautionAccent">#FFD54F</color>
-    <color name="cautionText">#FFF9C4</color>
+    <!-- ======================================================== -->
+    <!-- 5. VIVID NON-GRADING ACCENTS (Strictly not R, Y, G)       -->
+    <!-- ======================================================== -->
+    <color name="accentVivid">#82B1FF</color>            <!-- Vivid Ice Blue (Tab indicator, Steps, IBW) -->
+    <color name="accentWarm">#E89D72</color>             <!-- Warm Copper (AjBW, secondary metrics) -->
+    <color name="indicatorTrack">#1F1714</color>         <!-- Background track for gauges & progress -->
 
-    <!-- Avoid (Red) -->
-    <color name="avoidBg">#321414</color>
-    <color name="avoidAccent">#E57373</color>
-    <color name="avoidText">#FFCDD2</color>
+    <!-- ======================================================== -->
+    <!-- 6. CLINICAL SAFETY GRADES (Strictly exclusive to safety)  -->
+    <!-- ======================================================== -->
+    <color name="gradeSafe">#81C784</color>              <!-- 🟢 Green - Safe -->
+    <color name="gradeSafeBackground">#14321A</color>
+    <color name="gradeSafeSubtext">#C8E6C9</color>
 
-    <!-- Incomplete/Neutral (Grey) -->
-    <color name="neutralBg">#1E2027</color>
-    <color name="neutralAccent">#90A4AE</color>
-    <color name="neutralText">#CFD8DC</color>
+    <color name="gradeCaution">#FFD54F</color>           <!-- 🟡 Yellow - Caution -->
+    <color name="gradeCautionBackground">#332500</color>
+    <color name="gradeCautionSubtext">#FFF9C4</color>
+
+    <color name="gradeAvoid">#FF6B6B</color>             <!-- 🔴 Red - Avoid -->
+    <color name="gradeAvoidBackground">#321414</color>
+    <color name="gradeAvoidSubtext">#FFCDD2</color>
+
+    <color name="gradeUnrated">#1A2F4C</color>           <!-- 🔵 Watchlist Clear / Unrated -->
+    <color name="gradeUnratedText">#6BA4FF</color>
+    <color name="gradeUnratedSubtext">#B5D3FF</color>
+
+    <!-- ======================================================== -->
+    <!-- 7. SYSTEM & LAUNCHER TOKENS                               -->
+    <!-- ======================================================== -->
+    <color name="ic_launcher_background">#E4D5B1</color> <!-- Adaptive app launcher icon background -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
 </resources>

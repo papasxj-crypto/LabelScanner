@@ -3,12 +3,12 @@ package net.meinook.labelscanner
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavOptions
@@ -39,6 +39,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         appSettings = AppSettings(requireContext())
+        val context = requireContext()
 
         // 1. Unpack arguments from the Saved Cookbook bundle
         val savedId = arguments?.getString("HISTORY_ITEM_ID") ?: ""
@@ -101,17 +102,18 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         val isOriginallySafe = savedGrade.lowercase(Locale.ROOT).contains("green") ||
                 savedGrade.lowercase(Locale.ROOT).contains("safe")
 
-        val (safetyText, safetyColor) = when {
-            hasCustomViolation -> Pair("🔴 Avoid (Watchlist)", "#FF6B6B")
-            isOriginallyRed -> Pair("🔴 Avoid (Saved)", "#FF6B6B")
-            !profileMatches -> Pair("🟡 Re-Verify", "#FFD54F")
-            isOriginallyCaution -> Pair("🟡 Caution (Saved)", "#FFD54F")
-            isOriginallySafe -> Pair("🟢 Verified Safe", "#81C784")
-            else -> Pair("🟡 Re-Verify", "#FFD54F")
+        val (safetyText, safetyColorRes) = when {
+            hasCustomViolation -> Pair("🔴 Avoid (Watchlist)", R.color.gradeAvoid)
+            isOriginallyRed -> Pair("🔴 Avoid (Saved)", R.color.gradeAvoid)
+            !profileMatches -> Pair("🟡 Re-Verify", R.color.gradeCaution)
+            isOriginallyCaution -> Pair("🟡 Caution (Saved)", R.color.gradeCaution)
+            isOriginallySafe -> Pair("🟢 Verified Safe", R.color.gradeSafe)
+            else -> Pair("🟡 Re-Verify", R.color.gradeCaution)
         }
 
+        val resolvedColor = ContextCompat.getColor(context, safetyColorRes)
         txtBadge.text = safetyText
-        txtBadge.setTextColor(Color.parseColor(safetyColor))
+        txtBadge.setTextColor(resolvedColor)
 
         val headerTitle = when {
             safetyText.contains("Avoid") -> "INGREDIENTS (AVOID)"
@@ -119,12 +121,13 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             else -> "INGREDIENTS (SAFE ADJUSTED)"
         }
         txtIngredientsHeader.text = headerTitle
-        txtIngredientsHeader.setTextColor(Color.parseColor(safetyColor))
+        txtIngredientsHeader.setTextColor(resolvedColor)
 
         val displayName = appSettings.getAvailableDietProfiles().find { it.id == baseProfileId }?.displayName
             ?: appSettings.getAvailableDietProfiles().find { it.id == normalizedItemBase }?.displayName
             ?: baseProfileId
         txtProfile.text = "For: $displayName"
+        txtProfile.setTextColor(ContextCompat.getColor(context, R.color.textMuted))
 
         // Re-Profile Trigger: Pops backstack so SavedFragment remains clean
         fun triggerReProfile() {
@@ -162,11 +165,11 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         fun renderInstructions(steps: String) {
             if (steps.isNotBlank()) {
                 txtInstructions.text = steps
-                txtInstructions.setTextColor(Color.parseColor("#F4F5FC"))
+                txtInstructions.setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
                 btnFetchSteps.visibility = View.GONE
             } else {
                 txtInstructions.text = "No instructions loaded yet. Tap 'Get Steps' below to generate cooking steps."
-                txtInstructions.setTextColor(Color.parseColor("#99A1B3"))
+                txtInstructions.setTextColor(ContextCompat.getColor(context, R.color.buttonSecondaryText))
                 btnFetchSteps.visibility = View.VISIBLE
             }
         }

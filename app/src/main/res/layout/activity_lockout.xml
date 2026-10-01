@@ -3,34 +3,37 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#14161F"
+    android:background="@drawable/bg_vintage_parchment"
     android:orientation="vertical"
     android:gravity="center"
     android:padding="24dp">
 
+    <!-- Access Revoked Icon (Grade Avoid Red) -->
     <ImageView
         android:layout_width="96dp"
         android:layout_height="96dp"
         android:src="@android:drawable/ic_delete"
-        app:tint="#FF6B6B"
+        app:tint="@color/gradeAvoid"
         android:contentDescription="Revoked Icon" />
 
+    <!-- Access Revoked Title (Grade Avoid Red) -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="ACCESS REVOKED"
-        android:textColor="#FF6B6B"
+        android:textColor="@color/gradeAvoid"
         android:textSize="22sp"
         android:textStyle="bold"
         android:letterSpacing="0.1"
         android:layout_marginTop="24dp" />
 
+    <!-- Lockout Explanation Message -->
     <TextView
         android:id="@+id/txtLockoutReason"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Your access to this beta testing release has expired or has been administratively suspended."
-        android:textColor="#A89890"
+        android:textColor="@color/textMuted"
         android:textSize="14sp"
         android:gravity="center"
         android:layout_marginTop="12dp"

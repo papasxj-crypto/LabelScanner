@@ -1,7 +1,7 @@
 package net.meinook.labelscanner
 
 import android.content.Context
-import android.graphics.Color
+import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.text.InputType
 import android.util.Log
@@ -11,6 +11,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.SwitchCompat
+import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
@@ -119,7 +120,7 @@ object CustomProfileManager {
 
         linearLayout.addView(TextView(context).apply {
             text = "TACTICAL INTERVENTIONS"
-            setTextColor(Color.parseColor("#99A1B3"))
+            setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
             textSize = 12f
             setTypeface(null, Typeface.BOLD)
             setPadding(0, (20 * density).toInt(), 0, (6 * density).toInt())
@@ -169,17 +170,17 @@ object CustomProfileManager {
     ): EditText {
         val titleView = TextView(context).apply {
             text = title
-            setTextColor(Color.parseColor("#99A1B3"))
+            setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
             textSize = 12f
             setPadding(0, (12 * density).toInt(), 0, (6 * density).toInt())
         }
         val et = EditText(context).apply {
-            setTextColor(Color.parseColor("#F4F5FC"))
+            setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
             background = context.getDrawable(R.drawable.bg_height_edit_text)
             setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
             setOnFocusChangeListener { _, hasFocus ->
                 if (hasFocus) {
-                    setBackgroundColor(Color.parseColor("#4E3B34"))
+                    setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurfaceHighlight))
                 } else {
                     background = context.getDrawable(R.drawable.bg_height_edit_text)
                 }
@@ -211,7 +212,7 @@ object CustomProfileManager {
 
         val labelView = TextView(context).apply {
             text = "$title: ${roundedValue.toInt()} $unit"
-            setTextColor(Color.parseColor("#99A1B3"))
+            setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
             textSize = 13f
             setTypeface(null, Typeface.BOLD)
             setPadding(0, (16 * density).toInt(), 0, (4 * density).toInt())
@@ -225,9 +226,9 @@ object CustomProfileManager {
             }
             value = roundedValue
 
-            trackActiveTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#4E3B34"))
-            trackInactiveTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#99A1B3"))
-            thumbTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#F4F5FC"))
+            trackActiveTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.inputSurfaceHighlight))
+            trackInactiveTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.textSecondary))
+            thumbTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.textPrimary))
 
             addOnChangeListener { _, value, _ ->
                 labelView.text = "$title: ${value.toInt()} $unit"
@@ -260,14 +261,14 @@ object CustomProfileManager {
 
         val titleView = TextView(context).apply {
             text = title
-            setTextColor(Color.parseColor("#F4F5FC"))
+            setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
             textSize = 14f
             setTypeface(null, Typeface.BOLD)
         }
 
         val descView = TextView(context).apply {
             text = description
-            setTextColor(Color.parseColor("#99A1B3"))
+            setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
             textSize = 11f
             setPadding(0, (2 * density).toInt(), 0, 0)
         }
@@ -277,8 +278,8 @@ object CustomProfileManager {
 
         val toggle = SwitchCompat(context).apply {
             isChecked = defaultChecked
-            trackTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#99A1B3"))
-            thumbTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#F4F5FC"))
+            trackTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.textSecondary))
+            thumbTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.textPrimary))
         }
 
         container.addView(textContainer)
@@ -328,7 +329,6 @@ object CustomProfileManager {
         val activeSuffix = appSettings.getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
         val activeProfileId = "custom_$activeSuffix"
 
-        // Inherit ceiling flag if cloning from CKD or renal profile
         val inheritProteinCeiling = if (baseTemplateId != null) {
             appSettings.isFeatureFlagActiveForProfile(baseTemplateId, "enforce_protein_ceiling")
         } else false
@@ -346,7 +346,7 @@ object CustomProfileManager {
 
                 <nutrient name="sodium" low_max="$sodiumLow" moderate_max="$sodiumMod" is_blacklist="true" />
                 <nutrient name="potassium" low_max="$potassiumLow" moderate_max="$potassiumMod" is_blacklist="true" />
-                <nutrient name="saturated_fat" low_max="$satFatLow" moderate_max="$satFatMod" is_blacklist="true" />
+                <nutrient name="saturated_fat" low_max="$satFatLow" moderate_max="$satFatMod" is_blacklist="false" />
                 <nutrient name="carbs" low_max="$carbsLow" moderate_max="$carbsMod" is_blacklist="false" />
                 <nutrient name="protein" low_max="$proteinLow" moderate_max="$proteinMod" is_blacklist="false" />
                 

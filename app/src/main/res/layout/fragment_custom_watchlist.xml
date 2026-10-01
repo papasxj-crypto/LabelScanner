@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"
+    android:background="@drawable/bg_vintage_parchment"
     android:orientation="vertical"
     android:padding="16dp">
 
@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="#D32F2F"
+        android:background="@color/gradeAvoidBackground"
         android:padding="12dp"
         android:gravity="center_vertical"
         android:visibility="gone"
@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Remove ingredient?"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/white"
             android:textStyle="bold"
             android:textSize="14sp" />
 
@@ -34,8 +34,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="CONFIRM"
-            android:backgroundTint="#FFFFFF"
-            android:textColor="#D32F2F"
+            android:backgroundTint="@color/white"
+            android:textColor="@color/gradeAvoid"
             android:textSize="12sp"
             android:textStyle="bold"
             android:layout_marginEnd="8dp" />
@@ -47,7 +47,7 @@
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             android:contentDescription="Cancel"
             android:padding="4dp"
-            app:tint="#FFFFFF" />
+            app:tint="@color/white" />
     </LinearLayout>
 
     <!-- Active Red Items Section -->
@@ -55,7 +55,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Active Custom RED Watchlist"
-        android:textColor="#F44336"
+        android:textColor="@color/gradeAvoid"
         android:textSize="14sp"
         android:textStyle="bold"
         android:textAllCaps="true"
@@ -66,7 +66,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#1E1E1E"
+        android:background="@color/cardSurface"
         android:padding="8dp"
         android:layout_marginBottom="16dp">
 
@@ -82,7 +82,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Active Custom YELLOW Watchlist"
-        android:textColor="#FFEB3B"
+        android:textColor="@color/gradeCaution"
         android:textSize="14sp"
         android:textStyle="bold"
         android:textAllCaps="true"
@@ -93,7 +93,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#1E1E1E"
+        android:background="@color/cardSurface"
         android:padding="8dp"
         android:layout_marginBottom="16dp">
 
@@ -108,15 +108,15 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#333333"
+        android:background="@color/surfaceStroke"
         android:layout_marginBottom="16dp"/>
 
-    <!-- Horizontal Scrolling Common Quick Add Panel [1, 2] -->
+    <!-- Horizontal Scrolling Common Quick Add Panel -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Common Quick Add Items"
-        android:textColor="#888888"
+        android:textColor="@color/textMuted"
         android:textSize="11sp"
         android:textStyle="bold"
         android:textAllCaps="true"
@@ -140,7 +140,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Add Custom Ingredient"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/textPrimary"
         android:textSize="14sp"
         android:textStyle="bold"
         android:layout_marginBottom="8dp"/>
@@ -150,12 +150,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Ingredient name (e.g. MSG, SOY)"
-        android:textColorHint="#808080"
-        android:textColor="#FFFFFF"
+        android:textColorHint="@color/textHint"
+        android:textColor="@color/textPrimary"
         android:inputType="textCapCharacters"
         android:layout_marginBottom="12dp"
         android:padding="12dp"
-        android:background="#2C2C2C"/>
+        android:background="@color/inputSurface"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -169,8 +169,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Add to RED"
-            android:backgroundTint="#F44336"
-            android:textColor="#FFFFFF"
+            android:backgroundTint="@color/gradeAvoid"
+            android:textColor="@color/white"
             android:layout_marginEnd="4dp"/>
 
         <Button
@@ -179,8 +179,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Add to YELLOW"
-            android:backgroundTint="#FFEB3B"
-            android:textColor="#000000"
+            android:backgroundTint="@color/gradeCaution"
+            android:textColor="@color/black"
             android:layout_marginStart="4dp"/>
     </LinearLayout>
 
@@ -190,7 +190,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Done"
-        android:backgroundTint="#333333"
-        android:textColor="#FFFFFF"/>
+        android:backgroundTint="@color/buttonPrimaryBackground"
+        android:textColor="@color/buttonPrimaryText"/>
 
 </LinearLayout>

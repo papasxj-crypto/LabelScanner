@@ -23,7 +23,7 @@
             android:layout_height="40dp"
             android:padding="8dp"
             android:src="?attr/homeAsUpIndicator"
-            app:tint="#F4F5FC"
+            app:tint="@color/textPrimary"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="Back to Scanner"
             android:layout_marginBottom="8dp" />
@@ -47,7 +47,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Try these safer alternatives instead:"
-                android:textColor="#81C784"
+                android:textColor="@color/gradeSafe"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp" />
@@ -58,10 +58,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                app:cardBackgroundColor="#251B18"
+                app:cardBackgroundColor="@color/cardSurface"
                 app:cardCornerRadius="12dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="#3A2D28">
+                app:strokeColor="@color/surfaceStroke">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -73,7 +73,7 @@
                     <View
                         android:layout_width="4dp"
                         android:layout_height="32dp"
-                        android:background="#81C784"/>
+                        android:background="@color/gradeSafe"/>
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -87,7 +87,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Alternative Option 1"
-                            android:textColor="#F4F5FC"
+                            android:textColor="@color/textPrimary"
                             android:textStyle="bold"
                             android:textSize="14sp"/>
 
@@ -97,7 +97,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Brand"
-                            android:textColor="#99A1B3"
+                            android:textColor="@color/buttonSecondaryText"
                             android:textSize="12sp"/>
                     </LinearLayout>
                 </LinearLayout>
@@ -109,10 +109,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                app:cardBackgroundColor="#251B18"
+                app:cardBackgroundColor="@color/cardSurface"
                 app:cardCornerRadius="12dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="#3A2D28">
+                app:strokeColor="@color/surfaceStroke">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -124,7 +124,7 @@
                     <View
                         android:layout_width="4dp"
                         android:layout_height="32dp"
-                        android:background="#81C784"/>
+                        android:background="@color/gradeSafe"/>
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -138,7 +138,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Alternative Option 2"
-                            android:textColor="#F4F5FC"
+                            android:textColor="@color/textPrimary"
                             android:textStyle="bold"
                             android:textSize="14sp"/>
 
@@ -148,7 +148,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Brand"
-                            android:textColor="#99A1B3"
+                            android:textColor="@color/buttonSecondaryText"
                             android:textSize="12sp"/>
                     </LinearLayout>
                 </LinearLayout>
@@ -160,10 +160,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                app:cardBackgroundColor="#251B18"
+                app:cardBackgroundColor="@color/cardSurface"
                 app:cardCornerRadius="12dp"
                 app:strokeWidth="1dp"
-                app:strokeColor="#3A2D28">
+                app:strokeColor="@color/surfaceStroke">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -175,7 +175,7 @@
                     <View
                         android:layout_width="4dp"
                         android:layout_height="32dp"
-                        android:background="#81C784"/>
+                        android:background="@color/gradeSafe"/>
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -189,7 +189,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Alternative Option 3"
-                            android:textColor="#F4F5FC"
+                            android:textColor="@color/textPrimary"
                             android:textStyle="bold"
                             android:textSize="14sp"/>
 
@@ -199,7 +199,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:text="Brand"
-                            android:textColor="#99A1B3"
+                            android:textColor="@color/buttonSecondaryText"
                             android:textSize="12sp"/>
                     </LinearLayout>
                 </LinearLayout>
@@ -213,8 +213,8 @@
             android:layout_width="match_parent"
             android:layout_height="54dp"
             android:layout_marginTop="24dp"
-            app:backgroundTint="#2B1F16"
-            android:textColor="#F4F5FC"
+            app:backgroundTint="@color/buttonPrimaryBackground"
+            android:textColor="@color/buttonPrimaryText"
             android:text="Done (Back to Scanner)" />
 
         <Space

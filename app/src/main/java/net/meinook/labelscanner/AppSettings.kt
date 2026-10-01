@@ -1,4 +1,4 @@
-@file:Suppress("unused") // Suppresses all helper API unused alerts for clean build integrations
+@file:Suppress("unused")
 package net.meinook.labelscanner
 
 import android.content.Context
@@ -13,7 +13,7 @@ import androidx.core.content.edit
 import java.util.Locale
 import android.util.Log
 
-class AppSettings(private val context: Context) {
+class AppSettings(val context: Context) {
 
     companion object {
         private const val TAG = "AppSettings"
@@ -141,7 +141,6 @@ class AppSettings(private val context: Context) {
     }
 
     fun isSubscriptionActive(): Boolean {
-        // Automatically unlocks if the build config flag is compiled as true
         if (BuildConfig.BYPASS_PAYWALL) {
             return true
         }
@@ -257,7 +256,6 @@ class AppSettings(private val context: Context) {
     fun saveSelectedConditions(conditions: Set<String>) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
         val key = "${getActiveProfile()}_tracked_medical_conditions"
-        // If the user unchecks the last item, automatically fall back to healthy_baseline
         val finalConditions = if (conditions.isEmpty()) setOf("healthy_baseline") else conditions
         prefs.edit { putStringSet(key, finalConditions) }
     }
@@ -266,7 +264,6 @@ class AppSettings(private val context: Context) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
         val key = "${getActiveProfile()}_tracked_medical_conditions"
         val saved = prefs.getStringSet(key, null)
-        // If empty or null, guarantee healthy_baseline is returned
         return if (saved.isNullOrEmpty()) setOf("healthy_baseline") else saved
     }
 
@@ -363,16 +360,13 @@ class AppSettings(private val context: Context) {
             if (fileName.endsWith(".xml")) {
                 if (!includeAllergens && fileName.startsWith("allergen_")) continue
 
-                // Only load the custom profile belonging specifically to the active profile configuration
                 if (fileName.startsWith("custom_") && !fileName.equals("custom_$activeSuffix.xml", ignoreCase = true)) {
                     continue
                 }
-                // Prevent any legacy un-suffixed custom profiles from showing up
                 if (fileName.equals("custom.xml", ignoreCase = true)) {
                     continue
                 }
 
-                // Isolated try-catch prevents an empty file in filesDir from hiding your asset profiles
                 try {
                     openProfileStream(context, fileName).use { inputStream ->
                         val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
@@ -464,7 +458,6 @@ class AppSettings(private val context: Context) {
         return Triple(lowMax, modMax, isBlacklist)
     }
 
-    // Dynamic scanner matches profile IDs and extracts thresholds independent of uppercase/lowercase filename casing
     fun getNutrientThresholdsForProfile(profileId: String, nutrientKey: String): Triple<Int, Int, Boolean> {
         var lowMax = 0
         var modMax = 0
@@ -526,7 +519,6 @@ class AppSettings(private val context: Context) {
         return Triple(lowMax, modMax, isBlacklist)
     }
 
-    // Scans local Custom XML files and returns their saved base_profile_id attribute
     fun getBaseProfileIdForProfile(profileId: String): String {
         val mergedFileList = getMergedFileList(context)
         for (fileName in mergedFileList) {
@@ -888,7 +880,6 @@ class AppSettings(private val context: Context) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
         var gender = prefs.getString(KEY_USER_GENDER, "UNSPECIFIED") ?: "UNSPECIFIED"
 
-        // Fallback: If not found in custom prefs, check default package preferences
         if (gender == "UNSPECIFIED") {
             val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
             gender = defaultPrefs.getString(KEY_USER_GENDER, "UNSPECIFIED") ?: "UNSPECIFIED"
@@ -925,7 +916,6 @@ class AppSettings(private val context: Context) {
 
         if (actualWeightLbs <= 0.0) return null
 
-        // If actual weight is > 125% of Ideal Body Weight, calculate Adjusted Body Weight
         if (actualWeightLbs > (ibwLbs * 1.25)) {
             return ibwLbs + 0.4 * (actualWeightLbs - ibwLbs)
         }

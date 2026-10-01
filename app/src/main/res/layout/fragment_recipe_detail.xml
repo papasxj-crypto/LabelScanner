@@ -21,7 +21,7 @@
             android:layout_height="40dp"
             android:padding="8dp"
             android:src="?attr/homeAsUpIndicator"
-            app:tint="#F4F5FC"
+            app:tint="@color/textPrimary"
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="Back to Cookbook"
             android:layout_marginBottom="8dp" />
@@ -30,10 +30,10 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="#EA14161F"
+            app:cardBackgroundColor="@color/surfaceTranslucent"
             app:cardCornerRadius="12dp"
             app:strokeWidth="1dp"
-            app:strokeColor="#313542"
+            app:strokeColor="@color/surfaceStroke"
             android:layout_marginBottom="12dp">
 
             <LinearLayout
@@ -47,7 +47,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Recipe Title"
-                    android:textColor="#F4F5FC"
+                    android:textColor="@color/textPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -63,7 +63,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🟢 Verified Safe"
-                        android:textColor="#81C784"
+                        android:textColor="@color/gradeSafe"
                         android:textSize="12sp"
                         android:textStyle="bold" />
 
@@ -73,7 +73,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="For: CKD Stages 1-3"
-                        android:textColor="#8C7A6B"
+                        android:textColor="@color/textMuted"
                         android:textSize="11sp"
                         android:gravity="end"
                         android:textStyle="bold" />
@@ -84,7 +84,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Source: Original Website Link"
-                    android:textColor="#99A1B3"
+                    android:textColor="@color/buttonSecondaryText"
                     android:textSize="11sp"
                     android:layout_marginTop="8dp"
                     android:visibility="gone" />
@@ -95,10 +95,10 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="#251B18"
+            app:cardBackgroundColor="@color/cardSurface"
             app:cardCornerRadius="12dp"
             app:strokeWidth="1dp"
-            app:strokeColor="#3A2D28"
+            app:strokeColor="@color/surfaceStroke"
             android:layout_marginBottom="12dp">
 
             <LinearLayout
@@ -121,7 +121,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="INGREDIENTS (ADJUSTED)"
-                        android:textColor="#81C784"
+                        android:textColor="@color/gradeSafe"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:letterSpacing="0.1" />
@@ -132,7 +132,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="↻ Re-Profile"
-                        android:textColor="#82B1FF"
+                        android:textColor="@color/accentVivid"
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:paddingStart="8dp"
@@ -149,7 +149,7 @@
                     android:id="@+id/txtDetailIngredients"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#F4F5FC"
+                    android:textColor="@color/textPrimary"
                     android:textSize="14sp"
                     android:lineSpacingExtra="4dp" />
 
@@ -158,8 +158,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:backgroundTint="#3A2D28"
-                    android:textColor="#F4F5FC"
+                    android:backgroundTint="@color/surfaceStroke"
+                    android:textColor="@color/textPrimary"
                     android:text="Copy Ingredients"
                     android:textSize="12sp"
                     app:cornerRadius="8dp" />
@@ -170,10 +170,10 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="#251B18"
+            app:cardBackgroundColor="@color/cardSurface"
             app:cardCornerRadius="12dp"
             app:strokeWidth="1dp"
-            app:strokeColor="#3A2D28"
+            app:strokeColor="@color/surfaceStroke"
             android:layout_marginBottom="16dp">
 
             <LinearLayout
@@ -186,7 +186,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="STEP-BY-STEP PREPARATION"
-                    android:textColor="#82B1FF"
+                    android:textColor="@color/accentVivid"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.1"
@@ -197,7 +197,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="No instructions loaded yet. Tap 'Get Steps' below to generate cooking steps."
-                    android:textColor="#99A1B3"
+                    android:textColor="@color/buttonSecondaryText"
                     android:textSize="13sp"
                     android:lineSpacingExtra="4dp" />
 
@@ -206,8 +206,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:backgroundTint="#3A2D28"
-                    android:textColor="#82B1FF"
+                    android:backgroundTint="@color/surfaceStroke"
+                    android:textColor="@color/accentVivid"
                     android:text="Get Steps"
                     android:textSize="12sp"
                     app:cornerRadius="8dp" />

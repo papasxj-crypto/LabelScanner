@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_vintage_parchment"> <!-- Vintage parchment background applied! -->
+    android:background="@drawable/bg_vintage_parchment">
 
     <!-- Scrollable Content Layer -->
     <androidx.core.widget.NestedScrollView
@@ -66,7 +66,7 @@
                         android:text="SAFE"
                         android:textStyle="bold"
                         android:textSize="24sp"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="@color/textPrimary" />
 
                     <TextView
                         android:id="@+id/textSummaryExplanation"
@@ -75,7 +75,7 @@
                         android:layout_marginTop="4dp"
                         android:text="Enjoy your meal"
                         android:textSize="16sp"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="@color/textPrimary" />
 
                     <TextView
                         android:id="@+id/textTapPrompt"
@@ -84,7 +84,7 @@
                         android:layout_marginTop="12dp"
                         android:text="Tap for details ➔"
                         android:textSize="15sp"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="@color/textPrimary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -96,7 +96,7 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Floating Settings Gear in the Top Right [2] -->
+    <!-- Floating Settings Gear in the Top Right -->
     <ImageButton
         android:id="@+id/btnSettings"
         android:layout_width="48dp"

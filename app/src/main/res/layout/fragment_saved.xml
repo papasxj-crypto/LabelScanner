@@ -17,16 +17,16 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp"
-            android:paddingBottom="140dp"> <!-- Leaves plenty of space so cards don't scroll behind the bottom hint or nav -->
+            android:paddingBottom="140dp">
 
-            <!-- Borderless Scrapbook Title -->
+            <!-- Borderless Scrapbook Title Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0dp"
-                app:cardBackgroundColor="@android:color/transparent">
+                app:cardBackgroundColor="@color/transparent">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -38,7 +38,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Clinical Cookbook"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/textPrimary"
                         android:textSize="22sp"
                         android:textStyle="bold"
                         android:gravity="center"/>
@@ -48,7 +48,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:text="Your collection of safe, adjusted recipes"
-                        android:textColor="#FFFFFF"
+                        android:textColor="@color/textSecondary"
                         android:textSize="13sp"
                         android:gravity="center"/>
 
@@ -63,7 +63,7 @@
                 android:layout_marginTop="64dp"
                 android:gravity="center"
                 android:text="Your cookbook is empty.\nAdjust and save a recipe to begin!"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/textMuted"
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:visibility="gone" />
@@ -78,7 +78,7 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Persistent Bottom Hint Layout -->
+    <!-- Persistent Bottom Swipe Hint -->
     <TextView
         android:id="@+id/txtSwipeToDeleteHint"
         android:layout_width="match_parent"
@@ -88,7 +88,7 @@
         android:layout_marginBottom="80dp"
         android:gravity="center"
         android:text="&lt;&lt;&lt; Swipe left on any entry to delete"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/textMuted"
         android:textSize="12sp"
         android:textStyle="italic"
         android:visibility="gone"

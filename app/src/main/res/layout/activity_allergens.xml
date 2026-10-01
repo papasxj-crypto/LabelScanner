@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"
+    android:background="@drawable/bg_vintage_parchment"
     android:fillViewport="true">
 
     <LinearLayout
@@ -17,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/allergen_command_center_txt"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/textPrimary"
             android:textSize="22sp"
             android:textStyle="bold"
             android:layout_marginBottom="24dp" />
@@ -27,7 +27,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/add_custom_ingredient_txt"
-            android:textColor="#888888"
+            android:textColor="@color/textMuted"
             android:textSize="14sp"
             android:textStyle="bold"
             android:layout_marginBottom="8dp"/>
@@ -37,10 +37,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/e_g_msg_txt"
-            android:textColorHint="#666666"
-            android:textColor="#FFFFFF"
+            android:textColorHint="@color/textHint"
+            android:textColor="@color/textPrimary"
             android:inputType="textCapCharacters"
-            android:background="#1E1E1E"
+            android:background="@color/inputSurface"
             android:autofillHints="none"
             android:padding="12dp"
             android:paddingStart="12dp"
@@ -62,8 +62,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/yellow_sensitivity_txt"
-                android:backgroundTint="#CAA100"
-                android:textColor="#000000"
+                android:backgroundTint="@color/gradeCaution"
+                android:textColor="@color/black"
                 android:layout_marginEnd="4dp" />
 
             <Button
@@ -73,15 +73,15 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/red_avoidance_txt"
-                android:backgroundTint="#A33B3B"
-                android:textColor="#FFFFFF"
+                android:backgroundTint="@color/gradeAvoid"
+                android:textColor="@color/white"
                 android:layout_marginStart="4dp"/>
         </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#222222"
+            android:background="@color/surfaceStroke"
             android:layout_marginBottom="24dp"/>
 
         <!-- SECTION B: COMMON CLINICAL ALLERGENS -->
@@ -89,18 +89,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/common_clinical_triggers_txt"
-            android:textColor="#888888"
+            android:textColor="@color/textMuted"
             android:textSize="14sp"
             android:textStyle="bold"
             android:layout_marginBottom="12dp"/>
 
-        <!-- We will start with a few major ones to test layout binding -->
         <!-- GLUTEN CARD CONTAINER -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#1E1E1E"
+            android:background="@color/cardSurface"
             android:padding="12dp"
             android:layout_marginBottom="12dp">
 
@@ -117,7 +116,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/gluten_wheat_txt"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/textPrimary"
                     android:textSize="16sp" />
 
                 <!-- Tap target to preview contents -->
@@ -126,7 +125,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▼ View Included"
-                    android:textColor="#888888"
+                    android:textColor="@color/textMuted"
                     android:textSize="12sp"
                     android:padding="8dp"
                     android:clickable="true"
@@ -138,13 +137,13 @@
                 android:id="@+id/textGlutenIngredientsList"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#AAAAAA"
+                android:textColor="@color/textSecondary"
                 android:textSize="13sp"
                 android:lineSpacingMultiplier="1.2"
                 android:paddingTop="8dp"
                 android:paddingStart="32dp"
                 android:paddingEnd="16dp"
-                android:visibility="gone" /> <!-- Hidden by default 🔍 -->
+                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Dairy CARD CONTAINER -->
@@ -152,7 +151,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#1E1E1E"
+            android:background="@color/cardSurface"
             android:padding="12dp"
             android:layout_marginBottom="12dp">
 
@@ -169,7 +168,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/dairy_milk_casein_txt"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/textPrimary"
                     android:textSize="16sp" />
 
                 <!-- Tap target to preview contents -->
@@ -178,7 +177,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▼ View Included"
-                    android:textColor="#888888"
+                    android:textColor="@color/textMuted"
                     android:textSize="12sp"
                     android:padding="8dp"
                     android:clickable="true"
@@ -190,13 +189,13 @@
                 android:id="@+id/textDairyIngredientsList"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#AAAAAA"
+                android:textColor="@color/textSecondary"
                 android:textSize="13sp"
                 android:lineSpacingMultiplier="1.2"
                 android:paddingTop="8dp"
                 android:paddingStart="32dp"
                 android:paddingEnd="16dp"
-                android:visibility="gone" /> <!-- Hidden by default 🔍 -->
+                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Soy CARD CONTAINER -->
@@ -204,7 +203,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#1E1E1E"
+            android:background="@color/cardSurface"
             android:padding="12dp"
             android:layout_marginBottom="12dp">
 
@@ -221,7 +220,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/soy_products_txt"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/textPrimary"
                     android:textSize="16sp" />
 
                 <!-- Tap target to preview contents -->
@@ -230,7 +229,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▼ View Included"
-                    android:textColor="#888888"
+                    android:textColor="@color/textMuted"
                     android:textSize="12sp"
                     android:padding="8dp"
                     android:clickable="true"
@@ -242,13 +241,13 @@
                 android:id="@+id/textSoyIngredientsList"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#AAAAAA"
+                android:textColor="@color/textSecondary"
                 android:textSize="13sp"
                 android:lineSpacingMultiplier="1.2"
                 android:paddingTop="8dp"
                 android:paddingStart="32dp"
                 android:paddingEnd="16dp"
-                android:visibility="gone" /> <!-- Hidden by default 🔍 -->
+                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Nuts CARD CONTAINER -->
@@ -256,7 +255,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#1E1E1E"
+            android:background="@color/cardSurface"
             android:padding="12dp"
             android:layout_marginBottom="12dp">
 
@@ -273,7 +272,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/peanuts_tree_nuts_txt"
-                    android:textColor="#FFFFFF"
+                    android:textColor="@color/textPrimary"
                     android:textSize="16sp" />
 
                 <!-- Tap target to preview contents -->
@@ -282,7 +281,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="▼ View Included"
-                    android:textColor="#888888"
+                    android:textColor="@color/textMuted"
                     android:textSize="12sp"
                     android:padding="8dp"
                     android:clickable="true"
@@ -294,26 +293,25 @@
                 android:id="@+id/textNutsIngredientsList"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#AAAAAA"
+                android:textColor="@color/textSecondary"
                 android:textSize="13sp"
                 android:lineSpacingMultiplier="1.2"
                 android:paddingTop="8dp"
                 android:paddingStart="32dp"
                 android:paddingEnd="16dp"
-                android:visibility="gone" /> <!-- Hidden by default 🔍 -->
+                android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Dynamic Watchlist Container (Where typed items will appear) -->
+        <!-- Dynamic Watchlist Container -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/active_custom_watchlist_txt"
-            android:textColor="#888888"
+            android:textColor="@color/textMuted"
             android:textSize="14sp"
             android:textStyle="bold"
             android:layout_marginBottom="8dp"/>
 
-        <!-- Add target to allow deleting -->
         <LinearLayout
             android:id="@+id/containerWatchlistItems"
             android:layout_width="match_parent"
@@ -321,7 +319,7 @@
             android:orientation="vertical"
             android:padding="4dp" />
 
-        <!-- PREMIUM NAVIGATION EXIT BUTTON -->
+        <!-- Navigation Exit Button -->
         <Button
             android:id="@+id/buttonReturnToSettings"
             android:layout_width="match_parent"
@@ -329,8 +327,8 @@
             android:text="Save &amp; Return to Settings"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:backgroundTint="#1E1E1E"
-            android:textColor="#FFFFFF"
+            android:backgroundTint="@color/buttonPrimaryBackground"
+            android:textColor="@color/buttonPrimaryText"
             android:layout_marginTop="32dp"
             android:layout_marginBottom="16dp"/>
     </LinearLayout>

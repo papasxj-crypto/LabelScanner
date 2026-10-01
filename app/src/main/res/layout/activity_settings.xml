@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#14161F"
+    android:background="@drawable/bg_vintage_parchment"
     android:padding="16dp"
     android:fillViewport="true">
 
@@ -16,44 +16,44 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="#251B18"
-            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="@color/cardSurface"
+            app:cardCornerRadius="16dp"
             app:strokeWidth="1dp"
-            app:strokeColor="#3A2D28"
+            app:strokeColor="@color/surfaceStroke"
             android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:padding="16dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="APP PREFERENCES"
-                    android:textColor="#4CAF50"
+                    android:textColor="@color/textMuted"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.1"
                     android:layout_marginBottom="12dp" />
 
-                <!-- Upgraded Material CheckBox with persistent high-contrast button tinting -->
+                <!-- Material CheckBox with high-contrast vivid tinting -->
                 <com.google.android.material.checkbox.MaterialCheckBox
                     android:id="@+id/cb_left_handed"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Left-Handed Mode"
-                    android:textColor="#F4F5FC"
+                    android:textColor="@color/textPrimary"
                     android:textSize="15sp"
-                    app:buttonTint="#4CAF50"
+                    app:buttonTint="@color/accentVivid"
                     android:layout_marginBottom="4dp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Aligns Home screen scan buttons to the bottom-left for comfortable left-handed thumb access."
-                    android:textColor="#A89890"
+                    android:textColor="@color/textMuted"
                     android:textSize="12sp"
                     android:layout_marginStart="32dp" />
 
@@ -64,23 +64,23 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="#251B18"
-            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="@color/cardSurface"
+            app:cardCornerRadius="16dp"
             app:strokeWidth="1dp"
-            app:strokeColor="#3A2D28"
+            app:strokeColor="@color/surfaceStroke"
             android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:padding="16dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="DIETARY TEMPLATES"
-                    android:textColor="#4CAF50"
+                    android:textColor="@color/textMuted"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.1"
@@ -90,7 +90,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Create, edit, or clone dietary templates to customize nutrient limits for tailored conditions (such as bodybuilders or recovery plans)."
-                    android:textColor="#A89890"
+                    android:textColor="@color/textMuted"
                     android:textSize="12sp"
                     android:layout_marginBottom="12dp" />
 
@@ -98,11 +98,11 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCreateCustomProfile"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="48dp"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:text="Create Custom Profile"
-                    android:textColor="#4CAF50"
-                    app:strokeColor="#3A2D28"
+                    android:textColor="@color/textPrimary"
+                    app:strokeColor="@color/surfaceStroke"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     app:cornerRadius="8dp" />
@@ -114,10 +114,10 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="#251B18"
-            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="@color/cardSurface"
+            app:cardCornerRadius="16dp"
             app:strokeWidth="1dp"
-            app:strokeColor="#3A2D28"
+            app:strokeColor="@color/surfaceStroke"
             android:layout_marginBottom="16dp">
 
             <LinearLayout
@@ -129,9 +129,9 @@
                 <Button
                     android:id="@+id/buttonSaveSettings"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="#4CAF50"
-                    android:textColor="#14161F"
+                    android:layout_height="54dp"
+                    android:backgroundTint="@color/buttonPrimaryBackground"
+                    android:textColor="@color/buttonPrimaryText"
                     android:textStyle="bold"
                     android:text="@string/save_apply_changes_txt"
                     android:insetTop="0dp"
