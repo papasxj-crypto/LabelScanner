@@ -3,10 +3,8 @@ package net.meinook.labelscanner
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Typeface
-import android.text.InputType
 import android.util.Log
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -32,7 +30,7 @@ object CustomProfileManager {
         val activeConditions = appSettings.getSelectedConditions()
         val allProfiles = appSettings.getAvailableDietProfiles(includeAllergens = false)
 
-        // Automatically resolve the active clinical condition to seed the sliders
+        // Automatically resolve the active clinical condition to seed initial slider values
         val activeTemplate = allProfiles.find { profile ->
             activeConditions.contains(profile.id) && !profile.id.startsWith("custom_")
         } ?: allProfiles.find { it.id == "healthy_baseline" }
@@ -51,9 +49,7 @@ object CustomProfileManager {
         val activeSuffix = activeName.lowercase(Locale.ROOT).replace(" ", "_")
         val customProfileId = "custom_$activeSuffix"
 
-        // Check if this member already has custom saved sliders; otherwise seed from condition template
         val existingCustomFile = File(File(context.filesDir, "profiles"), "$customProfileId.xml")
-        val sourceProfileId = if (existingCustomFile.exists()) customProfileId else template?.id
 
         val linearLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -68,26 +64,51 @@ object CustomProfileManager {
             addView(linearLayout)
         }
 
-        val etProfileName = createInputRow(context, linearLayout, density, "Profile Name").apply {
-            setText(if (template != null) "${template.displayName} ($activeName)" else "Custom Plan ($activeName)")
-            inputType = InputType.TYPE_CLASS_TEXT
+        val baseName = template?.displayName ?: "Standard Baseline"
+        linearLayout.addView(TextView(context).apply {
+            text = "Fine-tune daily nutrient ceilings for $activeName based on $baseName."
+            setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
+            textSize = 12f
+            setPadding(0, 0, 0, (12 * density).toInt())
+        })
+
+        // Robust multi-tier nutrient resolution: guarantees non-zero sliders
+        fun resolveNutrientLimits(nutrientKey: String, fallbackLow: Int, fallbackMod: Int): Pair<Int, Int> {
+            // 1. Try reading active member's custom overrides (only if > 0)
+            if (existingCustomFile.exists()) {
+                val customLimits = appSettings.getNutrientThresholdsForProfile(customProfileId, nutrientKey)
+                if (customLimits.second > 0) {
+                    val low = if (customLimits.first > 0) customLimits.first else (customLimits.second / 2).coerceAtLeast(1)
+                    return Pair(low.coerceAtMost(customLimits.second), customLimits.second)
+                }
+            }
+
+            // 2. Read from checked clinical condition template (e.g. ckd_stage_1_3)
+            val templateId = template?.id
+            if (templateId != null) {
+                val templateLimits = appSettings.getNutrientThresholdsForProfile(templateId, nutrientKey)
+                if (templateLimits.second > 0) {
+                    val low = if (templateLimits.first > 0) templateLimits.first else (templateLimits.second / 2).coerceAtLeast(1)
+                    return Pair(low.coerceAtMost(templateLimits.second), templateLimits.second)
+                }
+            }
+
+            // 3. Fallback to healthy baseline profile
+            val baselineLimits = appSettings.getNutrientThresholdsForProfile("healthy_baseline", nutrientKey)
+            if (baselineLimits.second > 0) {
+                val low = if (baselineLimits.first > 0) baselineLimits.first else (baselineLimits.second / 2).coerceAtLeast(1)
+                return Pair(low.coerceAtMost(baselineLimits.second), baselineLimits.second)
+            }
+
+            // 4. Clinical safety standards
+            return Pair(fallbackLow.coerceAtMost(fallbackMod), fallbackMod)
         }
 
-        // Resolve Thresholds
-        val sodMod = if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "sodium").second else 480
-        val sodLow = (if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "sodium").first else 140).coerceAtMost(sodMod)
-
-        val potMod = if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "potassium").second else 700
-        val potLow = (if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "potassium").first else 350).coerceAtMost(potMod)
-
-        val satMod = if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "saturated_fat").second else 10
-        val satLow = (if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "saturated_fat").first else 4).coerceAtMost(satMod)
-
-        val carbsMod = if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "carbs").second else 60
-        val carbsLow = (if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "carbs").first else 30).coerceAtMost(carbsMod)
-
-        val protMod = if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "protein").second else 35
-        val protLow = (if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "protein").first else 20).coerceAtMost(protMod)
+        val (sodLow, sodMod) = resolveNutrientLimits("sodium", 140, 480)
+        val (potLow, potMod) = resolveNutrientLimits("potassium", 350, 700)
+        val (satLow, satMod) = resolveNutrientLimits("saturated_fat", 4, 10)
+        val (carbsLow, carbsMod) = resolveNutrientLimits("carbs", 30, 60)
+        val (protLow, protMod) = resolveNutrientLimits("protein", 20, 35)
 
         val sliderSodLow = createSliderRow(context, linearLayout, density, "Sodium Yellow Limit", "mg", sodLow, 0f, 3000f, 50f)
         val sliderSodMod = createSliderRow(context, linearLayout, density, "Sodium Red Limit", "mg", sodMod, 0f, 3000f, 50f)
@@ -111,7 +132,7 @@ object CustomProfileManager {
         setupSliderGuard(sliderProtLow, sliderProtMod)
 
         // Read Template Flags
-        val checkId = sourceProfileId ?: template?.id ?: "healthy_baseline"
+        val checkId = if (existingCustomFile.exists()) customProfileId else (template?.id ?: "healthy_baseline")
         val initPhosphate = appSettings.isFeatureFlagActiveForProfile(checkId, "avoid_phosphate_additives")
         val initGfFlour = appSettings.isFeatureFlagActiveForProfile(checkId, "prefer_preblended_gf_flour")
         val initCoconut = appSettings.isFeatureFlagActiveForProfile(checkId, "strictly_avoid_coconut")
@@ -131,10 +152,9 @@ object CustomProfileManager {
         val toggleSatFats = createToggleRow(context, linearLayout, density, "Limit Saturated Fats", "Swaps heavy butter or coconut oils for healthier options", initSatFats)
 
         MaterialAlertDialogBuilder(context, R.style.Theme_LabelScanner)
-            .setTitle("Calibrate Profile: $activeName")
+            .setTitle("Calibrate Macro Limits: $activeName")
             .setView(scroll)
             .setPositiveButton("Save") { _, _ ->
-                val name = etProfileName.text.toString().trim().ifEmpty { "Custom Plan ($activeName)" }
                 val sLow = sliderSodLow.value.toInt()
                 val sMod = sliderSodMod.value.toInt()
                 val pLow = sliderPotLow.value.toInt()
@@ -151,43 +171,14 @@ object CustomProfileManager {
                 val limitSatFats = toggleSatFats.isChecked
 
                 writeCustomProfileXml(
-                    context, name, sLow, sMod, pLow, pMod, stLow, stMod, cLow, cMod, prLow, prMod,
+                    context, "$activeName's Plan", sLow, sMod, pLow, pMod, stLow, stMod, cLow, cMod, prLow, prMod,
                     avoidPhosphate, preferGfFlour, avoidCoconut, limitSatFats, template?.id
                 )
                 onProfileSaved()
-                Toast.makeText(context, "Custom profile saved for $activeName!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Macro limits saved for $activeName", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
             .show()
-    }
-
-    private fun createInputRow(
-        context: Context,
-        linearLayout: LinearLayout,
-        density: Float,
-        title: String
-    ): EditText {
-        val titleView = TextView(context).apply {
-            text = title
-            setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
-            textSize = 12f
-            setPadding(0, (12 * density).toInt(), 0, (6 * density).toInt())
-        }
-        val et = EditText(context).apply {
-            setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
-            background = context.getDrawable(R.drawable.bg_height_edit_text)
-            setPadding((12 * density).toInt(), (10 * density).toInt(), (12 * density).toInt(), (10 * density).toInt())
-            setOnFocusChangeListener { _, hasFocus ->
-                if (hasFocus) {
-                    setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurfaceHighlight))
-                } else {
-                    background = context.getDrawable(R.drawable.bg_height_edit_text)
-                }
-            }
-        }
-        linearLayout.addView(titleView)
-        linearLayout.addView(et)
-        return et
     }
 
     private fun createSliderRow(

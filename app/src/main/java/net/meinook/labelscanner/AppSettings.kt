@@ -2,16 +2,14 @@
 package net.meinook.labelscanner
 
 import android.content.Context
-import org.json.JSONArray
-import org.json.JSONObject
+import android.util.Log
+import android.util.Xml
+import androidx.core.content.edit
+import org.xmlpull.v1.XmlPullParser
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
-import android.util.Xml
-import org.xmlpull.v1.XmlPullParser
-import androidx.core.content.edit
 import java.util.Locale
-import android.util.Log
 
 class AppSettings(val context: Context) {
 
@@ -27,9 +25,7 @@ class AppSettings(val context: Context) {
         const val KEY_USER_REVOKED = "is_revoked"
         const val KEY_REVOCATION_REASON = "revocation_reason"
 
-        // Safety switch to allow testing the paywall on a debug build
         const val KEY_DEBUG_OVERRIDE_DISABLED = "debug_override_disabled"
-
         const val KEY_INITIAL_SETUP_COMPLETED = "initial_setup_completed"
 
         private val profileExclusivityMap = mutableMapOf<String, String>()
@@ -72,7 +68,6 @@ class AppSettings(val context: Context) {
             }
         }
 
-        // Merges assets and filesDir dynamically
         fun getMergedFileList(context: Context): List<String> {
             val assetFiles = context.assets.list("profiles") ?: emptyArray()
             val localDir = File(context.filesDir, "profiles")
@@ -90,7 +85,10 @@ class AppSettings(val context: Context) {
         }
     }
 
-    // MULTI-PROFILE UTILITIES
+    // ========================================================================
+    // MEMBER MANAGEMENT UTILITIES
+    // ========================================================================
+
     fun getProfilesList(): List<String> {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
         val profilesSet = prefs.getStringSet("profiles_list", null)
@@ -118,15 +116,84 @@ class AppSettings(val context: Context) {
         }
     }
 
+    fun renameProfile(oldName: String, newName: String) {
+        val oldClean = oldName.trim()
+        val newClean = newName.trim()
+        if (oldClean.isEmpty() || newClean.isEmpty() || oldClean == newClean) return
+
+        val currentList = getProfilesList().toMutableList()
+        val index = currentList.indexOf(oldClean)
+        if (index != -1) {
+            currentList[index] = newClean
+            saveProfilesList(currentList)
+
+            val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+            val active = prefs.getString("active_profile_id", "Me")
+            if (active == oldClean) {
+                prefs.edit { putString("active_profile_id", newClean) }
+            }
+
+            // Migrate all scoped preference keys (weight, height, gender, watchlists, conditions)
+            val allPrefs = prefs.all
+            prefs.edit {
+                for ((key, value) in allPrefs) {
+                    if (key.startsWith("${oldClean}_")) {
+                        val newKey = key.replaceFirst("${oldClean}_", "${newClean}_")
+                        when (value) {
+                            is String -> putString(newKey, value)
+                            is Boolean -> putBoolean(newKey, value)
+                            is Float -> putFloat(newKey, value)
+                            is Int -> putInt(newKey, value)
+                            is Long -> putLong(newKey, value)
+                            is Set<*> -> @Suppress("UNCHECKED_CAST") putStringSet(newKey, value as Set<String>)
+                        }
+                        remove(key)
+                    }
+                }
+            }
+
+            // Migrate custom calibrated profile XML file
+            val oldSuffix = oldClean.lowercase(Locale.ROOT).replace(" ", "_")
+            val newSuffix = newClean.lowercase(Locale.ROOT).replace(" ", "_")
+            val localDir = File(context.filesDir, "profiles")
+            val oldFile = File(localDir, "custom_$oldSuffix.xml")
+            if (oldFile.exists()) {
+                val newFile = File(localDir, "custom_$newSuffix.xml")
+                oldFile.renameTo(newFile)
+            }
+            indexExclusivityGroups(context)
+        }
+    }
+
     fun deleteProfile(profileName: String) {
         val nameClean = profileName.trim()
-        if (nameClean.isEmpty() || nameClean == "Me") return
+        if (nameClean.isEmpty()) return
         val currentList = getProfilesList().toMutableList()
         if (currentList.remove(nameClean)) {
-            saveProfilesList(currentList)
+            val finalList = if (currentList.isEmpty()) listOf("Me") else currentList
+            saveProfilesList(finalList)
             if (getActiveProfile() == nameClean) {
-                setActiveProfile("Me")
+                setActiveProfile(finalList.first())
             }
+
+            // Purge scoped preference keys
+            val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+            prefs.edit {
+                for (key in prefs.all.keys) {
+                    if (key.startsWith("${nameClean}_")) {
+                        remove(key)
+                    }
+                }
+            }
+
+            // Delete custom calibrated profile XML file
+            val suffix = nameClean.lowercase(Locale.ROOT).replace(" ", "_")
+            val localDir = File(context.filesDir, "profiles")
+            val customFile = File(localDir, "custom_$suffix.xml")
+            if (customFile.exists()) {
+                customFile.delete()
+            }
+            indexExclusivityGroups(context)
         }
     }
 
@@ -141,6 +208,29 @@ class AppSettings(val context: Context) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
         prefs.edit { putString("active_profile_id", nameClean) }
     }
+
+    // ========================================================================
+    // MEMBER CUSTOM CALIBRATION INSPECTORS
+    // ========================================================================
+
+    fun hasCustomPlanForActiveMember(): Boolean {
+        val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
+        val customFile = File(File(context.filesDir, "profiles"), "custom_$activeSuffix.xml")
+        return customFile.exists()
+    }
+
+    fun resetCustomPlanForActiveMember() {
+        val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
+        val customFile = File(File(context.filesDir, "profiles"), "custom_$activeSuffix.xml")
+        if (customFile.exists()) {
+            customFile.delete()
+            indexExclusivityGroups(context)
+        }
+    }
+
+    // ========================================================================
+    // APP STATE & SUBSCRIPTION
+    // ========================================================================
 
     fun isSubscriptionActive(): Boolean {
         if (BuildConfig.BYPASS_PAYWALL) {
@@ -203,58 +293,14 @@ class AppSettings(val context: Context) {
         prefs.edit { putBoolean(KEY_INITIAL_SETUP_COMPLETED, completed) }
     }
 
-    fun saveCustomWatchlistItem(ingredient: String, tier: String) {
-        val sharedPrefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        val baseKey = if (tier.uppercase() == "RED") "custom_red_ingredients" else "custom_yellow_ingredients"
-        val key = "${getActiveProfile()}_$baseKey"
-
-        val existingItems = sharedPrefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
-        existingItems.add(ingredient.trim().uppercase())
-
-        sharedPrefs.edit { putStringSet(key, existingItems) }
+    fun setPendingSaveFlag(hasSaved: Boolean) {
+        val prefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
+        prefs.edit { putBoolean("pending_profile_save", hasSaved) }
     }
 
-    fun isFeatureFlagActive(flagName: String): Boolean {
-        val selectedIds = getSelectedConditions()
-        if (selectedIds.isEmpty()) return false
-
-        try {
-            val mergedFileList = getMergedFileList(context)
-            for (fileName in mergedFileList) {
-                if (!fileName.endsWith(".xml")) continue
-
-                openProfileStream(context, fileName).use { inputStream ->
-                    val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
-                    var eventType = parser.eventType
-                    var targetProfileActive = false
-
-                    while (eventType != XmlPullParser.END_DOCUMENT) {
-                        val tagName = parser.name
-                        if (eventType == XmlPullParser.START_TAG) {
-                            if (tagName == "diet_profile") {
-                                val id = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
-                                if (selectedIds.contains(id)) {
-                                    targetProfileActive = true
-                                }
-                            } else if (tagName == "flag" && targetProfileActive) {
-                                val nameAttr = parser.getAttributeValue(null, "name")
-                                if (nameAttr == flagName) {
-                                    val valueText = parser.nextText()
-                                    if (valueText.trim().equals("true", ignoreCase = true)) {
-                                        return true
-                                    }
-                                }
-                            }
-                        }
-                        eventType = parser.next()
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking feature flag $flagName", e)
-        }
-        return false
-    }
+    // ========================================================================
+    // WATCHLIST MANAGEMENT (SCOPED PER MEMBER)
+    // ========================================================================
 
     fun getCustomWatchlist(tier: String): List<String> {
         val sharedPrefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
@@ -263,25 +309,6 @@ class AppSettings(val context: Context) {
 
         val itemsSet = sharedPrefs.getStringSet(key, emptySet()) ?: emptySet()
         return itemsSet.map { it.uppercase() }.sorted()
-    }
-
-    fun saveSelectedConditions(conditions: Set<String>) {
-        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        val key = "${getActiveProfile()}_tracked_medical_conditions"
-        val finalConditions = if (conditions.isEmpty()) setOf("healthy_baseline") else conditions
-        prefs.edit { putStringSet(key, finalConditions) }
-    }
-
-    fun getSelectedConditions(): Set<String> {
-        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        val key = "${getActiveProfile()}_tracked_medical_conditions"
-        val saved = prefs.getStringSet(key, null)
-        return if (saved.isNullOrEmpty()) setOf("healthy_baseline") else saved
-    }
-
-    fun setPendingSaveFlag(hasSaved: Boolean) {
-        val prefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
-        prefs.edit { putBoolean("pending_profile_save", hasSaved) }
     }
 
     fun addWatchlistIngredient(ingredient: String, tier: String) {
@@ -330,6 +357,24 @@ class AppSettings(val context: Context) {
         }
     }
 
+    // ========================================================================
+    // CLINICAL CONDITIONS & TARGETS (CLEAN - NO CLONED CHECKBOXES)
+    // ========================================================================
+
+    fun saveSelectedConditions(conditions: Set<String>) {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        val key = "${getActiveProfile()}_tracked_medical_conditions"
+        val finalConditions = if (conditions.isEmpty()) setOf("healthy_baseline") else conditions
+        prefs.edit { putStringSet(key, finalConditions) }
+    }
+
+    fun getSelectedConditions(): Set<String> {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        val key = "${getActiveProfile()}_tracked_medical_conditions"
+        val saved = prefs.getStringSet(key, null)
+        return if (saved.isNullOrEmpty()) setOf("healthy_baseline") else saved
+    }
+
     fun toggleConditionState(targetProfileId: String, isChecked: Boolean) {
         val selectedIds = getSelectedConditions().toMutableSet()
 
@@ -363,19 +408,16 @@ class AppSettings(val context: Context) {
         saveSelectedConditions(selectedIds)
     }
 
+    // Excludes any custom_*.xml file so the condition list stays 100% clean
     fun getAvailableDietProfiles(includeAllergens: Boolean = true): List<DietProfile> {
         val profileList = mutableListOf<DietProfile>()
-        val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
-
         val mergedFileList = getMergedFileList(context)
+
         for (fileName in mergedFileList) {
             if (fileName.endsWith(".xml")) {
                 if (!includeAllergens && fileName.startsWith("allergen_")) continue
-
-                if (fileName.startsWith("custom_") && !fileName.equals("custom_$activeSuffix.xml", ignoreCase = true)) {
-                    continue
-                }
-                if (fileName.equals("custom.xml", ignoreCase = true)) {
+                // Exclude custom member calibration files from the checkbox list
+                if (fileName.startsWith("custom_") || fileName.equals("custom.xml", ignoreCase = true)) {
                     continue
                 }
 
@@ -401,9 +443,65 @@ class AppSettings(val context: Context) {
         return profileList
     }
 
-    fun getNutrientThresholds(nutrientKey: String): Triple<Int, Int, Boolean> {
-        val activeProfileIds = getSelectedConditions()
+    fun isFeatureFlagActive(flagName: String): Boolean {
+        val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
+        val customFile = File(File(context.filesDir, "profiles"), "custom_$activeSuffix.xml")
+        if (customFile.exists()) {
+            return isFeatureFlagActiveForProfile("custom_$activeSuffix", flagName)
+        }
 
+        val selectedIds = getSelectedConditions()
+        if (selectedIds.isEmpty()) return false
+
+        try {
+            val mergedFileList = getMergedFileList(context)
+            for (fileName in mergedFileList) {
+                if (!fileName.endsWith(".xml")) continue
+
+                openProfileStream(context, fileName).use { inputStream ->
+                    val parser = Xml.newPullParser().apply { setInput(inputStream, null) }
+                    var eventType = parser.eventType
+                    var targetProfileActive = false
+
+                    while (eventType != XmlPullParser.END_DOCUMENT) {
+                        val tagName = parser.name
+                        if (eventType == XmlPullParser.START_TAG) {
+                            if (tagName == "diet_profile") {
+                                val id = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
+                                if (selectedIds.contains(id)) {
+                                    targetProfileActive = true
+                                }
+                            } else if (tagName == "flag" && targetProfileActive) {
+                                val nameAttr = parser.getAttributeValue(null, "name")
+                                if (nameAttr == flagName) {
+                                    val valueText = parser.nextText()
+                                    if (valueText.trim().equals("true", ignoreCase = true)) {
+                                        return true
+                                    }
+                                }
+                            }
+                        }
+                        eventType = parser.next()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking feature flag $flagName", e)
+        }
+        return false
+    }
+
+    fun getNutrientThresholds(nutrientKey: String): Triple<Int, Int, Boolean> {
+        val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
+        val customFile = File(File(context.filesDir, "profiles"), "custom_$activeSuffix.xml")
+        if (customFile.exists()) {
+            val customThresholds = getNutrientThresholdsForProfile("custom_$activeSuffix", nutrientKey)
+            if (customThresholds.second > 0) {
+                return customThresholds
+            }
+        }
+
+        val activeProfileIds = getSelectedConditions()
         if (activeProfileIds.isEmpty()) {
             return when (nutrientKey.lowercase()) {
                 "sodium"        -> Triple(140, 480, false)
@@ -522,9 +620,7 @@ class AppSettings(val context: Context) {
             } catch (e: Exception) {
                 Log.w(TAG, "Skipping unparseable or empty profile file: $fileName", e)
             }
-            if (matched) {
-                break
-            }
+            if (matched) break
         }
 
         if (!matched) return Triple(0, 0, false)
@@ -608,9 +704,7 @@ class AppSettings(val context: Context) {
                 val localFile = File(File(context.filesDir, "profiles"), name.substringAfter("profiles/"))
                 (if (localFile.exists()) FileInputStream(localFile) else context.assets.open(name)).also { openedStream = it }
                 break
-            } catch (e: Exception) {
-                // Seek alternative file pattern
-            }
+            } catch (_: Exception) {}
         }
 
         if (openedStream == null) {
@@ -717,7 +811,9 @@ class AppSettings(val context: Context) {
     }
 
     fun getActiveProteinRules(): ProteinRules {
-        val activeProfileIds = getSelectedConditions()
+        val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
+        val customFile = File(File(context.filesDir, "profiles"), "custom_$activeSuffix.xml")
+        val targetProfileIds = if (customFile.exists()) setOf("custom_$activeSuffix") else getSelectedConditions()
 
         var maxSnackMin = 0
         var minSnackMax = 999
@@ -741,7 +837,7 @@ class AppSettings(val context: Context) {
                         if (eventType == XmlPullParser.START_TAG) {
                             if (tagName == "diet_profile") {
                                 val id = parser.getAttributeValue(null, "id") ?: fileName.removeSuffix(".xml")
-                                if (activeProfileIds.contains(id)) {
+                                if (targetProfileIds.contains(id)) {
                                     targetProfileActive = true
                                 }
                             } else if (tagName == "protein_rules" && targetProfileActive) {
@@ -824,7 +920,10 @@ class AppSettings(val context: Context) {
         return accumulatedRules
     }
 
-    // PROFILE-SCOPED BIOMETRIC STORAGE (Weight, Height, Gender, IBW, AjBW)
+    // ========================================================================
+    // BIOMETRICS (SCOPED PER MEMBER)
+    // ========================================================================
+
     private fun getScopedKey(baseKey: String): String {
         return "${getActiveProfile()}_$baseKey"
     }
@@ -834,7 +933,6 @@ class AppSettings(val context: Context) {
         val scopedKey = getScopedKey(KEY_USER_WEIGHT)
         var weight = prefs.getFloat(scopedKey, 0.0f)
 
-        // Backward compatibility fallback for default "Me" profile
         if (weight == 0.0f && getActiveProfile() == "Me") {
             weight = prefs.getFloat(KEY_USER_WEIGHT, 0.0f)
         }
@@ -852,7 +950,6 @@ class AppSettings(val context: Context) {
         val scopedKey = getScopedKey(KEY_USER_HEIGHT_INCHES)
         var height = prefs.getFloat(scopedKey, 0.0f)
 
-        // Backward compatibility fallback for default "Me" profile
         if (height == 0.0f && getActiveProfile() == "Me") {
             height = prefs.getFloat(KEY_USER_HEIGHT_INCHES, 0.0f)
         }
@@ -870,7 +967,6 @@ class AppSettings(val context: Context) {
         val scopedKey = getScopedKey(KEY_USER_GENDER)
         var gender = prefs.getString(scopedKey, null)
 
-        // Backward compatibility fallback for default "Me" profile
         if (gender == null && getActiveProfile() == "Me") {
             gender = prefs.getString(KEY_USER_GENDER, "UNSPECIFIED")
         }
@@ -889,7 +985,7 @@ class AppSettings(val context: Context) {
 
         if (heightInches <= 0.0 || gender == "UNSPECIFIED") return null
 
-        val baselineHeightInches = 60.0 // 5 feet
+        val baselineHeightInches = 60.0
         val heightDifference = heightInches - baselineHeightInches
 
         val ibwKg = when (gender) {

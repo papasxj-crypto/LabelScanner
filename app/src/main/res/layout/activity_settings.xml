@@ -12,6 +12,18 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- Top Navigation Bar: Back Arrow -->
+        <ImageView
+            android:id="@+id/btnBackTop"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="?attr/homeAsUpIndicator"
+            app:tint="@color/textPrimary"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Back"
+            android:layout_marginBottom="8dp" />
+
         <!-- SECTION 1: APP PREFERENCES CARD -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -38,7 +50,7 @@
                     android:letterSpacing="0.1"
                     android:layout_marginBottom="12dp" />
 
-                <!-- Left-Handed Mode CheckBox -->
+                <!-- Left-Handed Mode CheckBox (Auto-saves on change) -->
                 <com.google.android.material.checkbox.MaterialCheckBox
                     android:id="@+id/cb_left_handed"
                     android:layout_width="match_parent"
@@ -60,7 +72,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- SECTION 2: MANAGE PROFILES CARD -->
+        <!-- SECTION 2: PROFILE ADMINISTRATION CARD (Single Point: Add & Delete) -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -79,69 +91,54 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="MANAGE PROFILES"
+                    android:text="PROFILES"
                     android:textColor="@color/textMuted"
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.1"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="8dp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Select a member profile to calibrate clinical macro sliders, rename, or delete."
-                    android:textColor="@color/textMuted"
+                    android:text="Add new profiles to track unique dietary conditions, or remove profiles you no longer need."
+                    android:textColor="@color/textSecondary"
                     android:textSize="12sp"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="14dp" />
 
-                <!-- Profile Management Action Button -->
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnManageProfiles"
+                    android:id="@+id/btnAddNewProfile"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="Edit / Manage Profiles"
+                    android:text="＋ Add New Profile"
                     android:textColor="@color/textPrimary"
-                    app:strokeColor="@color/surfaceStroke"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    app:cornerRadius="8dp" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- SECTION 3: MASTER ACTION CARD -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/cardSurface"
-            app:cardCornerRadius="16dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="@color/surfaceStroke"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
-
-                <Button
-                    android:id="@+id/buttonSaveSettings"
-                    android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:backgroundTint="@color/buttonPrimaryBackground"
-                    android:textColor="@color/buttonPrimaryText"
+                    android:textSize="14sp"
                     android:textStyle="bold"
-                    android:text="@string/save_apply_changes_txt"
+                    app:strokeColor="@color/surfaceStroke"
+                    app:strokeWidth="1dp"
+                    app:cornerRadius="8dp"
+                    app:backgroundTint="@color/cardSurface"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
-                    app:cornerRadius="8dp" />
+                    android:layout_marginBottom="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDeleteProfile"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="🗑 Delete Profile"
+                    android:textColor="@color/gradeAvoid"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- SECTION 4: ABOUT FILTERPOINT & MEDICAL DISCLAIMER CARD -->
+        <!-- SECTION 3: ABOUT FILTERPOINT & MEDICAL DISCLAIMER CARD -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -157,7 +154,6 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <!-- Header -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -195,14 +191,12 @@
                     android:textSize="11sp"
                     android:layout_marginTop="6dp" />
 
-                <!-- Section Divider -->
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="@color/surfaceStroke"
                     android:layout_marginVertical="12dp" />
 
-                <!-- Mandatory Clinical & Medical Disclaimer -->
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -221,14 +215,12 @@
                     android:textSize="11sp"
                     android:lineSpacingExtra="3dp" />
 
-                <!-- Section Divider -->
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:background="@color/surfaceStroke"
                     android:layout_marginVertical="12dp" />
 
-                <!-- Copyright Notice -->
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

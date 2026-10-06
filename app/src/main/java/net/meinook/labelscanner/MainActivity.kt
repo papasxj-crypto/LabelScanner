@@ -19,6 +19,10 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        const val EXTRA_TARGET_TAB_ID = "TARGET_TAB_ID"
+    }
+
     private lateinit var navController: NavController
     private lateinit var appSettings: AppSettings
 
@@ -33,7 +37,7 @@ class MainActivity : AppCompatActivity() {
 
         appSettings = AppSettings(this)
 
-        // Keep the native system splash screen visible until our background checks finish
+        // Keep the native system splash screen visible until background checks finish
         splashScreen.setKeepOnScreenCondition { isCheckingSubscription }
 
         // Run background verification checks inside a lifecycle-aware coroutine
@@ -51,9 +55,9 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e("MainActivitySubscription", "Setup check failed", e)
             } finally {
-                // C. Calculate elapsed time to enforce exactly 3 seconds minimum display duration
+                // C. Enforce exactly 3 seconds minimum display duration
                 val elapsedTime = System.currentTimeMillis() - startTime
-                val minimumDisplayDuration = 3000L // 3 seconds
+                val minimumDisplayDuration = 3000L
                 val remainingTime = minimumDisplayDuration - elapsedTime
 
                 if (remainingTime > 0) {
@@ -63,14 +67,13 @@ class MainActivity : AppCompatActivity() {
                 // D. Determine user routing once background tasks and 3s limit are met
                 when {
                     appSettings.isUserRevoked() -> {
-                        val intent = Intent(this@MainActivity, LockoutActivity::class.java).apply {
+                        val lockoutIntent = Intent(this@MainActivity, LockoutActivity::class.java).apply {
                             putExtra("revocation_reason", appSettings.getRevocationReason())
                         }
-                        startActivity(intent)
+                        startActivity(lockoutIntent)
                         finish()
                     }
                     appSettings.isSubscriptionActive() -> {
-                        // Let the native splash screen fade out smoothly and reveal the dashboard
                         isCheckingSubscription = false
                     }
                     else -> {
@@ -95,7 +98,7 @@ class MainActivity : AppCompatActivity() {
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
 
-        // 1. Global Tab Navigation: Always land on the Root screen of each tab (no state trapping)
+        // 1. Global Tab Navigation: Always land on the Root screen of each tab
         bottomNav.setOnItemSelectedListener { item ->
             val navOptions = NavOptions.Builder()
                 .setLaunchSingleTop(true)
@@ -128,6 +131,12 @@ class MainActivity : AppCompatActivity() {
                         currentFragment.resetToReadyState()
                     }
                 }
+                R.id.navigation_my_health -> {
+                    val currentDestId = navController.currentDestination?.id
+                    if (currentDestId != null && currentDestId != R.id.navigation_my_health) {
+                        navController.popBackStack(R.id.navigation_my_health, false)
+                    }
+                }
                 R.id.recipeFragment -> {
                     val currentFragment = navHostFragment.childFragmentManager.fragments.firstOrNull()
                     if (currentFragment is RecipeFragment) {
@@ -143,8 +152,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // 3. Destination Change Listener: Synchronizes bottomNav with system back button navigation
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            val targetMenuId = when (destination.id) {
+                R.id.navigation_home, R.id.resultDetailFragment -> R.id.navigation_home
+                R.id.navigation_my_health, R.id.customWatchlistFragment -> R.id.navigation_my_health
+                R.id.recipeFragment -> R.id.recipeFragment
+                R.id.navigation_history, R.id.recipeDetailFragment -> R.id.navigation_history
+                else -> null
+            }
+
+            if (targetMenuId != null) {
+                val menuItem = bottomNav.menu.findItem(targetMenuId)
+                if (menuItem != null && !menuItem.isChecked) {
+                    menuItem.isChecked = true
+                }
+            }
+        }
+
         bottomNav.post {
-            if (!appSettings.hasCompletedInitialSetup()) {
+            val targetTab = intent?.getIntExtra(EXTRA_TARGET_TAB_ID, 0) ?: 0
+            if (targetTab != 0) {
+                bottomNav.selectedItemId = targetTab
+            } else if (!appSettings.hasCompletedInitialSetup()) {
                 bottomNav.selectedItemId = R.id.navigation_my_health
             } else {
                 handleIncomingShareIntent(intent)
@@ -156,7 +186,6 @@ class MainActivity : AppCompatActivity() {
         return (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
 
-    // Wrapped in standard try-catches to prevent uninitialized Firebase crashes
     private suspend fun syncSubscriptionWithFirestore() {
         try {
             val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
@@ -185,7 +214,14 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
-        intent?.let { handleIncomingShareIntent(it) }
+        intent?.let { incomingIntent ->
+            val targetTab = incomingIntent.getIntExtra(EXTRA_TARGET_TAB_ID, 0)
+            if (targetTab != 0) {
+                val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
+                bottomNav?.selectedItemId = targetTab
+            }
+            handleIncomingShareIntent(incomingIntent)
+        }
     }
 
     private fun handleIncomingShareIntent(intent: Intent) {
@@ -193,7 +229,6 @@ class MainActivity : AppCompatActivity() {
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             val url = extractUrlFromText(sharedText)
 
-            // Consume intent extras to prevent duplicate processing on rotate/restart
             intent.removeExtra(Intent.EXTRA_TEXT)
             intent.action = null
 

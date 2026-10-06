@@ -1,12 +1,14 @@
 package net.meinook.labelscanner
 
 import android.app.Activity.RESULT_OK
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.Manifest
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -35,8 +37,6 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -67,7 +67,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var textSummaryExplanation: TextView
     private lateinit var composeView: ComposeView
 
-    private lateinit var tempPhotoUri: Uri
+    private var tempPhotoUri: Uri? = null
     private var isAnalyzing: Boolean = false
 
     private var cachedEval: EvaluationResult? = null
@@ -83,10 +83,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private val labelCameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
-            val inputStream = requireContext().contentResolver.openInputStream(tempPhotoUri)
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-            bitmap?.let { runAnalysis(it) }
+            val ctx = context ?: return@registerForActivityResult
+            val uri = tempPhotoUri ?: getTempPhotoUri(ctx)
+            try {
+                ctx.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    bitmap?.let { runAnalysis(it, uri) }
+                }
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "Failed to open captured image stream", e)
+            }
         }
     }
 
@@ -99,10 +105,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private val produceCameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
-            val inputStream = requireContext().contentResolver.openInputStream(tempPhotoUri)
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-            bitmap?.let { runProduceAnalysis(it) }
+            val ctx = context ?: return@registerForActivityResult
+            val uri = tempPhotoUri ?: getTempPhotoUri(ctx)
+            try {
+                ctx.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    bitmap?.let { runProduceAnalysis(it) }
+                }
+            } catch (e: Exception) {
+                Log.e("HomeFragment", "Failed to open captured produce image stream", e)
+            }
         }
     }
 
@@ -116,6 +128,17 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             Toast.makeText(requireContext(), "Camera permission is required to scan labels and barcodes.", Toast.LENGTH_LONG).show()
         }
         pendingAction = PendingCameraAction.NONE
+    }
+
+    private fun getTempPhotoUri(context: Context): Uri {
+        val cacheDir = context.externalCacheDir ?: context.cacheDir
+        val photoFile = File(cacheDir, "temp_capture.jpg")
+        return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        tempPhotoUri?.let { outState.putParcelable("SAVED_TEMP_PHOTO_URI", it) }
     }
 
     private fun optDoubleResilient(json: JSONObject, vararg keys: String): Double {
@@ -137,6 +160,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Restore photo URI safely across low-memory process recreations
+        if (savedInstanceState != null) {
+            @Suppress("DEPRECATION")
+            tempPhotoUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                savedInstanceState.getParcelable("SAVED_TEMP_PHOTO_URI", Uri::class.java)
+            } else {
+                savedInstanceState.getParcelable("SAVED_TEMP_PHOTO_URI")
+            }
+        }
+
         textExplanation = view.findViewById(R.id.textExplanation)
         btnProfileSelector = view.findViewById(R.id.btnProfileSelector)
         cardSummary = view.findViewById(R.id.cardSummary)
@@ -146,6 +179,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         composeView = view.findViewById(R.id.composeViewMenu)
         rebuildComposeMenu()
 
+        // Single Point SELECT: Only switches existing profiles
         btnProfileSelector.setOnClickListener {
             showProfileSelectorDialog()
         }
@@ -202,25 +236,21 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
+    // Single Point: SELECT ONLY (No Add Button)
     private fun showProfileSelectorDialog() {
         val context = context ?: return
         val userSettings = AppSettings(context)
         val currentProfiles = userSettings.getProfilesList()
         val activeProfile = userSettings.getActiveProfile()
 
-        val options = currentProfiles.toMutableList()
-        options.add("＋ Add Family Member")
-
         val activeIndex = currentProfiles.indexOf(activeProfile)
 
         AlertDialog.Builder(context)
-            .setTitle("Select Active Member")
-            .setSingleChoiceItems(options.toTypedArray(), activeIndex) { dialog, which ->
+            .setTitle("Select Active Profile")
+            .setSingleChoiceItems(currentProfiles.toTypedArray(), activeIndex) { dialog, which ->
                 dialog.dismiss()
-                if (which == options.size - 1) {
-                    showCreateProfileDialog()
-                } else {
-                    val selectedProfile = options[which]
+                val selectedProfile = currentProfiles[which]
+                if (selectedProfile != activeProfile) {
                     userSettings.setActiveProfile(selectedProfile)
                     updateConditionText()
                     rebuildComposeMenu()
@@ -228,48 +258,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     Toast.makeText(context, "Switched to $selectedProfile", Toast.LENGTH_SHORT).show()
                 }
             }
-            .show()
-    }
-
-    private fun showCreateProfileDialog() {
-        val context = context ?: return
-        val inputLayout = TextInputLayout(context).apply {
-            boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
-            setPadding(32, 16, 32, 8)
-        }
-        val inputEdit = TextInputEditText(context).apply {
-            hint = "Enter member name (e.g. Grandma)"
-        }
-        inputLayout.addView(inputEdit)
-
-        AlertDialog.Builder(context)
-            .setTitle("Add Family Member")
-            .setView(inputLayout)
-            .setPositiveButton("Add & Configure") { dialog, _ ->
-                val name = inputEdit.text?.toString()?.trim() ?: ""
-                if (name.isNotEmpty()) {
-                    val userSettings = AppSettings(context)
-                    userSettings.createProfile(name)
-                    userSettings.setActiveProfile(name)
-                    updateConditionText()
-                    rebuildComposeMenu()
-                    resetUI()
-                    Toast.makeText(context, "Member '$name' added! Set clinical targets below.", Toast.LENGTH_SHORT).show()
-
-                    val bottomNav = activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_navigation)
-                    if (bottomNav != null) {
-                        bottomNav.selectedItemId = R.id.navigation_my_health
-                    } else {
-                        findNavController().navigate(R.id.navigation_my_health)
-                    }
-                } else {
-                    Toast.makeText(context, "Member name cannot be empty", Toast.LENGTH_SHORT).show()
-                }
-                dialog.dismiss()
-            }
-            .setNegativeButton("Cancel") { dialog, _ ->
-                dialog.dismiss()
-            }
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
@@ -344,11 +333,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun launchCameraExplicit(launcher: androidx.activity.result.ActivityResultLauncher<Uri>) {
-        val photoFile = File(requireContext().externalCacheDir, "temp_capture.jpg")
-        tempPhotoUri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.fileprovider", photoFile)
-        launcher.launch(tempPhotoUri)
+        val ctx = requireContext()
+        val uri = getTempPhotoUri(ctx)
+        tempPhotoUri = uri
+        launcher.launch(uri)
     }
 
+    // Lifecycle-Aware & Safe: Replaced raw thread with lifecycleScope, resolved OFF User-Agent policy
     private fun lookupBarcodeOnline(upcCode: String) {
         textExplanation.text = "Searching..."
 
@@ -358,20 +349,24 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 (cleanCode.length == 13 && (cleanCode.startsWith("02") || (cleanCode.substring(0, 2).toIntOrNull() in 20..29)))
 
         if (isVariableWeight) {
-            activity?.runOnUiThread {
-                resetUI()
-                textExplanation.text = "This is a store-packaged variable weight item. Please use 'Camera Scan' to evaluate its ingredient label directly!"
-                textExplanation.setTextColor(ContextCompat.getColor(requireContext(), R.color.textPrimary))
-            }
+            resetUI()
+            textExplanation.text = "This is a store-packaged variable weight item. Please use 'Camera Scan' to evaluate its ingredient label directly!"
+            context?.let { textExplanation.setTextColor(ContextCompat.getColor(it, R.color.textPrimary)) }
             return
         }
 
-        kotlin.concurrent.thread {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val ctx = context ?: return@launch
+            val appContext = ctx.applicationContext
+            val userSettings = AppSettings(appContext)
+
             try {
                 val url = URL("https://world.openfoodfacts.org/api/v2/product/$cleanCode.json")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
-                connection.setRequestProperty("User-Agent", "LabelScanner/1.0 (FilterPoint Android)")
+                connection.setRequestProperty("User-Agent", "FilterPoint/1.0 (support@filterpoint.app - Android)")
+                connection.connectTimeout = 8000
+                connection.readTimeout = 12000
 
                 if (connection.responseCode == 200) {
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
@@ -382,7 +377,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         val nutriments = product.optJSONObject("nutriments") ?: JSONObject()
                         val ingredients = product.optString("ingredients_text", "").split(",").map { it.trim().uppercase() }
 
-                        // Extract category tags with priority cascading
                         val categoriesTags = product.optJSONArray("categories_tags")
                         val candidateCategories = mutableListOf<String>()
                         if (categoriesTags != null && categoriesTags.length() > 0) {
@@ -440,7 +434,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             }
                         }
 
-                        val userSettings = AppSettings(requireContext())
                         val evalResult = LabelEvaluator.evaluateScanData(
                             evalJson,
                             ingredients,
@@ -464,8 +457,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         val needsAlternatives = evalResult.gradeTitle.startsWith("Red") || evalResult.gradeTitle.startsWith("Yellow")
                         isSearchingAlternatives = needsAlternatives
 
-                        // 1. FAST RENDER: Display result immediately; signal searching state if Red/Yellow
-                        activity?.runOnUiThread {
+                        withContext(Dispatchers.Main) {
                             displaySummaryCard(
                                 evalResult,
                                 productName,
@@ -482,7 +474,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             )
                         }
 
-                        // 2. ASYNC SAFER ALTERNATIVES: Robust query with popularity sort and fallback
                         if (needsAlternatives) {
                             try {
                                 val suggestionsList = ArrayList<ProductAlternative>()
@@ -490,19 +481,17 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
                                 for (targetTag in candidateCategories.take(2)) {
                                     val searchUrlStr = "https://world.openfoodfacts.org/api/v2/search?categories_tags=$targetTag&countries_tags=en:united-states&sort_by=unique_scans_n&fields=code,product_name,brands,ingredients_text,nutriments,unique_scans_n&page_size=30"
-                                    Log.d("LabelScanner", "Querying Safer Alternatives: $searchUrlStr")
-
                                     val searchConnection = URL(searchUrlStr).openConnection() as HttpURLConnection
                                     searchConnection.instanceFollowRedirects = true
                                     searchConnection.requestMethod = "GET"
-                                    searchConnection.setRequestProperty("User-Agent", "LabelScanner/1.0 (FilterPoint Android)")
+                                    searchConnection.setRequestProperty("User-Agent", "FilterPoint/1.0 (support@filterpoint.app - Android)")
+                                    searchConnection.connectTimeout = 8000
+                                    searchConnection.readTimeout = 12000
 
                                     if (searchConnection.responseCode == 200) {
                                         val searchResponse = searchConnection.inputStream.bufferedReader().use { it.readText() }
                                         val searchJson = JSONObject(searchResponse)
                                         val productsArr = searchJson.optJSONArray("products")
-
-                                        Log.d("LabelScanner", "OFF Response for $targetTag: Found ${productsArr?.length() ?: 0} raw items")
 
                                         if (productsArr != null && productsArr.length() > 0) {
                                             for (j in 0 until productsArr.length()) {
@@ -512,7 +501,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
                                                 val brand = altProduct.optString("brands", "").trim()
                                                 val scans = altProduct.optInt("unique_scans_n", 0)
-                                                // Filter out brandless items or obscure single-scan niche imports
                                                 if (brand.isBlank() || (scans < 5 && j < 25)) continue
 
                                                 val altName = altProduct.optString("product_name", "").ifBlank {
@@ -549,8 +537,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                                     userSettings.getCustomWatchlist("YELLOW")
                                                 )
 
-                                                Log.d("LabelScanner", "Evaluated Alt: $altName -> Grade: ${altEvalResult.gradeTitle}")
-
                                                 if (altEvalResult.gradeTitle.startsWith("Green")) {
                                                     suggestionsList.add(
                                                         ProductAlternative(
@@ -583,7 +569,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                     }
                                 }
 
-                                activity?.runOnUiThread {
+                                withContext(Dispatchers.Main) {
                                     isSearchingAlternatives = false
                                     if (cardSummary.visibility == View.VISIBLE && cachedEval == evalResult) {
                                         cachedSuggestions = suggestionsList
@@ -604,7 +590,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 }
                             } catch (e: Exception) {
                                 Log.e("LabelScanner", "Async safer alternatives query error", e)
-                                activity?.runOnUiThread {
+                                withContext(Dispatchers.Main) {
                                     isSearchingAlternatives = false
                                     val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
                                     textTapPrompt?.text = "Tap for details ➔"
@@ -616,7 +602,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 }
             } catch (e: Exception) {
                 Log.e("LabelScanner", "Barcode lookup background error", e)
-                activity?.runOnUiThread {
+                withContext(Dispatchers.Main) {
                     isSearchingAlternatives = false
                     textExplanation.text = "Error: ${e.localizedMessage ?: "Unknown connection failure"}"
                 }
@@ -776,12 +762,14 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         return Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
     }
 
-    private fun runAnalysis(imageBitmap: Bitmap) {
+    private fun runAnalysis(imageBitmap: Bitmap, sourceUri: Uri? = null) {
         isAnalyzing = true
-        activity?.runOnUiThread { textExplanation.text = "Reading label..." }
+        textExplanation.text = "Reading label..."
 
+        val ctx = context ?: return
         val image = try {
-            InputImage.fromFilePath(requireContext(), tempPhotoUri)
+            val uri = sourceUri ?: tempPhotoUri ?: getTempPhotoUri(ctx)
+            InputImage.fromFilePath(ctx, uri)
         } catch (e: Exception) {
             InputImage.fromBitmap(imageBitmap, 0)
         }
@@ -827,25 +815,26 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             userSettings.getSelectedConditions().contains("keto")
                         )
                     } else {
-                        activity?.runOnUiThread { textExplanation.text = "Analyzing text..." }
+                        textExplanation.text = "Analyzing text..."
                         executeTextBasedAnalysis(extractedText)
                     }
                 } else {
-                    activity?.runOnUiThread { textExplanation.text = "Using visual fallback..." }
+                    textExplanation.text = "Using visual fallback..."
                     executeVisionBasedAnalysis(imageBitmap)
                 }
             }
             .addOnFailureListener { e ->
                 Log.e("LabelScanner", "Local OCR Failed, falling back to Vision API", e)
-                activity?.runOnUiThread { textExplanation.text = "OCR Failed. Using visual fallback..." }
+                textExplanation.text = "OCR Failed. Using visual fallback..."
                 executeVisionBasedAnalysis(imageBitmap)
             }
     }
 
     private fun executeTextBasedAnalysis(extractedText: String) {
-        lifecycleScope.launch(Dispatchers.IO) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val ctx = context ?: return@launch
             try {
-                val userSettings = AppSettings(requireContext())
+                val userSettings = AppSettings(ctx.applicationContext)
                 val rawResponse = GeminiAnalyzer.analyzeIngredientsText(
                     extractedText,
                     backendAnalysisUrl
@@ -865,9 +854,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun executeVisionBasedAnalysis(imageBitmap: Bitmap) {
-        lifecycleScope.launch(Dispatchers.IO) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val ctx = context ?: return@launch
             try {
-                val userSettings = AppSettings(requireContext())
+                val userSettings = AppSettings(ctx.applicationContext)
                 val optimizedBitmap = resizeBitmapToMax(imageBitmap, 1024)
 
                 val rawResponse = GeminiAnalyzer.analyzeIngredientsImage(
@@ -928,11 +918,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private fun runProduceAnalysis(imageBitmap: Bitmap) {
         isAnalyzing = true
-        lifecycleScope.launch(Dispatchers.IO) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val ctx = context ?: return@launch
             try {
                 val optimizedBitmap = resizeBitmapToMax(imageBitmap, 1024)
 
-                activity?.runOnUiThread { textExplanation.text = "Analyzing Image ..." }
+                withContext(Dispatchers.Main) { textExplanation.text = "Analyzing Image ..." }
 
                 val rawResponse = GeminiAnalyzer.analyzeProduceImage(
                     optimizedBitmap,
@@ -952,9 +943,9 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         isAnalyzing = false
                         val nonFoodResult = EvaluationResult(
                             gradeTitle = "Not Edible Produce",
-                            textColor = ContextCompat.getColor(requireContext(), R.color.textPrimary),
-                            subtextColor = ContextCompat.getColor(requireContext(), R.color.textSecondary),
-                            bgColor = ContextCompat.getColor(requireContext(), R.color.cardSurface),
+                            textColor = ContextCompat.getColor(ctx, R.color.textPrimary),
+                            subtextColor = ContextCompat.getColor(ctx, R.color.textSecondary),
+                            bgColor = ContextCompat.getColor(ctx, R.color.cardSurface),
                             redViolations = emptyList(),
                             yellowViolations = emptyList()
                         )
@@ -977,8 +968,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 val evalResult = LabelEvaluator.evaluateScanData(
                     json,
                     listOf(name.uppercase().trim()),
-                    AppSettings(requireContext()).getSelectedConditions(),
-                    AppSettings(requireContext()),
+                    AppSettings(ctx.applicationContext).getSelectedConditions(),
+                    AppSettings(ctx.applicationContext),
                     emptyList(),
                     emptyList(),
                     emptyList(),
@@ -1012,6 +1003,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             } catch (e: Exception) {
                 Log.e("LabelScanner", "Produce analysis error", e)
                 withContext(Dispatchers.Main) {
+                    isAnalyzing = false
                     textExplanation.text = "Failed: ${e.localizedMessage ?: "Produce error"}"
                 }
             }
@@ -1044,7 +1036,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             cachedSuggestions = suggestions
         }
 
-        // Elevate card and hide floating thumb menu so buttons do not cover the card
         cardSummary.visibility = View.VISIBLE
         composeView.visibility = View.GONE
 
@@ -1088,7 +1079,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
         textTapPrompt?.setTextColor(evaluation.textColor)
 
-        // Animated Prompt State Machine: Disambiguates searching vs found vs ready
         if (suggestions != null && suggestions.isNotEmpty()) {
             textTapPrompt?.text = "Alternatives Found! Tap for details ➔"
             val pulseAnimation = android.view.animation.AlphaAnimation(0.4f, 1.0f).apply {
@@ -1112,7 +1102,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
         textExplanation.text = ""
 
-        // Click Guard with IPC Debounce Throttle: Blocks premature taps from killing background search
         cardSummary.setOnClickListener {
             if (this.isSearchingAlternatives) {
                 val now = System.currentTimeMillis()

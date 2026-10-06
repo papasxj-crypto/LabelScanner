@@ -32,6 +32,9 @@ import java.util.Locale
 
 class HealthFragment : Fragment(R.layout.fragment_health) {
 
+    // Top Profile Name Field (Single Point: Edit)
+    private lateinit var etProfileName: EditText
+
     private lateinit var tabLayoutHealth: TabLayout
     private lateinit var layoutTabProfiles: LinearLayout
     private lateinit var layoutTabCustomWatchlist: LinearLayout
@@ -48,6 +51,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private lateinit var layoutAllergens: LinearLayout
     private lateinit var txtClinicalTargetsHeader: TextView
     private lateinit var btnEditActiveProfile: MaterialButton
+    private lateinit var btnResetCustomSliders: MaterialButton
 
     // Tab 2 Elements
     private lateinit var etCustomIngredient: EditText
@@ -64,6 +68,10 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         super.onViewCreated(view, savedInstanceState)
 
         appSettings = AppSettings(requireContext())
+        val context = requireContext()
+
+        // Bind Top Profile Name Field
+        etProfileName = view.findViewById(R.id.etProfileName)
 
         // Tab Bindings
         tabLayoutHealth = view.findViewById(R.id.tabLayoutHealth)
@@ -75,6 +83,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         layoutAllergens = view.findViewById(R.id.layoutAllergenCheckBoxes)
         txtClinicalTargetsHeader = view.findViewById(R.id.txtClinicalTargetsHeader)
         btnEditActiveProfile = view.findViewById(R.id.btnEditActiveProfile)
+        btnResetCustomSliders = view.findViewById(R.id.btnResetCustomSliders)
         etActualWeight = view.findViewById(R.id.etActualWeight)
         txtToggleWeight = view.findViewById(R.id.txtToggleWeight)
         etHeightFeet = view.findViewById(R.id.etHeightFeet)
@@ -91,11 +100,48 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         layoutActiveReds = view.findViewById(R.id.layoutActiveReds)
         layoutActiveYellows = view.findViewById(R.id.layoutActiveYellows)
 
+        // Setup Direct Profile Renaming (Single Point: Edit)
+        etProfileName.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                applyProfileRename()
+                etProfileName.clearFocus()
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                imm?.hideSoftInputFromWindow(etProfileName.windowToken, 0)
+                true
+            } else {
+                false
+            }
+        }
+
+        etProfileName.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                etProfileName.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurfaceHighlight))
+            } else {
+                etProfileName.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurface))
+                applyProfileRename()
+            }
+        }
+
         btnEditActiveProfile.setOnClickListener {
             CustomProfileManager.showCreateCustomProfileDialog(requireContext(), appSettings) {
                 appSettings.setPendingSaveFlag(true)
                 refreshProfileData()
             }
+        }
+
+        btnResetCustomSliders.setOnClickListener {
+            val activeName = appSettings.getActiveProfile()
+            MaterialAlertDialogBuilder(requireContext(), R.style.Theme_LabelScanner)
+                .setTitle("Reset Macro Limits")
+                .setMessage("Reset all custom nutrient limits for '$activeName' back to official clinical guidelines?")
+                .setPositiveButton("Reset") { _, _ ->
+                    appSettings.resetCustomPlanForActiveMember()
+                    appSettings.setPendingSaveFlag(true)
+                    refreshProfileData()
+                    Toast.makeText(requireContext(), "Reset macro limits to clinical defaults for $activeName", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
         setupTabLayout()
@@ -113,12 +159,33 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         appSettings.setCompletedInitialSetup(true)
     }
 
+    private fun applyProfileRename() {
+        val currentActive = appSettings.getActiveProfile()
+        val newName = etProfileName.text?.toString()?.trim() ?: ""
+
+        if (newName.isNotEmpty() && newName != currentActive) {
+            appSettings.renameProfile(currentActive, newName)
+            appSettings.setPendingSaveFlag(true)
+            refreshProfileData()
+            Toast.makeText(requireContext(), "Profile renamed to '$newName'", Toast.LENGTH_SHORT).show()
+        } else if (newName.isEmpty()) {
+            etProfileName.setText(currentActive)
+        }
+    }
+
     private fun refreshProfileData() {
         isRefreshingUi = true
 
         val context = requireContext()
+        val activeMember = appSettings.getActiveProfile()
 
-        // 1. Reload scoped biometrics for current active member
+        // 1. Populate Active Profile Name (unless currently typing in it)
+        if (!etProfileName.hasFocus()) {
+            etProfileName.setText(activeMember)
+        }
+        txtClinicalTargetsHeader.text = "CLINICAL TARGETS ($activeMember)"
+
+        // 2. Reload scoped biometrics for current active profile
         val savedWeight = appSettings.getUserWeight()
         etActualWeight.setText(if (savedWeight > 0.0) savedWeight.toString() else "")
 
@@ -143,11 +210,12 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
         updateCalculatedWeights()
 
-        // 2. Update visual member identity banner
-        val activeMember = appSettings.getActiveProfile()
-        txtClinicalTargetsHeader.text = "CLINICAL TARGETS ($activeMember)"
+        // 3. Inspect custom slider calibration state
+        val hasCustomSliders = appSettings.hasCustomPlanForActiveMember()
+        btnEditActiveProfile.text = "Adjust Macros"
+        btnResetCustomSliders.visibility = if (hasCustomSliders) View.VISIBLE else View.GONE
 
-        // 3. Rebuild conditions & watchlists
+        // 4. Rebuild conditions & watchlists
         buildDynamicCheckBoxes()
         if (tabLayoutHealth.selectedTabPosition == 1) {
             setupCommonQuickAddChips()
@@ -156,6 +224,10 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
         isRefreshingUi = false
     }
+
+    // ========================================================================
+    // TABS & FORM CONFIGURATION
+    // ========================================================================
 
     private fun setupTabLayout() {
         tabLayoutHealth.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {

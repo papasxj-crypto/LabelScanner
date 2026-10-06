@@ -5,9 +5,11 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
+import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
 import com.journeyapps.barcodescanner.CompoundBarcodeView
+import com.journeyapps.barcodescanner.DefaultDecoderFactory
 
 class ScannerActivity : AppCompatActivity() {
 
@@ -16,7 +18,7 @@ class ScannerActivity : AppCompatActivity() {
 
     private val callback = object : BarcodeCallback {
         override fun barcodeResult(result: BarcodeResult?) {
-            // Only process results if our 3-second aim delay has elapsed
+            // Only process results once camera autofocus settles
             if (!isScanningActive) return
 
             result?.text?.let { upc ->
@@ -36,19 +38,31 @@ class ScannerActivity : AppCompatActivity() {
         setContentView(R.layout.activity_scanner)
 
         barcodeView = findViewById(R.id.barcode_scanner)
+
+        // 1. Hardware Decoder Lockout: Decode ONLY 1D retail grocery barcodes (Ignores QR codes 100%)
+        val retail1DFormats = listOf(
+            BarcodeFormat.UPC_A,
+            BarcodeFormat.UPC_E,
+            BarcodeFormat.EAN_13,
+            BarcodeFormat.EAN_8
+        )
+        barcodeView.decoderFactory = DefaultDecoderFactory(retail1DFormats)
+
+        // 2. Viewfinder Aiming Guidance
+        barcodeView.setStatusText("Align barcode within viewfinder")
+
         barcodeView.decodeContinuous(callback)
     }
 
     override fun onResume() {
         super.onResume()
-        // 1. Keep camera preview active so you can see to aim, but turn scanning OFF
         isScanningActive = false
         barcodeView.resume()
 
-        // 2. Wait 3000ms (3 full seconds) while camera is visible before activating detection
+        // 3. 600ms autofocus settle window: prevents premature trigger while moving camera into position
         Handler(Looper.getMainLooper()).postDelayed({
             isScanningActive = true
-        }, 2000)
+        }, 600)
     }
 
     override fun onPause() {

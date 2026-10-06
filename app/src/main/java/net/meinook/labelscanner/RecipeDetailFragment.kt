@@ -35,6 +35,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
     }
 
     private lateinit var appSettings: AppSettings
+    private var isCookModeActive: Boolean = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -60,6 +61,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
         val btnReProfile = view.findViewById<MaterialButton>(R.id.btnReProfile)
         val txtIngredients = view.findViewById<TextView>(R.id.txtDetailIngredients)
         val btnCopy = view.findViewById<MaterialButton>(R.id.btnCopyIngredients)
+        val btnCookMode = view.findViewById<MaterialButton>(R.id.btnCookMode)
         val txtInstructions = view.findViewById<TextView>(R.id.txtDetailInstructions)
         val btnFetchSteps = view.findViewById<MaterialButton>(R.id.btnFetchSteps)
 
@@ -68,7 +70,31 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             findNavController().navigateUp()
         }
 
-        // 4. Populate Header & Real-Time Safety Status
+        // 4. Cook Mode State Controller
+        fun updateCookModeUi() {
+            view.keepScreenOn = isCookModeActive
+            if (isCookModeActive) {
+                btnCookMode.text = "🍳 Cook Mode: ON"
+                btnCookMode.setTextColor(ContextCompat.getColor(context, R.color.accentWarm))
+            } else {
+                btnCookMode.text = "🍳 Cook Mode: OFF"
+                btnCookMode.setTextColor(ContextCompat.getColor(context, R.color.textMuted))
+            }
+        }
+
+        btnCookMode.setOnClickListener {
+            isCookModeActive = !isCookModeActive
+            updateCookModeUi()
+            val feedbackMsg = if (isCookModeActive) {
+                "Cook Mode ON: Screen will stay awake while cooking."
+            } else {
+                "Cook Mode OFF: Standard screen timeout restored."
+            }
+            Toast.makeText(context, feedbackMsg, Toast.LENGTH_SHORT).show()
+        }
+        updateCookModeUi()
+
+        // 5. Populate Header & Real-Time Safety Status
         txtTitle.text = title
         txtIngredients.text = adjustedOutput
 
@@ -161,7 +187,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             txtSource.visibility = View.GONE
         }
 
-        // 5. Populate or On-Demand Fetch Instructions
+        // 6. Populate or On-Demand Fetch Instructions
         fun renderInstructions(steps: String) {
             if (steps.isNotBlank()) {
                 txtInstructions.text = steps
@@ -199,7 +225,7 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             }
         }
 
-        // 6. Setup Copy Button
+        // 7. Setup Copy Button
         btnCopy.setOnClickListener {
             val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clipText = if (savedInstructions.isNotBlank()) {
@@ -211,6 +237,24 @@ class RecipeDetailFragment : Fragment(R.layout.fragment_recipe_detail) {
             clipboard.setPrimaryClip(clip)
             Toast.makeText(requireContext(), "Recipe copied to clipboard!", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (isCookModeActive) {
+            isCookModeActive = false
+            view?.keepScreenOn = false
+            val btnCookMode = view?.findViewById<MaterialButton>(R.id.btnCookMode)
+            btnCookMode?.text = "🍳 Cook Mode: OFF"
+            context?.let { ctx ->
+                btnCookMode?.setTextColor(ContextCompat.getColor(ctx, R.color.textMuted))
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        view?.keepScreenOn = false
+        super.onDestroyView()
     }
 
     private suspend fun fetchInstructionsFromBackend(adjustedIngredients: String): String? = withContext(Dispatchers.IO) {
