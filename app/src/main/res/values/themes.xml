@@ -1,8 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Soft Glassy Primary Scan Button -->
+
+    <!-- Primary Action Button (Standardized to Brand Primary Background) -->
     <style name="Widget.LabelScanner.Button.Primary" parent="Widget.Material3.Button">
-        <item name="backgroundTint">#3B6E50</item> <!-- Soft Sage Green -->
-        <item name="android:textColor">#FFFFFF</item>
+        <item name="backgroundTint">@color/buttonPrimaryBackground</item>
+        <item name="android:textColor">@color/buttonPrimaryText</item>
         <item name="cornerRadius">12dp</item>
         <item name="android:textSize">15sp</item>
         <item name="android:textStyle">bold</item>
@@ -11,21 +13,43 @@
         <item name="elevation">2dp</item>
     </style>
 
-    <!-- Outlined Secondary Settings Button -->
+    <!-- Outlined Secondary Button -->
     <style name="Widget.LabelScanner.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
-        <item name="strokeColor">#2E3545</item>
+        <item name="strokeColor">@color/surfaceStroke</item>
         <item name="strokeWidth">1dp</item>
-        <item name="android:textColor">#D1D7E0</item>
+        <item name="android:textColor">@color/textPrimary</item>
         <item name="cornerRadius">12dp</item>
         <item name="android:textSize">14sp</item>
         <item name="android:paddingTop">12dp</item>
         <item name="android:paddingBottom">12dp</item>
     </style>
 
+    <!-- Global Dialog Button Styles (High Contrast) -->
+    <style name="Widget.LabelScanner.DialogButton.Positive" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="rippleColor">@color/surfaceStroke</item>
+    </style>
+
+    <style name="Widget.LabelScanner.DialogButton.Negative" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/textSecondary</item>
+        <item name="android:textSize">14sp</item>
+        <item name="rippleColor">@color/surfaceStroke</item>
+    </style>
+
+    <!-- Global Material Alert Dialog Theme Overlay -->
+    <style name="ThemeOverlay.LabelScanner.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorSurface">@color/cardSurface</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.LabelScanner.DialogButton.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.LabelScanner.DialogButton.Negative</item>
+    </style>
+
     <!-- Base Application Theme -->
     <style name="Theme.LabelScanner" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Default app backgrounds are dark cocoa to match your fragment layouts -->
-        <item name="android:windowBackground">#14161F</item>
+        <!-- Default background -->
+        <item name="android:windowBackground">@color/cardSurface</item>
 
         <!-- Global Bottom Navigation Style Override -->
         <item name="bottomNavigationStyle">@style/Widget.LabelScanner.BottomNavigationView</item>
@@ -36,35 +60,35 @@
         <item name="colorOnPrimary">@color/white</item>
         <item name="colorOnSecondary">@color/white</item>
 
-        <!-- Toggle Button Checked States (Overrides purple check background) -->
-        <item name="colorPrimaryContainer">#2B1F16</item> <!-- Cocoa-brown active background -->
-        <item name="colorOnPrimaryContainer">#E5C158</item> <!-- Warm gold active text -->
+        <!-- Forces cursor | and water drop handle to Parchment Cream -->
+        <item name="colorControlActivated">@color/accentVivid</item>
 
-        <!-- System-wide Touch Ripple / Pulse (Overrides purple ripple globally!) -->
-        <item name="colorControlHighlight">#40E5C158</item> <!-- 25% transparent gold ripple instead of purple -->
+        <!-- Global Dialog Styles (Applies to MaterialAlertDialogBuilder) -->
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.LabelScanner.MaterialAlertDialog</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.LabelScanner.DialogButton.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.LabelScanner.DialogButton.Negative</item>
+
+        <!-- Container Active Tones -->
+        <item name="colorPrimaryContainer">@color/buttonPrimaryBackground</item>
+        <item name="colorOnPrimaryContainer">@color/textPrimary</item>
+
+        <!-- System-wide Touch Ripple / Pulse -->
+        <item name="colorControlHighlight">#33A89890</item>
     </style>
 
     <!--
       GOOGLE JETPACK STARTING SPLASH THEME
-      This temporary starting theme is used exclusively while the app is booting.
-      It displays your actual app launcher icon and background, then automatically
-      transitions to your main application theme (Theme.LabelScanner) when ready.
     -->
     <style name="Theme.LabelScanner.Starting" parent="Theme.SplashScreen">
-        <!-- Match your launcher icon background exactly (warm sand/cream) -->
-        <item name="windowSplashScreenBackground">#E4D5B1</item>
-
-        <!-- Use your actual app launcher icon -->
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
-
-        <!-- The theme to apply once the splash screen is dismissed -->
         <item name="postSplashScreenTheme">@style/Theme.LabelScanner</item>
     </style>
 
     <!-- Bottom Navigation Custom Styling -->
     <style name="Widget.LabelScanner.BottomNavigationView" parent="Widget.MaterialComponents.BottomNavigationView">
-        <item name="backgroundTint">#2B1F16</item> <!-- Dark tan / lite brown background -->
-        <item name="itemIconTint">@color/bottom_nav_color_state</item> <!-- Fills state selector -->
+        <item name="backgroundTint">@color/headerSurface</item>
+        <item name="itemIconTint">@color/bottom_nav_color_state</item>
         <item name="itemTextColor">@color/bottom_nav_color_state</item>
     </style>
 
@@ -78,27 +102,26 @@
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:letterSpacing">0.05</item>
-        <!-- Rounded triangle/oval shape -->
         <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.ScanButton</item>
     </style>
 
     <!-- Specific color variations -->
     <style name="StylizedScanButton.Green">
-        <item name="backgroundTint">#22DD55</item> <!-- Green -->
-        <item name="android:textColor">#FFFFFF</item>
+        <item name="backgroundTint">@color/gradeSafe</item>
+        <item name="android:textColor">@color/white</item>
     </style>
 
     <style name="StylizedScanButton.Yellow">
-        <item name="backgroundTint">#FFD700</item> <!-- Yellow -->
-        <item name="android:textColor">#333333</item>
+        <item name="backgroundTint">@color/gradeCaution</item>
+        <item name="android:textColor">@color/black</item>
     </style>
 
     <style name="StylizedScanButton.Blue">
-        <item name="backgroundTint">#3399FF</item> <!-- Blue -->
-        <item name="android:textColor">#FFFFFF</item>
+        <item name="backgroundTint">@color/accentVivid</item>
+        <item name="android:textColor">@color/white</item>
     </style>
 
-    <!-- Defines the "Schmancy" rounded triangle shape overlay -->
+    <!-- Defines the rounded triangle shape overlay -->
     <style name="ShapeAppearanceOverlay.ScanButton" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSizeTopRight">20dp</item>

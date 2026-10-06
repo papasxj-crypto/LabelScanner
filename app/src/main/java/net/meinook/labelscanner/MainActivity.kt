@@ -144,7 +144,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         bottomNav.post {
-            handleIncomingShareIntent(intent)
+            if (!appSettings.hasCompletedInitialSetup()) {
+                bottomNav.selectedItemId = R.id.navigation_my_health
+            } else {
+                handleIncomingShareIntent(intent)
+            }
         }
     }
 

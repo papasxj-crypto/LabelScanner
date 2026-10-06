@@ -256,9 +256,15 @@ object LabelEvaluator {
             if (value > mod) {
                 val label = if (map.useNetCarbs && useNetCarbsActive) "Net Carbs" else map.displayName
                 val message = "$label exceeds target limit: found $actualValFormatted (limit: $modFormatted)"
-                if (blacklist) redViolations.add(message) else yellowViolations.add(message)
-            } else if (value > low) {
-                val label = if (map.useNetCarbs && useNetCarbsActive) "Net Carbs" else map.displayName
+
+                // Cumulative dietary metrics (fats, calories) NEVER trigger a Hard RED
+                val isCumulativeDietaryMetric = (map.xmlId == "saturated_fat" || map.xmlId == "total_fat" || map.xmlId == "calories")
+                if (blacklist && !isCumulativeDietaryMetric) {
+                    redViolations.add(message)
+                } else {
+                    yellowViolations.add(message)
+                }
+            } else if (value > low) {                val label = if (map.useNetCarbs && useNetCarbsActive) "Net Carbs" else map.displayName
                 val message = "$label is high: found $actualValFormatted (caution limit: $lowFormatted)"
                 yellowViolations.add(message)
             }

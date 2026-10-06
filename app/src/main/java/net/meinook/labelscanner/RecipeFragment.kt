@@ -21,6 +21,7 @@ import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
@@ -263,8 +264,6 @@ class RecipeFragment : Fragment() {
             }
         }
 
-        var isSelfFormatting = false
-
         fun deduplicateText(raw: String): String {
             val trimmed = raw.trim()
             val len = trimmed.length
@@ -282,25 +281,43 @@ class RecipeFragment : Fragment() {
             return raw
         }
 
+        var isSelfFormatting = false
+        var pendingReplacement: String? = null
+
         edtRecipeInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val text = s?.toString()?.trim() ?: ""
-                val isUrl = text.startsWith("http://", ignoreCase = true) || text.startsWith("https://", ignoreCase = true)
+                if (isSelfFormatting || s == null) return
+                val text = s.toString()
+
+                // Intercept Gboard / Samsung clipboard block commits into existing text
+                if (count >= 15 && text.length > count) {
+                    val inserted = s.subSequence(start, start + count).toString().trim()
+                    val isBlock = inserted.contains("\n") || inserted.startsWith("http", true) || inserted.any { it.isDigit() }
+                    if (isBlock) {
+                        pendingReplacement = inserted
+                        return
+                    }
+                }
+
+                val trimmed = text.trim()
+                val isUrl = trimmed.startsWith("http://", true) || trimmed.startsWith("https://", true)
                 if (btnAdjustRecipe.isEnabled) {
                     btnAdjustRecipe.text = if (isUrl) "Scrape Recipe" else "Profile & Adjust"
                 }
             }
+
             override fun afterTextChanged(s: Editable?) {
-                if (isSelfFormatting || s == null) return
-                val original = s.toString()
-                val corrected = deduplicateText(original)
-                if (corrected != original) {
+                if (isSelfFormatting) return
+                val replacement = pendingReplacement
+                if (replacement != null) {
+                    pendingReplacement = null
                     isSelfFormatting = true
-                    edtRecipeInput.setText(corrected)
-                    edtRecipeInput.setSelection(corrected.length)
+                    val sanitized = if (replacement.startsWith("http", true)) replacement else sanitizeScrapedIngredients(replacement)
+                    edtRecipeInput.setText(sanitized)
+                    edtRecipeInput.setSelection(sanitized.length)
                     isSelfFormatting = false
-                    Toast.makeText(context, "Double-paste corrected.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Recipe replaced from clipboard.", Toast.LENGTH_SHORT).show()
                 }
             }
         })
@@ -513,7 +530,6 @@ class RecipeFragment : Fragment() {
         if (incoming.isNotBlank()) {
             if (incoming != current) {
                 edtRecipeInput.setText(incoming)
-                scrapedRecipeTitle = null
                 hideKeyboardAndClipboard()
                 if (sourceMessage.isNotBlank()) {
                     Toast.makeText(context, sourceMessage, Toast.LENGTH_SHORT).show()
@@ -1316,6 +1332,7 @@ class RecipeFragment : Fragment() {
         forceReprofile = false
 
         showResultsState()
+        txtTopRecipeTitle.text = scrapedRecipeTitle ?: "Analyzing Recipe..."
         cardClinicalGauge.visibility = View.GONE
         layoutPostAnalysisActions.visibility = View.GONE
         progressAnalysisIndicator.visibility = View.VISIBLE

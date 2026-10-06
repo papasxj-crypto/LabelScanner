@@ -33,6 +33,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.FragmentNavigatorExtras
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -60,7 +61,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private lateinit var textExplanation: TextView
-    private lateinit var textCondition: TextView
+    private lateinit var btnProfileSelector: MaterialButton
     private lateinit var cardSummary: MaterialCardView
     private lateinit var textSummaryGrade: TextView
     private lateinit var textSummaryExplanation: TextView
@@ -74,6 +75,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private var cachedMacros: Bundle? = null
     private var cachedSuggestions: ArrayList<ProductAlternative>? = null
     private var isNavigatingToDetail: Boolean = false
+
+    // Alternatives Search State & IPC Debounce Guards
+    private var isSearchingAlternatives: Boolean = false
+    private var activeSearchToast: Toast? = null
+    private var lastToastTimestamp: Long = 0L
 
     private val labelCameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
@@ -132,7 +138,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         super.onViewCreated(view, savedInstanceState)
 
         textExplanation = view.findViewById(R.id.textExplanation)
-        textCondition = view.findViewById(R.id.textCondition)
+        btnProfileSelector = view.findViewById(R.id.btnProfileSelector)
         cardSummary = view.findViewById(R.id.cardSummary)
         textSummaryGrade = view.findViewById(R.id.textSummaryGrade)
         textSummaryExplanation = view.findViewById(R.id.textSummaryExplanation)
@@ -140,7 +146,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         composeView = view.findViewById(R.id.composeViewMenu)
         rebuildComposeMenu()
 
-        textCondition.setOnClickListener {
+        btnProfileSelector.setOnClickListener {
             showProfileSelectorDialog()
         }
 
@@ -203,12 +209,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val activeProfile = userSettings.getActiveProfile()
 
         val options = currentProfiles.toMutableList()
-        options.add("＋ Create New Profile")
+        options.add("＋ Add Family Member")
 
         val activeIndex = currentProfiles.indexOf(activeProfile)
 
         AlertDialog.Builder(context)
-            .setTitle("Select Profile")
+            .setTitle("Select Active Member")
             .setSingleChoiceItems(options.toTypedArray(), activeIndex) { dialog, which ->
                 dialog.dismiss()
                 if (which == options.size - 1) {
@@ -219,7 +225,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     updateConditionText()
                     rebuildComposeMenu()
                     resetUI()
-                    Toast.makeText(context, "Profile switched to $selectedProfile", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Switched to $selectedProfile", Toast.LENGTH_SHORT).show()
                 }
             }
             .show()
@@ -232,14 +238,14 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             setPadding(32, 16, 32, 8)
         }
         val inputEdit = TextInputEditText(context).apply {
-            hint = "Enter profile name (e.g. Grandma)"
+            hint = "Enter member name (e.g. Grandma)"
         }
         inputLayout.addView(inputEdit)
 
         AlertDialog.Builder(context)
-            .setTitle("Create New Profile")
+            .setTitle("Add Family Member")
             .setView(inputLayout)
-            .setPositiveButton("Create") { dialog, _ ->
+            .setPositiveButton("Add & Configure") { dialog, _ ->
                 val name = inputEdit.text?.toString()?.trim() ?: ""
                 if (name.isNotEmpty()) {
                     val userSettings = AppSettings(context)
@@ -248,9 +254,16 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     updateConditionText()
                     rebuildComposeMenu()
                     resetUI()
-                    Toast.makeText(context, "Profile '$name' activated", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Member '$name' added! Set clinical targets below.", Toast.LENGTH_SHORT).show()
+
+                    val bottomNav = activity?.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_navigation)
+                    if (bottomNav != null) {
+                        bottomNav.selectedItemId = R.id.navigation_my_health
+                    } else {
+                        findNavController().navigate(R.id.navigation_my_health)
+                    }
                 } else {
-                    Toast.makeText(context, "Profile name cannot be empty", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Member name cannot be empty", Toast.LENGTH_SHORT).show()
                 }
                 dialog.dismiss()
             }
@@ -358,7 +371,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 val url = URL("https://world.openfoodfacts.org/api/v2/product/$cleanCode.json")
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
-                connection.setRequestProperty("User-Agent", "LabelScanner/1.0")
+                connection.setRequestProperty("User-Agent", "LabelScanner/1.0 (FilterPoint Android)")
 
                 if (connection.responseCode == 200) {
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
@@ -369,16 +382,20 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         val nutriments = product.optJSONObject("nutriments") ?: JSONObject()
                         val ingredients = product.optString("ingredients_text", "").split(",").map { it.trim().uppercase() }
 
+                        // Extract category tags with priority cascading
                         val categoriesTags = product.optJSONArray("categories_tags")
-                        var categoryTag: String? = null
+                        val candidateCategories = mutableListOf<String>()
                         if (categoriesTags != null && categoriesTags.length() > 0) {
                             for (i in categoriesTags.length() - 1 downTo 0) {
                                 val tag = categoriesTags.optString(i, "")
-                                if (tag.startsWith("en:")) {
-                                    categoryTag = tag
-                                    break
+                                if (tag.startsWith("en:") && !tag.contains("cjips", ignoreCase = true)) {
+                                    candidateCategories.add(tag)
                                 }
                             }
+                        }
+                        if (candidateCategories.isEmpty()) {
+                            candidateCategories.add("en:chips-and-fries")
+                            candidateCategories.add("en:salty-snacks")
                         }
 
                         val evalJson = JSONObject().apply {
@@ -444,6 +461,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         val sugar = evalJson.optDouble("sugar", 0.0).toFloat()
                         val isKeto = userSettings.getSelectedConditions().contains("keto")
 
+                        val needsAlternatives = evalResult.gradeTitle.startsWith("Red") || evalResult.gradeTitle.startsWith("Yellow")
+                        isSearchingAlternatives = needsAlternatives
+
+                        // 1. FAST RENDER: Display result immediately; signal searching state if Red/Yellow
                         activity?.runOnUiThread {
                             displaySummaryCard(
                                 evalResult,
@@ -456,108 +477,139 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 netCarbs,
                                 sugar,
                                 isKeto,
-                                suggestions = null
+                                suggestions = null,
+                                isSearchingAlternatives = needsAlternatives
                             )
                         }
 
-                        if (!categoryTag.isNullOrEmpty() && (evalResult.gradeTitle.startsWith("Red") || evalResult.gradeTitle.startsWith("Yellow"))) {
+                        // 2. ASYNC SAFER ALTERNATIVES: Robust query with popularity sort and fallback
+                        if (needsAlternatives) {
                             try {
-                                val cleanCategory = categoryTag.removePrefix("en:").trim()
-                                val searchUrl = URL("https://world.openfoodfacts.org/api/v2/search?categories_tags_en=$cleanCategory&fields=code,product_name,brands,ingredients_text,nutriments&page_size=15")
+                                val suggestionsList = ArrayList<ProductAlternative>()
+                                val tempYellowSuggestions = ArrayList<ProductAlternative>()
 
-                                val searchConnection = searchUrl.openConnection() as HttpURLConnection
-                                searchConnection.requestMethod = "GET"
-                                searchConnection.setRequestProperty("User-Agent", "LabelScanner/1.0")
+                                for (targetTag in candidateCategories.take(2)) {
+                                    val searchUrlStr = "https://world.openfoodfacts.org/api/v2/search?categories_tags=$targetTag&countries_tags=en:united-states&sort_by=unique_scans_n&fields=code,product_name,brands,ingredients_text,nutriments,unique_scans_n&page_size=30"
+                                    Log.d("LabelScanner", "Querying Safer Alternatives: $searchUrlStr")
 
-                                if (searchConnection.responseCode == 200) {
-                                    val searchResponse = searchConnection.inputStream.bufferedReader().use { it.readText() }
-                                    val searchJson = JSONObject(searchResponse)
-                                    val productsArr = searchJson.optJSONArray("products")
+                                    val searchConnection = URL(searchUrlStr).openConnection() as HttpURLConnection
+                                    searchConnection.instanceFollowRedirects = true
+                                    searchConnection.requestMethod = "GET"
+                                    searchConnection.setRequestProperty("User-Agent", "LabelScanner/1.0 (FilterPoint Android)")
 
-                                    val suggestionsList = ArrayList<ProductAlternative>()
-                                    val tempYellowSuggestions = ArrayList<ProductAlternative>()
+                                    if (searchConnection.responseCode == 200) {
+                                        val searchResponse = searchConnection.inputStream.bufferedReader().use { it.readText() }
+                                        val searchJson = JSONObject(searchResponse)
+                                        val productsArr = searchJson.optJSONArray("products")
 
-                                    if (productsArr != null) {
-                                        for (j in 0 until productsArr.length()) {
-                                            val altProduct = productsArr.getJSONObject(j)
-                                            val altCode = altProduct.optString("code", "")
-                                            if (altCode == cleanCode) continue
+                                        Log.d("LabelScanner", "OFF Response for $targetTag: Found ${productsArr?.length() ?: 0} raw items")
 
-                                            val altNutriments = altProduct.optJSONObject("nutriments") ?: JSONObject()
-                                            val altIngredients = altProduct.optString("ingredients_text", "").split(",").map { it.trim().uppercase() }
+                                        if (productsArr != null && productsArr.length() > 0) {
+                                            for (j in 0 until productsArr.length()) {
+                                                val altProduct = productsArr.getJSONObject(j)
+                                                val altCode = altProduct.optString("code", "")
+                                                if (altCode == cleanCode) continue
 
-                                            val altEvals = JSONObject().apply {
-                                                fun hasVal(vararg keys: String): Boolean {
-                                                    return keys.any { altNutriments.has(it) && !altNutriments.isNull(it) }
+                                                val brand = altProduct.optString("brands", "").trim()
+                                                val scans = altProduct.optInt("unique_scans_n", 0)
+                                                // Filter out brandless items or obscure single-scan niche imports
+                                                if (brand.isBlank() || (scans < 5 && j < 25)) continue
+
+                                                val altName = altProduct.optString("product_name", "").ifBlank {
+                                                    altProduct.optString("product_name_en", "")
                                                 }
-                                                if (hasVal("energy-kcal_serving")) put("calories", altNutriments.optInt("energy-kcal_serving", 0))
-                                                else if (hasVal("energy-kcal_100g")) put("calories", altNutriments.optInt("energy-kcal_100g", 0))
+                                                if (altName.isBlank()) continue
 
-                                                if (hasVal("sodium_serving")) put("sodium", (altNutriments.optDouble("sodium_serving", 0.0) * 1000).toInt())
-                                                else if (hasVal("sodium_100g")) put("sodium", (altNutriments.optDouble("sodium_100g", 0.0) * 1000).toInt())
+                                                val altNutriments = altProduct.optJSONObject("nutriments") ?: JSONObject()
+                                                val altIngredients = altProduct.optString("ingredients_text", "").split(",").map { it.trim().uppercase() }
 
-                                                if (hasVal("proteins_serving")) put("protein", altNutriments.optDouble("proteins_serving", 0.0))
-                                                if (hasVal("carbohydrates_serving")) put("carbs", altNutriments.optDouble("carbohydrates_serving", 0.0))
-                                                if (hasVal("fiber_serving")) put("fiber", altNutriments.optDouble("fiber_serving", 0.0))
-                                                if (hasVal("sugars_serving")) put("sugar", altNutriments.optDouble("sugars_serving", 0.0))
-                                            }
-
-                                            val altEvalResult = LabelEvaluator.evaluateScanData(
-                                                altEvals,
-                                                altIngredients,
-                                                userSettings.getSelectedConditions(),
-                                                userSettings,
-                                                userSettings.loadTriggersFromAssets("red"),
-                                                userSettings.getCustomWatchlist("RED"),
-                                                userSettings.getCustomWatchlist("YELLOW")
-                                            )
-
-                                            if (altEvalResult.gradeTitle.startsWith("Green")) {
-                                                suggestionsList.add(
-                                                    ProductAlternative(
-                                                        name = altProduct.optString("product_name", "Alternative Option"),
-                                                        brand = altProduct.optString("brands", ""),
-                                                        code = altCode,
-                                                        gradeTitle = altEvalResult.gradeTitle
-                                                    )
-                                                )
-                                            } else if (altEvalResult.gradeTitle.startsWith("Yellow")) {
-                                                tempYellowSuggestions.add(
-                                                    ProductAlternative(
-                                                        name = altProduct.optString("product_name", "Alternative Option"),
-                                                        brand = altProduct.optString("brands", ""),
-                                                        code = altCode,
-                                                        gradeTitle = altEvalResult.gradeTitle
-                                                    )
-                                                )
-                                            }
-                                            if (suggestionsList.size >= 3) break
-                                        }
-
-                                        for (yellowOpt in tempYellowSuggestions) {
-                                            if (suggestionsList.size >= 3) break
-                                            suggestionsList.add(yellowOpt)
-                                        }
-
-                                        if (suggestionsList.isNotEmpty()) {
-                                            activity?.runOnUiThread {
-                                                if (cardSummary.visibility == View.VISIBLE && cachedEval == evalResult) {
-                                                    cachedSuggestions = suggestionsList
-                                                    val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
-                                                    textTapPrompt?.text = "Alternatives Found! Tap for details ➔"
-                                                    val pulseAnimation = android.view.animation.AlphaAnimation(0.4f, 1.0f).apply {
-                                                        duration = 1000
-                                                        repeatMode = android.view.animation.Animation.REVERSE
-                                                        repeatCount = android.view.animation.Animation.INFINITE
+                                                val altEvals = JSONObject().apply {
+                                                    fun hasVal(vararg keys: String): Boolean {
+                                                        return keys.any { altNutriments.has(it) && !altNutriments.isNull(it) }
                                                     }
-                                                    textTapPrompt?.startAnimation(pulseAnimation)
+                                                    if (hasVal("energy-kcal_serving")) put("calories", altNutriments.optInt("energy-kcal_serving", 0))
+                                                    else if (hasVal("energy-kcal_100g")) put("calories", altNutriments.optInt("energy-kcal_100g", 0))
+
+                                                    if (hasVal("sodium_serving")) put("sodium", (altNutriments.optDouble("sodium_serving", 0.0) * 1000).toInt())
+                                                    else if (hasVal("sodium_100g")) put("sodium", (altNutriments.optDouble("sodium_100g", 0.0) * 1000).toInt())
+
+                                                    if (hasVal("proteins_serving")) put("protein", altNutriments.optDouble("proteins_serving", 0.0))
+                                                    if (hasVal("carbohydrates_serving")) put("carbs", altNutriments.optDouble("carbohydrates_serving", 0.0))
+                                                    if (hasVal("fiber_serving")) put("fiber", altNutriments.optDouble("fiber_serving", 0.0))
+                                                    if (hasVal("sugars_serving")) put("sugar", altNutriments.optDouble("sugars_serving", 0.0))
                                                 }
+
+                                                val altEvalResult = LabelEvaluator.evaluateScanData(
+                                                    altEvals,
+                                                    altIngredients,
+                                                    userSettings.getSelectedConditions(),
+                                                    userSettings,
+                                                    userSettings.loadTriggersFromAssets("red"),
+                                                    userSettings.getCustomWatchlist("RED"),
+                                                    userSettings.getCustomWatchlist("YELLOW")
+                                                )
+
+                                                Log.d("LabelScanner", "Evaluated Alt: $altName -> Grade: ${altEvalResult.gradeTitle}")
+
+                                                if (altEvalResult.gradeTitle.startsWith("Green")) {
+                                                    suggestionsList.add(
+                                                        ProductAlternative(
+                                                            name = altName,
+                                                            brand = brand,
+                                                            code = altCode,
+                                                            gradeTitle = altEvalResult.gradeTitle
+                                                        )
+                                                    )
+                                                } else if (altEvalResult.gradeTitle.startsWith("Yellow")) {
+                                                    tempYellowSuggestions.add(
+                                                        ProductAlternative(
+                                                            name = altName,
+                                                            brand = brand,
+                                                            code = altCode,
+                                                            gradeTitle = altEvalResult.gradeTitle
+                                                        )
+                                                    )
+                                                }
+                                                if (suggestionsList.size >= 3) break
                                             }
+
+                                            for (yellowOpt in tempYellowSuggestions) {
+                                                if (suggestionsList.size >= 3) break
+                                                suggestionsList.add(yellowOpt)
+                                            }
+
+                                            if (suggestionsList.isNotEmpty()) break
+                                        }
+                                    }
+                                }
+
+                                activity?.runOnUiThread {
+                                    isSearchingAlternatives = false
+                                    if (cardSummary.visibility == View.VISIBLE && cachedEval == evalResult) {
+                                        cachedSuggestions = suggestionsList
+                                        val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
+                                        if (suggestionsList.isNotEmpty()) {
+                                            textTapPrompt?.text = "Alternatives Found! Tap for details ➔"
+                                            val pulseAnimation = android.view.animation.AlphaAnimation(0.4f, 1.0f).apply {
+                                                duration = 1000
+                                                repeatMode = android.view.animation.Animation.REVERSE
+                                                repeatCount = android.view.animation.Animation.INFINITE
+                                            }
+                                            textTapPrompt?.startAnimation(pulseAnimation)
+                                        } else {
+                                            textTapPrompt?.text = "Tap for details ➔"
+                                            textTapPrompt?.clearAnimation()
                                         }
                                     }
                                 }
                             } catch (e: Exception) {
                                 Log.e("LabelScanner", "Async safer alternatives query error", e)
+                                activity?.runOnUiThread {
+                                    isSearchingAlternatives = false
+                                    val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
+                                    textTapPrompt?.text = "Tap for details ➔"
+                                    textTapPrompt?.clearAnimation()
+                                }
                             }
                         }
                     }
@@ -565,6 +617,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             } catch (e: Exception) {
                 Log.e("LabelScanner", "Barcode lookup background error", e)
                 activity?.runOnUiThread {
+                    isSearchingAlternatives = false
                     textExplanation.text = "Error: ${e.localizedMessage ?: "Unknown connection failure"}"
                 }
             }
@@ -977,7 +1030,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         sugar: Float,
         isKeto: Boolean,
         isRestoring: Boolean = false,
-        suggestions: ArrayList<ProductAlternative>? = null
+        suggestions: ArrayList<ProductAlternative>? = null,
+        isSearchingAlternatives: Boolean = false
     ) {
         if (!isRestoring) {
             cachedEval = evaluation
@@ -989,7 +1043,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
             cachedSuggestions = suggestions
         }
+
+        // Elevate card and hide floating thumb menu so buttons do not cover the card
         cardSummary.visibility = View.VISIBLE
+        composeView.visibility = View.GONE
 
         cardSummary.setCardBackgroundColor(evaluation.bgColor)
         cardSummary.strokeColor = evaluation.textColor
@@ -1031,11 +1088,19 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
         textTapPrompt?.setTextColor(evaluation.textColor)
 
+        // Animated Prompt State Machine: Disambiguates searching vs found vs ready
         if (suggestions != null && suggestions.isNotEmpty()) {
             textTapPrompt?.text = "Alternatives Found! Tap for details ➔"
-
             val pulseAnimation = android.view.animation.AlphaAnimation(0.4f, 1.0f).apply {
                 duration = 1000
+                repeatMode = android.view.animation.Animation.REVERSE
+                repeatCount = android.view.animation.Animation.INFINITE
+            }
+            textTapPrompt?.startAnimation(pulseAnimation)
+        } else if (isSearchingAlternatives) {
+            textTapPrompt?.text = "Searching for safer alternatives... ⏳"
+            val pulseAnimation = android.view.animation.AlphaAnimation(0.4f, 1.0f).apply {
+                duration = 800
                 repeatMode = android.view.animation.Animation.REVERSE
                 repeatCount = android.view.animation.Animation.INFINITE
             }
@@ -1044,11 +1109,21 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             textTapPrompt?.text = "Tap for details ➔"
             textTapPrompt?.clearAnimation()
         }
-        textTapPrompt?.setTextColor(evaluation.textColor)
 
         textExplanation.text = ""
 
+        // Click Guard with IPC Debounce Throttle: Blocks premature taps from killing background search
         cardSummary.setOnClickListener {
+            if (this.isSearchingAlternatives) {
+                val now = System.currentTimeMillis()
+                if (now - lastToastTimestamp > 3000L) {
+                    lastToastTimestamp = now
+                    activeSearchToast?.cancel()
+                    activeSearchToast = Toast.makeText(context, "Searching for alternatives, please wait...", Toast.LENGTH_SHORT)
+                    activeSearchToast?.show()
+                }
+                return@setOnClickListener
+            }
             isNavigatingToDetail = true
             val bundle = Bundle().apply {
                 putSerializable("EVAL", evaluation)
@@ -1067,7 +1142,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private fun resetUI() {
         activity?.runOnUiThread {
+            isSearchingAlternatives = false
+            activeSearchToast?.cancel()
             cardSummary.visibility = View.GONE
+            composeView.visibility = View.VISIBLE
             cachedEval = null
             cachedSub = ""
             cachedMacros = null
@@ -1078,7 +1156,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun updateConditionText() {
-        textCondition.text = "Profile: ${AppSettings(requireContext()).getActiveProfile()}"
+        btnProfileSelector.text = "Profile: ${AppSettings(requireContext()).getActiveProfile()} ▾"
     }
 
     override fun onResume() {

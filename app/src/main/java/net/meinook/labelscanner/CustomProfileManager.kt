@@ -29,24 +29,15 @@ object CustomProfileManager {
         appSettings: AppSettings,
         onProfileSaved: () -> Unit
     ) {
+        val activeConditions = appSettings.getSelectedConditions()
         val allProfiles = appSettings.getAvailableDietProfiles(includeAllergens = false)
-        val options = mutableListOf<String>().apply {
-            add("Start Clean (All Zeros)")
-            addAll(allProfiles.map { it.displayName })
-        }
 
-        MaterialAlertDialogBuilder(context, R.style.Theme_LabelScanner)
-            .setTitle("Select Template to Clone")
-            .setItems(options.toTypedArray()) { _, which ->
-                if (which == 0) {
-                    showCustomEditForm(context, null, appSettings, onProfileSaved)
-                } else {
-                    val selectedProfile = allProfiles[which - 1]
-                    showCustomEditForm(context, selectedProfile, appSettings, onProfileSaved)
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        // Automatically resolve the active clinical condition to seed the sliders
+        val activeTemplate = allProfiles.find { profile ->
+            activeConditions.contains(profile.id) && !profile.id.startsWith("custom_")
+        } ?: allProfiles.find { it.id == "healthy_baseline" }
+
+        showCustomEditForm(context, activeTemplate, appSettings, onProfileSaved)
     }
 
     private fun showCustomEditForm(
@@ -56,6 +47,13 @@ object CustomProfileManager {
         onProfileSaved: () -> Unit
     ) {
         val density = context.resources.displayMetrics.density
+        val activeName = appSettings.getActiveProfile()
+        val activeSuffix = activeName.lowercase(Locale.ROOT).replace(" ", "_")
+        val customProfileId = "custom_$activeSuffix"
+
+        // Check if this member already has custom saved sliders; otherwise seed from condition template
+        val existingCustomFile = File(File(context.filesDir, "profiles"), "$customProfileId.xml")
+        val sourceProfileId = if (existingCustomFile.exists()) customProfileId else template?.id
 
         val linearLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -65,31 +63,31 @@ object CustomProfileManager {
         val scroll = NestedScrollView(context).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                (400 * density).toInt()
+                (420 * density).toInt()
             )
             addView(linearLayout)
         }
 
-        val activeName = appSettings.getActiveProfile()
         val etProfileName = createInputRow(context, linearLayout, density, "Profile Name").apply {
             setText(if (template != null) "${template.displayName} ($activeName)" else "Custom Plan ($activeName)")
             inputType = InputType.TYPE_CLASS_TEXT
         }
 
-        val sodMod = if (template != null) appSettings.getNutrientThresholdsForProfile(template.id, "sodium").second else 0
-        val sodLow = (if (template != null) appSettings.getNutrientThresholdsForProfile(template.id, "sodium").first else 0).coerceAtMost(sodMod)
+        // Resolve Thresholds
+        val sodMod = if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "sodium").second else 480
+        val sodLow = (if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "sodium").first else 140).coerceAtMost(sodMod)
 
-        val potMod = if (template != null) appSettings.getNutrientThresholdsForProfile(template.id, "potassium").second else 0
-        val potLow = (if (template != null) appSettings.getNutrientThresholdsForProfile(template.id, "potassium").first else 0).coerceAtMost(potMod)
+        val potMod = if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "potassium").second else 700
+        val potLow = (if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "potassium").first else 350).coerceAtMost(potMod)
 
-        val satMod = if (template != null) appSettings.getNutrientThresholdsForProfile(template.id, "saturated_fat").second else 0
-        val satLow = (if (template != null) appSettings.getNutrientThresholdsForProfile(template.id, "saturated_fat").first else 0).coerceAtMost(satMod)
+        val satMod = if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "saturated_fat").second else 10
+        val satLow = (if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "saturated_fat").first else 4).coerceAtMost(satMod)
 
-        val carbsMod = if (template != null) appSettings.getNutrientThresholdsForProfile(template.id, "carbs").second else 0
-        val carbsLow = (if (template != null) appSettings.getNutrientThresholdsForProfile(template.id, "carbs").first else 0).coerceAtMost(carbsMod)
+        val carbsMod = if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "carbs").second else 60
+        val carbsLow = (if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "carbs").first else 30).coerceAtMost(carbsMod)
 
-        val protMod = if (template != null) appSettings.getNutrientThresholdsForProfile(template.id, "protein").second else 0
-        val protLow = (if (template != null) appSettings.getNutrientThresholdsForProfile(template.id, "protein").first else 0).coerceAtMost(protMod)
+        val protMod = if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "protein").second else 35
+        val protLow = (if (sourceProfileId != null) appSettings.getNutrientThresholdsForProfile(sourceProfileId, "protein").first else 20).coerceAtMost(protMod)
 
         val sliderSodLow = createSliderRow(context, linearLayout, density, "Sodium Yellow Limit", "mg", sodLow, 0f, 3000f, 50f)
         val sliderSodMod = createSliderRow(context, linearLayout, density, "Sodium Red Limit", "mg", sodMod, 0f, 3000f, 50f)
@@ -112,11 +110,12 @@ object CustomProfileManager {
         setupSliderGuard(sliderCarbsLow, sliderCarbsMod)
         setupSliderGuard(sliderProtLow, sliderProtMod)
 
-        // Read Template Flags Dynamically
-        val initPhosphate = if (template != null) appSettings.isFeatureFlagActiveForProfile(template.id, "avoid_phosphate_additives") else false
-        val initGfFlour = if (template != null) appSettings.isFeatureFlagActiveForProfile(template.id, "prefer_preblended_gf_flour") else false
-        val initCoconut = if (template != null) appSettings.isFeatureFlagActiveForProfile(template.id, "strictly_avoid_coconut") else false
-        val initSatFats = if (template != null) appSettings.isFeatureFlagActiveForProfile(template.id, "limit_saturated_fats") else false
+        // Read Template Flags
+        val checkId = sourceProfileId ?: template?.id ?: "healthy_baseline"
+        val initPhosphate = appSettings.isFeatureFlagActiveForProfile(checkId, "avoid_phosphate_additives")
+        val initGfFlour = appSettings.isFeatureFlagActiveForProfile(checkId, "prefer_preblended_gf_flour")
+        val initCoconut = appSettings.isFeatureFlagActiveForProfile(checkId, "strictly_avoid_coconut")
+        val initSatFats = appSettings.isFeatureFlagActiveForProfile(checkId, "limit_saturated_fats")
 
         linearLayout.addView(TextView(context).apply {
             text = "TACTICAL INTERVENTIONS"
@@ -132,7 +131,7 @@ object CustomProfileManager {
         val toggleSatFats = createToggleRow(context, linearLayout, density, "Limit Saturated Fats", "Swaps heavy butter or coconut oils for healthier options", initSatFats)
 
         MaterialAlertDialogBuilder(context, R.style.Theme_LabelScanner)
-            .setTitle(if (template != null) "Clone: ${template.displayName}" else "New Custom Profile")
+            .setTitle("Calibrate Profile: $activeName")
             .setView(scroll)
             .setPositiveButton("Save") { _, _ ->
                 val name = etProfileName.text.toString().trim().ifEmpty { "Custom Plan ($activeName)" }
@@ -156,7 +155,7 @@ object CustomProfileManager {
                     avoidPhosphate, preferGfFlour, avoidCoconut, limitSatFats, template?.id
                 )
                 onProfileSaved()
-                Toast.makeText(context, "Custom profile saved!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Custom profile saved for $activeName!", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
             .show()

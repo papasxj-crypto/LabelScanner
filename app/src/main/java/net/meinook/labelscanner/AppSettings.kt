@@ -30,6 +30,8 @@ class AppSettings(val context: Context) {
         // Safety switch to allow testing the paywall on a debug build
         const val KEY_DEBUG_OVERRIDE_DISABLED = "debug_override_disabled"
 
+        const val KEY_INITIAL_SETUP_COMPLETED = "initial_setup_completed"
+
         private val profileExclusivityMap = mutableMapOf<String, String>()
         private val profileConflictsMap = mutableMapOf<String, MutableSet<String>>()
 
@@ -189,6 +191,16 @@ class AppSettings(val context: Context) {
     fun setRightHanded(right: Boolean) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
         prefs.edit { putBoolean("is_right_handed", right) }
+    }
+
+    fun hasCompletedInitialSetup(): Boolean {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_INITIAL_SETUP_COMPLETED, false)
+    }
+
+    fun setCompletedInitialSetup(completed: Boolean) {
+        val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
+        prefs.edit { putBoolean(KEY_INITIAL_SETUP_COMPLETED, completed) }
     }
 
     fun saveCustomWatchlistItem(ingredient: String, tier: String) {
@@ -812,84 +824,63 @@ class AppSettings(val context: Context) {
         return accumulatedRules
     }
 
+    // PROFILE-SCOPED BIOMETRIC STORAGE (Weight, Height, Gender, IBW, AjBW)
+    private fun getScopedKey(baseKey: String): String {
+        return "${getActiveProfile()}_$baseKey"
+    }
+
     fun getUserWeight(): Double {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        var weight = 0.0f
+        val scopedKey = getScopedKey(KEY_USER_WEIGHT)
+        var weight = prefs.getFloat(scopedKey, 0.0f)
 
-        try {
+        // Backward compatibility fallback for default "Me" profile
+        if (weight == 0.0f && getActiveProfile() == "Me") {
             weight = prefs.getFloat(KEY_USER_WEIGHT, 0.0f)
-        } catch (e: Exception) {
-            try {
-                val str = prefs.getString(KEY_USER_WEIGHT, "0")
-                weight = str?.toFloatOrNull() ?: 0.0f
-            } catch (inner: Exception) {}
-        }
-
-        if (weight == 0.0f) {
-            val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
-            try {
-                weight = defaultPrefs.getFloat(KEY_USER_WEIGHT, 0.0f)
-            } catch (e: Exception) {
-                try {
-                    val str = defaultPrefs.getString(KEY_USER_WEIGHT, "0")
-                    weight = str?.toFloatOrNull() ?: 0.0f
-                } catch (inner: Exception) {}
-            }
         }
         return weight.toDouble()
     }
 
     fun setUserWeight(weight: Double) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        prefs.edit { putFloat(KEY_USER_WEIGHT, weight.toFloat()) }
+        val scopedKey = getScopedKey(KEY_USER_WEIGHT)
+        prefs.edit { putFloat(scopedKey, weight.toFloat()) }
     }
 
     fun getUserHeightInches(): Double {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        var height = 0.0f
+        val scopedKey = getScopedKey(KEY_USER_HEIGHT_INCHES)
+        var height = prefs.getFloat(scopedKey, 0.0f)
 
-        try {
+        // Backward compatibility fallback for default "Me" profile
+        if (height == 0.0f && getActiveProfile() == "Me") {
             height = prefs.getFloat(KEY_USER_HEIGHT_INCHES, 0.0f)
-        } catch (e: Exception) {
-            try {
-                val str = prefs.getString(KEY_USER_HEIGHT_INCHES, "0")
-                height = str?.toFloatOrNull() ?: 0.0f
-            } catch (inner: Exception) {}
-        }
-
-        if (height == 0.0f) {
-            val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
-            try {
-                height = defaultPrefs.getFloat(KEY_USER_HEIGHT_INCHES, 0.0f)
-            } catch (e: Exception) {
-                try {
-                    val str = defaultPrefs.getString(KEY_USER_HEIGHT_INCHES, "0")
-                    height = str?.toFloatOrNull() ?: 0.0f
-                } catch (inner: Exception) {}
-            }
         }
         return height.toDouble()
     }
 
     fun setUserHeightInches(height: Double) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        prefs.edit { putFloat(KEY_USER_HEIGHT_INCHES, height.toFloat()) }
+        val scopedKey = getScopedKey(KEY_USER_HEIGHT_INCHES)
+        prefs.edit { putFloat(scopedKey, height.toFloat()) }
     }
 
     fun getUserGender(): String {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        var gender = prefs.getString(KEY_USER_GENDER, "UNSPECIFIED") ?: "UNSPECIFIED"
+        val scopedKey = getScopedKey(KEY_USER_GENDER)
+        var gender = prefs.getString(scopedKey, null)
 
-        if (gender == "UNSPECIFIED") {
-            val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
-            gender = defaultPrefs.getString(KEY_USER_GENDER, "UNSPECIFIED") ?: "UNSPECIFIED"
+        // Backward compatibility fallback for default "Me" profile
+        if (gender == null && getActiveProfile() == "Me") {
+            gender = prefs.getString(KEY_USER_GENDER, "UNSPECIFIED")
         }
-        return gender.uppercase().trim()
+        return (gender ?: "UNSPECIFIED").uppercase().trim()
     }
 
     fun setUserGender(gender: String) {
         val prefs = context.getSharedPreferences("app_settings_prefs", Context.MODE_PRIVATE)
-        prefs.edit { putString(KEY_USER_GENDER, gender.uppercase().trim()) }
+        val scopedKey = getScopedKey(KEY_USER_GENDER)
+        prefs.edit { putString(scopedKey, gender.uppercase().trim()) }
     }
 
     fun calculateIdealBodyWeightLbs(): Double? {

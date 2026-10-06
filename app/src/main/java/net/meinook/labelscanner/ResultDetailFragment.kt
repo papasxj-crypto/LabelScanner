@@ -119,28 +119,49 @@ class ResultDetailFragment : Fragment(R.layout.fragment_result_detail) {
             chipSugar.text = String.format(Locale.US, "Sugar: %.1f g", sug)
         }
 
-        // 6. Populate Safer Alternatives (if available)
+        // 6. Populate Safer Alternatives (Dynamic Indicator Bar Colors)
         val layoutAlternatives = view.findViewById<LinearLayout>(R.id.layoutAlternativesSection)
+
         val cardAlt1 = view.findViewById<MaterialCardView>(R.id.cardAlt1)
+        val indicatorAlt1 = view.findViewById<View>(R.id.indicatorAlt1)
         val textAlt1Name = view.findViewById<TextView>(R.id.textAlt1Name)
         val textAlt1Brand = view.findViewById<TextView>(R.id.textAlt1Brand)
 
         val cardAlt2 = view.findViewById<MaterialCardView>(R.id.cardAlt2)
+        val indicatorAlt2 = view.findViewById<View>(R.id.indicatorAlt2)
         val textAlt2Name = view.findViewById<TextView>(R.id.textAlt2Name)
         val textAlt2Brand = view.findViewById<TextView>(R.id.textAlt2Brand)
 
         val cardAlt3 = view.findViewById<MaterialCardView>(R.id.cardAlt3)
+        val indicatorAlt3 = view.findViewById<View>(R.id.indicatorAlt3)
         val textAlt3Name = view.findViewById<TextView>(R.id.textAlt3Name)
         val textAlt3Brand = view.findViewById<TextView>(R.id.textAlt3Brand)
 
         if (!suggestions.isNullOrEmpty()) {
             layoutAlternatives.visibility = View.VISIBLE
 
-            fun bindAlternative(card: MaterialCardView, nameView: TextView, brandView: TextView, alt: ProductAlternative?) {
+            fun bindAlternative(
+                card: MaterialCardView,
+                indicator: View,
+                nameView: TextView,
+                brandView: TextView,
+                alt: ProductAlternative?
+            ) {
                 if (alt != null) {
                     card.visibility = View.VISIBLE
                     nameView.text = alt.name
                     brandView.text = if (alt.brand.isNotBlank()) alt.brand else alt.gradeTitle
+
+                    // Dynamic bar color: Green if verified safe, Yellow if caution/step-down
+                    val indicatorColorRes = if (alt.gradeTitle.startsWith("Green", ignoreCase = true)) {
+                        R.color.gradeSafe
+                    } else if (alt.gradeTitle.startsWith("Yellow", ignoreCase = true)) {
+                        R.color.gradeCaution
+                    } else {
+                        R.color.gradeAvoid
+                    }
+                    indicator.setBackgroundColor(ContextCompat.getColor(context, indicatorColorRes))
+
                     card.setOnClickListener {
                         if (alt.code.isNotBlank()) {
                             val bundle = Bundle().apply {
@@ -154,9 +175,9 @@ class ResultDetailFragment : Fragment(R.layout.fragment_result_detail) {
                 }
             }
 
-            bindAlternative(cardAlt1, textAlt1Name, textAlt1Brand, suggestions.getOrNull(0))
-            bindAlternative(cardAlt2, textAlt2Name, textAlt2Brand, suggestions.getOrNull(1))
-            bindAlternative(cardAlt3, textAlt3Name, textAlt3Brand, suggestions.getOrNull(2))
+            bindAlternative(cardAlt1, indicatorAlt1, textAlt1Name, textAlt1Brand, suggestions.getOrNull(0))
+            bindAlternative(cardAlt2, indicatorAlt2, textAlt2Name, textAlt2Brand, suggestions.getOrNull(1))
+            bindAlternative(cardAlt3, indicatorAlt3, textAlt3Name, textAlt3Brand, suggestions.getOrNull(2))
         } else {
             layoutAlternatives.visibility = View.GONE
         }

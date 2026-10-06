@@ -38,7 +38,7 @@
                     android:letterSpacing="0.1"
                     android:layout_marginBottom="12dp" />
 
-                <!-- Material CheckBox with high-contrast vivid tinting -->
+                <!-- Left-Handed Mode CheckBox -->
                 <com.google.android.material.checkbox.MaterialCheckBox
                     android:id="@+id/cb_left_handed"
                     android:layout_width="match_parent"
@@ -46,7 +46,7 @@
                     android:text="Left-Handed Mode"
                     android:textColor="@color/textPrimary"
                     android:textSize="15sp"
-                    app:buttonTint="@color/accentVivid"
+                    app:buttonTint="@color/accentWarm"
                     android:layout_marginBottom="4dp" />
 
                 <TextView
@@ -60,7 +60,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- SECTION 2: CUSTOM CONDITION CARD -->
+        <!-- SECTION 2: MANAGE PROFILES CARD -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -79,7 +79,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DIETARY TEMPLATES"
+                    android:text="MANAGE PROFILES"
                     android:textColor="@color/textMuted"
                     android:textSize="11sp"
                     android:textStyle="bold"
@@ -89,18 +89,18 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Create, edit, or clone dietary templates to customize nutrient limits for tailored conditions (such as bodybuilders or recovery plans)."
+                    android:text="Select a member profile to calibrate clinical macro sliders, rename, or delete."
                     android:textColor="@color/textMuted"
                     android:textSize="12sp"
                     android:layout_marginBottom="12dp" />
 
-                <!-- Action Button bound cleanly to SettingsActivity -->
+                <!-- Profile Management Action Button -->
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnCreateCustomProfile"
+                    android:id="@+id/btnManageProfiles"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:text="Create Custom Profile"
+                    android:text="Edit / Manage Profiles"
                     android:textColor="@color/textPrimary"
                     app:strokeColor="@color/surfaceStroke"
                     android:insetTop="0dp"
@@ -137,6 +137,105 @@
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     app:cornerRadius="8dp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- SECTION 4: ABOUT FILTERPOINT & MEDICAL DISCLAIMER CARD -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/cardSurface"
+            app:cardCornerRadius="16dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/surfaceStroke"
+            android:layout_marginBottom="32dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Header -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ABOUT FILTERPOINT"
+                    android:textColor="@color/textMuted"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.1"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="FilterPoint"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="&quot;Filtering out the bad stuff at the point of decision.&quot;"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="12sp"
+                    android:textStyle="italic"
+                    android:layout_marginTop="2dp" />
+
+                <!-- Dynamic Version Readout -->
+                <TextView
+                    android:id="@+id/txtAppVersion"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Version 1.0.0"
+                    android:textColor="@color/textMuted"
+                    android:textSize="11sp"
+                    android:layout_marginTop="6dp" />
+
+                <!-- Section Divider -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/surfaceStroke"
+                    android:layout_marginVertical="12dp" />
+
+                <!-- Mandatory Clinical & Medical Disclaimer -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="CLINICAL &amp; MEDICAL DISCLAIMER"
+                    android:textColor="@color/textMuted"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="FilterPoint provides nutritional data and ingredient analysis for informational, dietary, and culinary guidance only. It is not medical software, diagnosis, or prescription. Always consult your nephrologist, endocrinologist, or registered dietitian before making significant dietary changes."
+                    android:textColor="@color/textSecondary"
+                    android:textSize="11sp"
+                    android:lineSpacingExtra="3dp" />
+
+                <!-- Section Divider -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/surfaceStroke"
+                    android:layout_marginVertical="12dp" />
+
+                <!-- Copyright Notice -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="© 2026 FilterPoint Software. All rights reserved."
+                    android:textColor="@color/textMuted"
+                    android:textSize="11sp"
+                    android:gravity="center_horizontal" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

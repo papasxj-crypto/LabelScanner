@@ -36,12 +36,14 @@
     <color name="buttonPrimaryBackground">#2B1F16</color><!-- Main CTA buttons (Profile & Adjust, Done) -->
     <color name="buttonPrimaryText">#F4F5FC</color>      <!-- Text on primary buttons -->
     <color name="buttonSecondaryText">#99A1B3</color>    <!-- Text on secondary buttons (Report, etc.) -->
+    <color name="iconTagBody">#FFFFF7E6</color>
+    <color name="iconTagDetail">#2B1F16</color>
 
     <!-- ======================================================== -->
     <!-- 5. VIVID NON-GRADING ACCENTS (Strictly not R, Y, G)       -->
     <!-- ======================================================== -->
-    <color name="accentVivid">#82B1FF</color>            <!-- Vivid Ice Blue (Tab indicator, Steps, IBW) -->
-    <color name="accentWarm">#E89D72</color>             <!-- Warm Copper (AjBW, secondary metrics) -->
+    <color name="accentVivid">#E4D5B1</color>            <!-- Vintage Parchment Cream (Tab indicator, Steps, IBW) -->
+    <color name="accentWarm">#E89D72</color>             <!-- Warm Copper / Terracotta (AjBW, secondary metrics) -->
     <color name="indicatorTrack">#1F1714</color>         <!-- Background track for gauges & progress -->
 
     <!-- ======================================================== -->

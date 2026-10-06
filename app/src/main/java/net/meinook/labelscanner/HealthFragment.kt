@@ -46,6 +46,8 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private lateinit var txtAjbwCalculated: TextView
     private lateinit var layoutConditions: LinearLayout
     private lateinit var layoutAllergens: LinearLayout
+    private lateinit var txtClinicalTargetsHeader: TextView
+    private lateinit var btnEditActiveProfile: MaterialButton
 
     // Tab 2 Elements
     private lateinit var etCustomIngredient: EditText
@@ -56,6 +58,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private lateinit var layoutActiveYellows: LinearLayout
 
     private lateinit var appSettings: AppSettings
+    private var isRefreshingUi = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -70,6 +73,8 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         // Bind Tab 1 Views
         layoutConditions = view.findViewById(R.id.layoutConditionCheckBoxes)
         layoutAllergens = view.findViewById(R.id.layoutAllergenCheckBoxes)
+        txtClinicalTargetsHeader = view.findViewById(R.id.txtClinicalTargetsHeader)
+        btnEditActiveProfile = view.findViewById(R.id.btnEditActiveProfile)
         etActualWeight = view.findViewById(R.id.etActualWeight)
         txtToggleWeight = view.findViewById(R.id.txtToggleWeight)
         etHeightFeet = view.findViewById(R.id.etHeightFeet)
@@ -86,9 +91,70 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         layoutActiveReds = view.findViewById(R.id.layoutActiveReds)
         layoutActiveYellows = view.findViewById(R.id.layoutActiveYellows)
 
+        btnEditActiveProfile.setOnClickListener {
+            CustomProfileManager.showCreateCustomProfileDialog(requireContext(), appSettings) {
+                appSettings.setPendingSaveFlag(true)
+                refreshProfileData()
+            }
+        }
+
         setupTabLayout()
         setupTab1Profiles()
         setupTab2CustomWatchlist()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshProfileData()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        appSettings.setCompletedInitialSetup(true)
+    }
+
+    private fun refreshProfileData() {
+        isRefreshingUi = true
+
+        val context = requireContext()
+
+        // 1. Reload scoped biometrics for current active member
+        val savedWeight = appSettings.getUserWeight()
+        etActualWeight.setText(if (savedWeight > 0.0) savedWeight.toString() else "")
+
+        val savedTotalInches = appSettings.getUserHeightInches()
+        if (savedTotalInches > 0.0) {
+            val feet = (savedTotalInches / 12).toInt()
+            val inches = (savedTotalInches % 12).toInt()
+            etHeightFeet.setText(feet.toString())
+            etHeightInches.setText(inches.toString())
+        } else {
+            etHeightFeet.setText("")
+            etHeightInches.setText("")
+        }
+
+        val savedGender = appSettings.getUserGender()
+        val selectionIndex = when (savedGender) {
+            "MALE" -> 1
+            "FEMALE" -> 2
+            else -> 0
+        }
+        spinnerGender.setSelection(selectionIndex)
+
+        updateCalculatedWeights()
+
+        // 2. Update visual member identity banner
+        val activeMember = appSettings.getActiveProfile()
+        txtClinicalTargetsHeader.text = "CLINICAL TARGETS ($activeMember)"
+
+        // 3. Rebuild conditions & watchlists
+        buildDynamicCheckBoxes()
+        if (tabLayoutHealth.selectedTabPosition == 1) {
+            setupCommonQuickAddChips()
+            populateActiveWatchlists()
+        }
+
+        isRefreshingUi = false
     }
 
     private fun setupTabLayout() {
@@ -129,29 +195,9 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
         spinnerGender.adapter = genderAdapter
 
-        val savedWeight = appSettings.getUserWeight()
-        if (savedWeight > 0.0) {
-            etActualWeight.setText(savedWeight.toString())
-        }
-
-        val savedTotalInches = appSettings.getUserHeightInches()
-        if (savedTotalInches > 0.0) {
-            val feet = (savedTotalInches / 12).toInt()
-            val inches = (savedTotalInches % 12).toInt()
-            etHeightFeet.setText(feet.toString())
-            etHeightInches.setText(inches.toString())
-        }
-
-        val savedGender = appSettings.getUserGender()
-        val selectionIndex = when (savedGender) {
-            "MALE" -> 1
-            "FEMALE" -> 2
-            else -> 0
-        }
-        spinnerGender.setSelection(selectionIndex)
-
         spinnerGender.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (isRefreshingUi) return
                 val genderStr = when (position) {
                     1 -> "MALE"
                     2 -> "FEMALE"
@@ -160,6 +206,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 if (appSettings.getUserGender() != genderStr) {
                     appSettings.setUserGender(genderStr)
                     appSettings.setPendingSaveFlag(true)
+                    appSettings.setCompletedInitialSetup(true)
                     updateCalculatedWeights()
                 }
             }
@@ -167,15 +214,15 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        updateCalculatedWeights()
-
         etActualWeight.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
+                if (isRefreshingUi) return
                 val weight = s.toString().toDoubleOrNull() ?: 0.0
                 appSettings.setUserWeight(weight)
                 appSettings.setPendingSaveFlag(true)
+                appSettings.setCompletedInitialSetup(true)
                 updateCalculatedWeights()
             }
         })
@@ -219,11 +266,13 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
+                if (isRefreshingUi) return
                 val feet = s.toString().toDoubleOrNull() ?: 0.0
                 val inches = etHeightInches.text.toString().toDoubleOrNull() ?: 0.0
                 val totalInches = (feet * 12.0) + inches
                 appSettings.setUserHeightInches(totalInches)
                 appSettings.setPendingSaveFlag(true)
+                appSettings.setCompletedInitialSetup(true)
                 updateCalculatedWeights()
             }
         })
@@ -232,11 +281,13 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
+                if (isRefreshingUi) return
                 val feet = etHeightFeet.text.toString().toDoubleOrNull() ?: 0.0
                 val inches = s.toString().toDoubleOrNull() ?: 0.0
                 val totalInches = (feet * 12.0) + inches
                 appSettings.setUserHeightInches(totalInches)
                 appSettings.setPendingSaveFlag(true)
+                appSettings.setCompletedInitialSetup(true)
                 updateCalculatedWeights()
             }
         })
@@ -294,6 +345,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             val text = etCustomIngredient.text.toString().trim()
             if (text.isNotEmpty()) {
                 appSettings.addWatchlistIngredient(text, "RED")
+                appSettings.setCompletedInitialSetup(true)
                 etCustomIngredient.text = null
                 setupCommonQuickAddChips()
                 populateActiveWatchlists()
@@ -307,6 +359,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             val text = etCustomIngredient.text.toString().trim()
             if (text.isNotEmpty()) {
                 appSettings.addWatchlistIngredient(text, "YELLOW")
+                appSettings.setCompletedInitialSetup(true)
                 etCustomIngredient.text = null
                 setupCommonQuickAddChips()
                 populateActiveWatchlists()
@@ -413,6 +466,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             when (item.itemId) {
                 1 -> {
                     appSettings.addWatchlistIngredient(ingredient, "RED")
+                    appSettings.setCompletedInitialSetup(true)
                     setupCommonQuickAddChips()
                     populateActiveWatchlists()
                     Toast.makeText(context, "'$ingredient' added to Avoid list", Toast.LENGTH_SHORT).show()
@@ -420,6 +474,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 }
                 2 -> {
                     appSettings.addWatchlistIngredient(ingredient, "YELLOW")
+                    appSettings.setCompletedInitialSetup(true)
                     setupCommonQuickAddChips()
                     populateActiveWatchlists()
                     Toast.makeText(context, "'$ingredient' added to Caution list", Toast.LENGTH_SHORT).show()
@@ -479,7 +534,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
 
         if (redItems.isEmpty()) {
-            val emptyText = TextView(context).apply {
+            val emptyText = TextView(requireContext()).apply {
                 text = "No custom items to avoid."
                 setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
                 textSize = 12f
@@ -493,7 +548,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
 
         if (yellowItems.isEmpty()) {
-            val emptyText = TextView(context).apply {
+            val emptyText = TextView(requireContext()).apply {
                 text = "No custom caution markers."
                 setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
                 textSize = 12f
@@ -536,7 +591,9 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 buttonTintList = checkboxColorStateList
 
                 setOnCheckedChangeListener { _, isChecked ->
+                    if (isRefreshingUi) return@setOnCheckedChangeListener
                     appSettings.toggleConditionState(profile.id, isChecked)
+                    appSettings.setCompletedInitialSetup(true)
 
                     val currentSelected = appSettings.getSelectedConditions()
                     if (profile.id == "healthy_baseline" || isChecked || currentSelected.contains("healthy_baseline")) {

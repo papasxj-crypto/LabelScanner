@@ -43,11 +43,12 @@
             android:layout_marginTop="16dp"
             android:visibility="gone">
 
+            <!-- Neutralized Section Header -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Try these safer alternatives instead:"
-                android:textColor="@color/gradeSafe"
+                android:textColor="@color/headerSurface"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp" />
@@ -71,6 +72,7 @@
                     android:gravity="center_vertical">
 
                     <View
+                        android:id="@+id/indicatorAlt1"
                         android:layout_width="4dp"
                         android:layout_height="32dp"
                         android:background="@color/gradeSafe"/>
@@ -122,6 +124,7 @@
                     android:gravity="center_vertical">
 
                     <View
+                        android:id="@+id/indicatorAlt2"
                         android:layout_width="4dp"
                         android:layout_height="32dp"
                         android:background="@color/gradeSafe"/>
@@ -173,6 +176,7 @@
                     android:gravity="center_vertical">
 
                     <View
+                        android:id="@+id/indicatorAlt3"
                         android:layout_width="4dp"
                         android:layout_height="32dp"
                         android:background="@color/gradeSafe"/>

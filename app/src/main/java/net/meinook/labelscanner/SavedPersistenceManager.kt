@@ -75,28 +75,26 @@ object SavedPersistenceManager {
         }
     }
 
-    // Cache Interceptor Query: Checks local storage for an identical URL or raw text fingerprint
+    // Cache Interceptor Query: Checks local storage; any text modification forces a cache miss
     fun findMatchingRecipe(context: Context, sourceUrl: String, rawText: String): SavedItem? {
         val allItems = loadAllItems(context)
         val cleanUrl = sourceUrl.trim()
         val cleanRaw = rawText.trim()
 
-        // 1. Primary Cache Match: Canonical Scraped URL
-        if (cleanUrl.isNotBlank()) {
-            val urlMatch = allItems.firstOrNull {
+        if (cleanRaw.isNotBlank()) {
+            return allItems.firstOrNull { item ->
+                val isTextExact = item.originalInput.isNotBlank() && item.originalInput.trim().equals(cleanRaw, ignoreCase = true)
+                if (cleanUrl.isNotBlank() && item.sourceUrl.isNotBlank()) {
+                    isTextExact && item.sourceUrl.equals(cleanUrl, ignoreCase = true)
+                } else {
+                    isTextExact
+                }
+            }
+        } else if (cleanUrl.isNotBlank()) {
+            return allItems.firstOrNull {
                 it.sourceUrl.isNotBlank() && it.sourceUrl.equals(cleanUrl, ignoreCase = true)
             }
-            if (urlMatch != null) return urlMatch
         }
-
-        // 2. Secondary Cache Match: Raw text / OCR paste exact match
-        if (cleanRaw.isNotBlank()) {
-            val textMatch = allItems.firstOrNull {
-                it.originalInput.isNotBlank() && it.originalInput.trim().equals(cleanRaw, ignoreCase = true)
-            }
-            if (textMatch != null) return textMatch
-        }
-
         return null
     }
 

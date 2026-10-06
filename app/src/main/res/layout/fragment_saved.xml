@@ -63,7 +63,7 @@
                 android:layout_marginTop="64dp"
                 android:gravity="center"
                 android:text="Your cookbook is empty.\nAdjust and save a recipe to begin!"
-                android:textColor="@color/textMuted"
+                android:textColor="@color/textPrimary"
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:visibility="gone" />
@@ -88,7 +88,7 @@
         android:layout_marginBottom="80dp"
         android:gravity="center"
         android:text="&lt;&lt;&lt; Swipe left on any entry to delete"
-        android:textColor="@color/textMuted"
+        android:textColor="@color/textPrimary"
         android:textSize="12sp"
         android:textStyle="italic"
         android:visibility="gone"
