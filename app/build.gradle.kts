@@ -6,13 +6,13 @@ plugins {
 
 android {
     namespace = "net.meinook.labelscanner"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.filterpointsoftware.filterpoint"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 2
+        targetSdk = 36
+        versionCode = 3
         versionName = "1.0.0-beta01"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -50,7 +50,7 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Standard Google Play Billing Library with Coroutines support
-    val billing_version = "7.1.1"
+    val billing_version = "8.0.0"
     implementation("com.android.billingclient:billing:$billing_version")
     implementation("com.android.billingclient:billing-ktx:$billing_version")
 
