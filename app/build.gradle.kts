@@ -9,7 +9,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "net.meinook.labelscanner"
+        applicationId = "com.filterpointsoftware.filterpoint"
         minSdk = 24
         targetSdk = 34
         versionCode = 2
