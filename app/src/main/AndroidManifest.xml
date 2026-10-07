@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="net.meinook.labelscanner">
 
     <queries>
@@ -17,6 +18,7 @@
     <uses-feature android:name="android.hardware.camera.any" />
 
     <application
+        tools:ignore="LockedOrientationActivity"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -26,10 +28,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LabelScanner">
 
-        <!-- MainActivity is your single, secure entry point using the starting theme -->
+        <!-- 1. MAIN ENTRY POINT -->
         <activity
             android:name=".MainActivity"
             android:theme="@style/Theme.LabelScanner.Starting"
+            android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -45,21 +48,27 @@
         <!-- 2. SCANNER ACTIVITY -->
         <activity
             android:name=".ScannerActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
 
-        <!-- 3. OTHER ACTIVITIES -->
-        <activity android:name=".SettingsActivity" android:exported="false" />
+        <!-- 3. SETTINGS ACTIVITY -->
+        <activity
+            android:name=".SettingsActivity"
+            android:screenOrientation="portrait"
+            android:exported="false" />
 
-        <!-- Declare Paywall Activity -->
+        <!-- 4. PAYWALL ACTIVITY -->
         <activity
             android:name=".PaywallActivity"
             android:theme="@style/Theme.LabelScanner"
+            android:screenOrientation="portrait"
             android:exported="false" />
 
-        <!-- Declare Lockout Activity -->
+        <!-- 5. LOCKOUT ACTIVITY -->
         <activity
             android:name=".LockoutActivity"
             android:theme="@style/Theme.LabelScanner"
+            android:screenOrientation="portrait"
             android:exported="false" />
 
         <!-- FILE PROVIDER -->
