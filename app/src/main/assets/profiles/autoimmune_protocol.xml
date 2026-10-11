@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<diet_profile id="autoimmune_protocol" name="Autoimmune Protocol (AIP)" exclusivity_group="dietary_pattern">
+
+    <!-- Protein & Ratio Feature Flags (Neutralized for Elimination Diet) -->
+    <flag name="enforce_protein_ratio">false</flag>
+    <flag name="enforce_protein_floor">false</flag>
+    <flag name="enforce_protein_ceiling">false</flag>
+
+    <!-- Tactical Culinary Intervention Flags -->
+    <flag name="avoid_phosphate_additives">true</flag>
+    <flag name="strictly_avoid_coconut">false</flag>
+    <flag name="limit_saturated_fats">false</flag>
+    <flag name="prefer_preblended_gf_flour">false</flag>
+
+    <!-- Open Macro Boundaries (No numerical penalties) -->
+    <nutrient name="sodium" low_max="0" moderate_max="999" is_blacklist="false" />
+    <nutrient name="potassium" low_max="0" moderate_max="999" is_blacklist="false" />
+    <nutrient name="carbs" low_max="0" moderate_max="999" is_blacklist="false" />
+    <nutrient name="saturated_fat" low_max="0" moderate_max="999" is_blacklist="false" />
+    <nutrient name="total_fat" low_max="0" moderate_max="999" is_blacklist="false" />
+
+    <protein_rules snack_min="0" snack_max="999" meal_min="0" meal_max="999" target_ratio="0.0" />
+
+    <!-- ======================================================== -->
+    <!-- CATEGORY 1: NIGHTSHADES (Solanaceae Family)               -->
+    <!-- ======================================================== -->
+    <trigger category="red">TOMATO</trigger>
+    <trigger category="red">TOMATOES</trigger>
+    <trigger category="red">TOMATO PASTE</trigger>
+    <trigger category="red">TOMATO SAUCE</trigger>
+    <trigger category="red">POTATO</trigger>
+    <trigger category="red">POTATOES</trigger>
+    <trigger category="red">POTATO STARCH</trigger>
+    <trigger category="red">EGGPLANT</trigger>
+    <trigger category="red">BELL PEPPER</trigger>
+    <trigger category="red">CHILI</trigger>
+    <trigger category="red">CHILI POWDER</trigger>
+    <trigger category="red">CAYENNE</trigger>
+    <trigger category="red">PAPRIKA</trigger>
+    <trigger category="red">PIMENTO</trigger>
+    <trigger category="red">TOMATILLO</trigger>
+    <trigger category="red">GOJI BERRY</trigger>
+    <trigger category="red">PEPPERS</trigger>
+
+    <!-- ======================================================== -->
+    <!-- CATEGORY 2: GRAINS & PSEUDOGRAINS                        -->
+    <!-- ======================================================== -->
+    <trigger category="red">WHEAT</trigger>
+    <trigger category="red">BARLEY</trigger>
+    <trigger category="red">RYE</trigger>
+    <trigger category="red">OATS</trigger>
+    <trigger category="red">CORN</trigger>
+    <trigger category="red">RICE</trigger>
+    <trigger category="red">QUINOA</trigger>
+    <trigger category="red">BUCKWHEAT</trigger>
+    <trigger category="red">MILLET</trigger>
+    <trigger category="red">SPELT</trigger>
+    <trigger category="red">SORGHUM</trigger>
+    <trigger category="red">GLUTEN</trigger>
+    <trigger category="red">SEMOLINA</trigger>
+    <trigger category="red">CORN SYRUP</trigger>
+    <trigger category="red">CORNSTARCH</trigger>
+
+    <!-- ======================================================== -->
+    <!-- CATEGORY 3: LEGUMES & PULSES                             -->
+    <!-- ======================================================== -->
+    <trigger category="red">SOY</trigger>
+    <trigger category="red">SOYBEAN</trigger>
+    <trigger category="red">SOY SAUCE</trigger>
+    <trigger category="red">TOFU</trigger>
+    <trigger category="red">EDAMAME</trigger>
+    <trigger category="red">PEANUT</trigger>
+    <trigger category="red">PEANUTS</trigger>
+    <trigger category="red">PEANUT BUTTER</trigger>
+    <trigger category="red">LENTIL</trigger>
+    <trigger category="red">LENTILS</trigger>
+    <trigger category="red">CHICKPEA</trigger>
+    <trigger category="red">CHICKPEAS</trigger>
+    <trigger category="red">HUMMUS</trigger>
+    <trigger category="red">BLACK BEAN</trigger>
+    <trigger category="red">PINTO BEAN</trigger>
+    <trigger category="red">KIDNEY BEAN</trigger>
+    <trigger category="red">NAVY BEAN</trigger>
+
+    <!-- ======================================================== -->
+    <!-- CATEGORY 4: DAIRY                                        -->
+    <!-- ======================================================== -->
+    <trigger category="red">MILK</trigger>
+    <trigger category="red">BUTTER</trigger>
+    <trigger category="red">CHEESE</trigger>
+    <trigger category="red">YOGURT</trigger>
+    <trigger category="red">WHEY</trigger>
+    <trigger category="red">CASEIN</trigger>
+    <trigger category="red">CREAM</trigger>
+    <trigger category="red">LACTOSE</trigger>
+
+    <!-- ======================================================== -->
+    <!-- CATEGORY 5: EGGS                                         -->
+    <!-- ======================================================== -->
+    <trigger category="red">EGG</trigger>
+    <trigger category="red">EGGS</trigger>
+    <trigger category="red">EGG WHITE</trigger>
+    <trigger category="red">EGG YOLK</trigger>
+    <trigger category="red">ALBUMEN</trigger>
+    <trigger category="red">MAYONNAISE</trigger>
+
+    <!-- ======================================================== -->
+    <!-- CATEGORY 6: NUTS, SEEDS & SEED SPICES                    -->
+    <!-- ======================================================== -->
+    <trigger category="red">ALMOND</trigger>
+    <trigger category="red">ALMONDS</trigger>
+    <trigger category="red">WALNUT</trigger>
+    <trigger category="red">WALNUTS</trigger>
+    <trigger category="red">CASHEW</trigger>
+    <trigger category="red">CASHEWS</trigger>
+    <trigger category="red">PECAN</trigger>
+    <trigger category="red">PECANS</trigger>
+    <trigger category="red">PISTACHIO</trigger>
+    <trigger category="red">SESAME</trigger>
+    <trigger category="red">TAHINI</trigger>
+    <trigger category="red">SUNFLOWER SEED</trigger>
+    <trigger category="red">PUMPKIN SEED</trigger>
+    <trigger category="red">CHIA SEED</trigger>
+    <trigger category="red">FLAXSEED</trigger>
+    <trigger category="red">CUMIN</trigger>
+    <trigger category="red">CORIANDER</trigger>
+    <trigger category="red">MUSTARD</trigger>
+    <trigger category="red">MUSTARD SEED</trigger>
+    <trigger category="red">FENNEL SEED</trigger>
+    <trigger category="red">ANISE</trigger>
+    <trigger category="red">CARAWAY</trigger>
+    <trigger category="red">CARDAMOM</trigger>
+    <trigger category="red">CELERY SEED</trigger>
+    <trigger category="red">FENUGREEK</trigger>
+    <trigger category="red">NUTMEG</trigger>
+
+    <!-- ======================================================== -->
+    <!-- CATEGORY 7: REFINED SUGARS, SWEETENERS & ADDITIVES       -->
+    <!-- ======================================================== -->
+    <trigger category="red">HIGH FRUCTOSE CORN SYRUP</trigger>
+    <trigger category="red">ASPARTAME</trigger>
+    <trigger category="red">SUCRALOSE</trigger>
+    <trigger category="red">SACCHARIN</trigger>
+    <trigger category="red">CARRAGEENAN</trigger>
+    <trigger category="red">GUAR GUM</trigger>
+    <trigger category="red">XANTHAN GUM</trigger>
+    <trigger category="red">SOY LECITHIN</trigger>
+    <trigger category="red">SUNFLOWER LECITHIN</trigger>
+    <trigger category="red">MONOSODIUM GLUTAMATE</trigger>
+    <trigger category="red">MSG</trigger>
+
+    <!-- ======================================================== -->
+    <!-- YELLOW CAUTION: ALLOWED IN STRICT MODERATION             -->
+    <!-- ======================================================== -->
+    <trigger category="yellow">HONEY</trigger>
+    <trigger category="yellow">MAPLE SYRUP</trigger>
+    <trigger category="yellow">COCONUT SUGAR</trigger>
+    <trigger category="yellow">BLACK PEPPER</trigger>
+    <trigger category="yellow">WHITE PEPPER</trigger>
+</diet_profile>
