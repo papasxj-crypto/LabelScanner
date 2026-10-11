@@ -71,10 +71,10 @@
             android:screenOrientation="portrait"
             android:exported="false" />
 
-        <!-- FILE PROVIDER -->
+        <!-- FILE PROVIDER: Uses dynamic ${applicationId} to match runtime package name -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="net.meinook.labelscanner.fileprovider"
+            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

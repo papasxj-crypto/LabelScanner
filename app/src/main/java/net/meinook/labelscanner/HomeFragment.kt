@@ -130,9 +130,14 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         pendingAction = PendingCameraAction.NONE
     }
 
+    // Deterministic, Guaranteed Non-Null Internal Storage Resolver
     private fun getTempPhotoUri(context: Context): Uri {
-        val cacheDir = context.externalCacheDir ?: context.cacheDir
-        val photoFile = File(cacheDir, "temp_capture.jpg")
+        val photoFile = File(context.filesDir, "temp_capture.jpg").apply {
+            if (!exists()) {
+                parentFile?.mkdirs()
+                createNewFile()
+            }
+        }
         return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photoFile)
     }
 
@@ -333,13 +338,17 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     private fun launchCameraExplicit(launcher: androidx.activity.result.ActivityResultLauncher<Uri>) {
-        val ctx = requireContext()
-        val uri = getTempPhotoUri(ctx)
-        tempPhotoUri = uri
-        launcher.launch(uri)
+        try {
+            val ctx = requireContext()
+            val uri = getTempPhotoUri(ctx)
+            tempPhotoUri = uri
+            launcher.launch(uri)
+        } catch (e: Exception) {
+            Log.e("HomeFragment", "Failed to launch external camera", e)
+            Toast.makeText(context, "Could not open camera: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    // Lifecycle-Aware & Safe: Replaced raw thread with lifecycleScope, resolved OFF User-Agent policy
     private fun lookupBarcodeOnline(upcCode: String) {
         textExplanation.text = "Searching..."
 
