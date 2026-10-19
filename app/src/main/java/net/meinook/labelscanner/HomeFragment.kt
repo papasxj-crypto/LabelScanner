@@ -130,7 +130,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         pendingAction = PendingCameraAction.NONE
     }
 
-    // Deterministic, Guaranteed Non-Null Internal Storage Resolver
     private fun getTempPhotoUri(context: Context): Uri {
         val photoFile = File(context.filesDir, "temp_capture.jpg").apply {
             if (!exists()) {
@@ -165,7 +164,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Restore photo URI safely across low-memory process recreations
         if (savedInstanceState != null) {
             @Suppress("DEPRECATION")
             tempPhotoUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -184,7 +182,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         composeView = view.findViewById(R.id.composeViewMenu)
         rebuildComposeMenu()
 
-        // Single Point SELECT: Only switches existing profiles
         btnProfileSelector.setOnClickListener {
             showProfileSelectorDialog()
         }
@@ -241,7 +238,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
-    // Single Point: SELECT ONLY (No Add Button)
     private fun showProfileSelectorDialog() {
         val context = context ?: return
         val userSettings = AppSettings(context)
@@ -397,7 +393,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             }
                         }
                         if (candidateCategories.isEmpty()) {
-                            candidateCategories.add("en:chips-and-fries")
+                            candidateCategories.add("en:crackers")
                             candidateCategories.add("en:salty-snacks")
                         }
 
@@ -483,13 +479,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             )
                         }
 
+                        // 2. DOUBLE-LOCKED US ALTERNATIVES ENGINE
                         if (needsAlternatives) {
                             try {
                                 val suggestionsList = ArrayList<ProductAlternative>()
                                 val tempYellowSuggestions = ArrayList<ProductAlternative>()
 
                                 for (targetTag in candidateCategories.take(2)) {
-                                    val searchUrlStr = "https://world.openfoodfacts.org/api/v2/search?categories_tags=$targetTag&countries_tags=en:united-states&sort_by=unique_scans_n&fields=code,product_name,brands,ingredients_text,nutriments,unique_scans_n&page_size=30"
+                                    // Lock 1: Explicit US Domain, Country code, Language, and fields including countries_tags
+                                    val searchUrlStr = "https://us.openfoodfacts.org/api/v2/search?categories_tags=$targetTag&countries_tags_en=united-states&cc=us&lc=en&sort_by=unique_scans_n&fields=code,product_name,brands,ingredients_text,nutriments,unique_scans_n,countries_tags&page_size=40"
                                     val searchConnection = URL(searchUrlStr).openConnection() as HttpURLConnection
                                     searchConnection.instanceFollowRedirects = true
                                     searchConnection.requestMethod = "GET"
@@ -511,6 +509,18 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                                 val brand = altProduct.optString("brands", "").trim()
                                                 val scans = altProduct.optInt("unique_scans_n", 0)
                                                 if (brand.isBlank() || (scans < 5 && j < 25)) continue
+
+                                                // Lock 2: Client-side verification that product is sold in the US
+                                                val altCountries = altProduct.optJSONArray("countries_tags")
+                                                val isUsMarket = if (altCountries != null && altCountries.length() > 0) {
+                                                    (0 until altCountries.length()).any { idx ->
+                                                        val c = altCountries.optString(idx, "").lowercase(Locale.ROOT)
+                                                        c.contains("united-states") || c.contains("usa") || c == "en:us"
+                                                    }
+                                                } else false
+
+                                                // Strictly skip any product not tagged as sold in the United States
+                                                if (!isUsMarket) continue
 
                                                 val altName = altProduct.optString("product_name", "").ifBlank {
                                                     altProduct.optString("product_name_en", "")

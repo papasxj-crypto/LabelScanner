@@ -52,26 +52,35 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Universal Top Tab Bar -->
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tabLayoutHealth"
+    <!-- Universal Top Tab Bar (Contained in Opaque Card for Contrast) -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@color/transparent"
-        app:tabTextColor="@color/textUnselected"
-        app:tabSelectedTextColor="@color/textSelected"
-        app:tabIndicatorColor="@color/accentVivid"
-        app:tabIndicatorHeight="3dp"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/cardSurface"
+        app:cardCornerRadius="12dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="@color/surfaceStroke"
         android:layout_marginBottom="12dp">
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Profiles &amp; Targets" />
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Custom Watchlist" />
-    </com.google.android.material.tabs.TabLayout>
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayoutHealth"
+            android:layout_width="match_parent"
+            android:layout_height="46dp"
+            android:background="@color/transparent"
+            app:tabTextColor="@color/textSecondary"
+            app:tabSelectedTextColor="@color/textPrimary"
+            app:tabIndicatorColor="@color/accentVivid"
+            app:tabIndicatorHeight="3dp">
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Profiles &amp; Targets" />
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Custom Watchlist" />
+        </com.google.android.material.tabs.TabLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Main Scrollable Content Container -->
     <androidx.core.widget.NestedScrollView
@@ -413,7 +422,7 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Section 4: Calibrate Sliders & Reset Bar -->
+                <!-- Section 4: Adjust Macros & Reset Bar -->
                 <LinearLayout
                     android:id="@+id/layoutSliderActions"
                     android:layout_width="match_parent"
@@ -423,7 +432,6 @@
                     android:layout_marginTop="4dp"
                     android:layout_marginBottom="16dp">
 
-                    <!-- Anchor: Inside LinearLayout with id layoutSliderActions -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnEditActiveProfile"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -441,6 +449,7 @@
                         android:insetTop="0dp"
                         android:insetBottom="0dp" />
 
+                    <!-- Reset to Defaults Button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnResetCustomSliders"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"

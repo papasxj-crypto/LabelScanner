@@ -258,12 +258,23 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             ContextCompat.getColor(context, R.color.inputSurface).toDrawable()
         )
 
-        val genderAdapter = ArrayAdapter(
+        val genderAdapter = object : ArrayAdapter<String>(
             context,
             android.R.layout.simple_spinner_item,
             arrayOf("Unspecified", "Male", "Female")
-        ).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        ) {
+            override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+                val v = super.getView(position, convertView, parent) as TextView
+                v.setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
+                return v
+            }
+
+            override fun getDropDownView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+                val v = super.getDropDownView(position, convertView, parent) as TextView
+                v.setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
+                v.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurface))
+                return v
+            }
         }
         spinnerGender.adapter = genderAdapter
 
