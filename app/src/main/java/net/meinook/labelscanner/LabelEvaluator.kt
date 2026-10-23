@@ -92,6 +92,32 @@ object LabelEvaluator {
         val yellowViolations = mutableListOf<String>()
         val context = userSettings.context
 
+        // GUARDRAIL: Check if the AI backend flagged the image as an invalid food item or label
+        val isValidFood = jsonResult.optBoolean("is_valid_food",
+            jsonResult.optBoolean("valid_food",
+                jsonResult.optBoolean("is_valid_label",
+                    jsonResult.optBoolean("valid_label", true)
+                )
+            )
+        )
+        val backendError = jsonResult.optString("error", jsonResult.optString("message", ""))
+
+        if (!isValidFood || (backendError.isNotBlank() && !backendError.equals("null", ignoreCase = true))) {
+            val errorMessage = if (backendError.isNotBlank() && !backendError.equals("null", ignoreCase = true)) {
+                backendError
+            } else {
+                "The scanned image is not a valid food item or nutrition label."
+            }
+            return EvaluationResult(
+                bgColor = ContextCompat.getColor(context, R.color.gradeAvoidBackground),
+                textColor = ContextCompat.getColor(context, R.color.gradeAvoid),
+                subtextColor = ContextCompat.getColor(context, R.color.gradeAvoidSubtext),
+                gradeTitle = "Invalid Scan",
+                redViolations = listOf(errorMessage),
+                yellowViolations = emptyList()
+            )
+        }
+
         val cleanIngredients = detectedIngredients.map { ingredient ->
             ingredient?.replace("\u00A0", " ")
                 ?.replace("\\s+".toRegex(), " ")

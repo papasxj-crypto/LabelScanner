@@ -31,6 +31,8 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.graphics.scale
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -50,6 +52,10 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 class HomeFragment : Fragment(R.layout.fragment_home) {
+
+    companion object {
+        private const val MAX_BITMAP_DIMENSION = 1024
+    }
 
     // 1. DUAL-URL COMPILATION INJECTION RULE COMPLIANT
     private val backendAnalysisUrl by lazy {
@@ -88,10 +94,14 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             try {
                 ctx.contentResolver.openInputStream(uri)?.use { inputStream ->
                     val bitmap = BitmapFactory.decodeStream(inputStream)
-                    bitmap?.let { runAnalysis(it, uri) }
+                    bitmap?.let {
+                        isAnalyzing = true
+                        textExplanation.text = getString(R.string.analyzing_image)
+                        executeVisionBasedAnalysis(it)
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e("HomeFragment", "Failed to open captured image stream", e)
+            } catch (_: Exception) {
+                Log.e("HomeFragment", "Failed to open captured label image stream")
             }
         }
     }
@@ -112,8 +122,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     val bitmap = BitmapFactory.decodeStream(inputStream)
                     bitmap?.let { runProduceAnalysis(it) }
                 }
-            } catch (e: Exception) {
-                Log.e("HomeFragment", "Failed to open captured produce image stream", e)
+            } catch (_: Exception) {
+                Log.e("HomeFragment", "Failed to open captured produce image stream")
             }
         }
     }
@@ -125,7 +135,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         if (isGranted) {
             executePendingCameraAction()
         } else {
-            Toast.makeText(requireContext(), "Camera permission is required to scan labels and barcodes.", Toast.LENGTH_LONG).show()
+            Toast.makeText(requireContext(), getString(R.string.camera_permission_required), Toast.LENGTH_LONG).show()
         }
         pendingAction = PendingCameraAction.NONE
     }
@@ -154,7 +164,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
             val strVal = rawObj.toString().trim()
             if (strVal.isNotEmpty()) {
-                val numericPart = strVal.replace(Regex("[^0-9\\.]"), "")
+                val numericPart = strVal.replace(Regex("[^0-9.]"), "")
                 return numericPart.toDoubleOrNull() ?: 0.0
             }
         }
@@ -247,7 +257,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val activeIndex = currentProfiles.indexOf(activeProfile)
 
         AlertDialog.Builder(context)
-            .setTitle("Select Active Profile")
+            .setTitle(getString(R.string.select_active_profile))
             .setSingleChoiceItems(currentProfiles.toTypedArray(), activeIndex) { dialog, which ->
                 dialog.dismiss()
                 val selectedProfile = currentProfiles[which]
@@ -256,10 +266,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     updateConditionText()
                     rebuildComposeMenu()
                     resetUI()
-                    Toast.makeText(context, "Switched to $selectedProfile", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, getString(R.string.switched_to_profile, selectedProfile), Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -341,12 +351,12 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             launcher.launch(uri)
         } catch (e: Exception) {
             Log.e("HomeFragment", "Failed to launch external camera", e)
-            Toast.makeText(context, "Could not open camera: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.camera_open_error, e.localizedMessage), Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun lookupBarcodeOnline(upcCode: String) {
-        textExplanation.text = "Searching..."
+        textExplanation.text = getString(R.string.searching_ellipsis)
 
         val cleanCode = upcCode.trim()
 
@@ -355,7 +365,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
         if (isVariableWeight) {
             resetUI()
-            textExplanation.text = "This is a store-packaged variable weight item. Please use 'Camera Scan' to evaluate its ingredient label directly!"
+            textExplanation.text = getString(R.string.variable_weight_warning)
             context?.let { textExplanation.setTextColor(ContextCompat.getColor(it, R.color.textPrimary)) }
             return
         }
@@ -363,7 +373,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val ctx = context ?: return@launch
             val appContext = ctx.applicationContext
-            val userSettings = AppSettings(appContext)
 
             try {
                 val url = URL("https://world.openfoodfacts.org/api/v2/product/$cleanCode.json")
@@ -439,15 +448,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             }
                         }
 
-                        val userSettings = AppSettings(requireContext())
+                        val userSettings = AppSettings(appContext)
                         val evalResult = LabelEvaluator.evaluateScanData(
                             evalJson,
                             ingredients,
                             userSettings.getSelectedConditions(),
                             userSettings,
-                            userSettings.loadTriggersFromAssets("red"),
-                            userSettings.getCustomWatchlist("RED"),
-                            userSettings.getCustomWatchlist("YELLOW")
+                            userSettings.loadTriggersFromAssets(getString(R.string.red_txt).lowercase(Locale.ROOT)),
+                            userSettings.getCustomWatchlist(getString(R.string.red_txt)),
+                            userSettings.getCustomWatchlist(getString(R.string.yellow_txt))
                         )
 
                         val productName = product.optString("product_name", "Product")
@@ -549,9 +558,9 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                                     altIngredients,
                                                     userSettings.getSelectedConditions(),
                                                     userSettings,
-                                                    userSettings.loadTriggersFromAssets("red"),
-                                                    userSettings.getCustomWatchlist("RED"),
-                                                    userSettings.getCustomWatchlist("YELLOW")
+                                                    userSettings.loadTriggersFromAssets(getString(R.string.red_txt).lowercase(Locale.ROOT)),
+                                                    userSettings.getCustomWatchlist(getString(R.string.red_txt)),
+                                                    userSettings.getCustomWatchlist(getString(R.string.yellow_txt))
                                                 )
 
                                                 if (altEvalResult.gradeTitle.startsWith("Green")) {
@@ -588,11 +597,11 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
                                 withContext(Dispatchers.Main) {
                                     isSearchingAlternatives = false
-                                    if (cardSummary.visibility == View.VISIBLE && cachedEval == evalResult) {
+                                    if (cardSummary.isVisible && cachedEval == evalResult) {
                                         cachedSuggestions = suggestionsList
                                         val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
                                         if (suggestionsList.isNotEmpty()) {
-                                            textTapPrompt?.text = "Alternatives Found! Tap for details ➔"
+                                            textTapPrompt?.text = getString(R.string.alternatives_found_prompt)
                                             val pulseAnimation = android.view.animation.AlphaAnimation(0.4f, 1.0f).apply {
                                                 duration = 1000
                                                 repeatMode = android.view.animation.Animation.REVERSE
@@ -600,7 +609,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                             }
                                             textTapPrompt?.startAnimation(pulseAnimation)
                                         } else {
-                                            textTapPrompt?.text = "Tap for details ➔"
+                                            textTapPrompt?.text = getString(R.string.tap_for_details)
                                             textTapPrompt?.clearAnimation()
                                         }
                                     }
@@ -610,7 +619,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 withContext(Dispatchers.Main) {
                                     isSearchingAlternatives = false
                                     val textTapPrompt = cardSummary.findViewById<TextView>(R.id.textTapPrompt)
-                                    textTapPrompt?.text = "Tap for details ➔"
+                                    textTapPrompt?.text = getString(R.string.tap_for_details)
                                     textTapPrompt?.clearAnimation()
                                 }
                             }
@@ -621,112 +630,135 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 Log.e("LabelScanner", "Barcode lookup background error", e)
                 withContext(Dispatchers.Main) {
                     isSearchingAlternatives = false
-                    textExplanation.text = "Error: ${e.localizedMessage ?: "Unknown connection failure"}"
+                    textExplanation.text = getString(R.string.connection_error_format, e.localizedMessage ?: getString(R.string.unknown_connection_failure))
                 }
             }
         }
     }
 
-    private fun tryParseNutritionLocally(rawText: String): Pair<JSONObject, List<String>>? {
-        val lines = rawText.lines().map { it.trim() }.filter { it.isNotEmpty() }
-        val lowerText = rawText.lowercase(Locale.US)
+    private fun resizeBitmapToMax(source: Bitmap): Bitmap {
+        val width = source.width
+        val height = source.height
+        if (width <= MAX_BITMAP_DIMENSION && height <= MAX_BITMAP_DIMENSION) return source
 
-        fun extractFirstMatch(vararg patterns: Regex): Double? {
-            for (p in patterns) {
-                val match = p.find(rawText)
-                if (match != null) {
-                    val numStr = match.groups[1]?.value?.replace(",", ".")
-                    val parsed = numStr?.toDoubleOrNull()
-                    if (parsed != null) return parsed
-                }
-            }
-            return null
-        }
+        val aspectRatio = width.toFloat() / height.toFloat()
+        val targetWidth: Int
+        val targetHeight: Int
 
-        val cal = extractFirstMatch(
-            Regex("""(?i)\bCalories\s*[:]?\s*(\d{1,4})\b"""),
-            Regex("""(?i)\bEnergy\s*[:]?\s*(\d{1,4})\s*k?cal\b""")
-        )?.toInt()
-
-        val sod = extractFirstMatch(
-            Regex("""(?i)\bSodium\s*[:]?\s*(\d{1,5})\s*mg\b"""),
-            Regex("""(?i)\bSodium\s+(\d{1,5})\b""")
-        )?.toInt()
-
-        val pro = extractFirstMatch(
-            Regex("""(?i)\bProtein\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b""")
-        )
-
-        val carb = extractFirstMatch(
-            Regex("""(?i)\bTotal\s+Carbohydrate\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b"""),
-            Regex("""(?i)\bCarbohydrate\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b"""),
-            Regex("""(?i)\bCarbs\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b""")
-        )
-
-        val fiber = extractFirstMatch(
-            Regex("""(?i)\bDietary\s+Fiber\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b"""),
-            Regex("""(?i)\bFiber\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b""")
-        ) ?: 0.0
-
-        val sug = extractFirstMatch(
-            Regex("""(?i)\bTotal\s+Sugars?\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b"""),
-            Regex("""(?i)\bSugars?\s*[:]?\s*(\d+(?:\.\d+)?)\s*g\b""")
-        )
-
-        val pot = extractFirstMatch(
-            Regex("""(?i)\bPotassium\s*[:]?\s*(\d{1,5})\s*mg\b""")
-        )
-
-        val ingredientsList = mutableListOf<String>()
-        val ingIndex = lowerText.indexOf("ingredients")
-        if (ingIndex != -1) {
-            val ingSubstring = rawText.substring(ingIndex)
-                .replace(Regex("""(?i)^ingredients\s*[:]?\s*"""), "")
-                .takeWhile { it != '.' && it != '\n' || it == ',' }
-
-            ingredientsList.addAll(
-                ingSubstring.split(",")
-                    .map { it.trim().uppercase(Locale.US) }
-                    .filter { it.length > 1 }
-            )
+        if (width > height) {
+            targetWidth = MAX_BITMAP_DIMENSION
+            targetHeight = (MAX_BITMAP_DIMENSION / aspectRatio).toInt()
         } else {
-            if (cal == null && sod == null && carb == null) {
-                val nonMacroLines = lines.filter { line ->
-                    val l = line.lowercase(Locale.US)
-                    !l.contains("facts") && !l.contains("serving") && !l.contains("daily value")
-                }
-                if (nonMacroLines.isNotEmpty()) {
-                    for (line in nonMacroLines) {
-                        ingredientsList.addAll(
-                            line.split(",")
-                                .map { it.trim().uppercase(Locale.US) }
-                                .filter { it.length > 1 }
-                        )
-                    }
+            targetHeight = MAX_BITMAP_DIMENSION
+            targetWidth = (MAX_BITMAP_DIMENSION * aspectRatio).toInt()
+        }
+
+        return source.scale(targetWidth, targetHeight, filter = true)
+    }
+
+    private fun executeVisionBasedAnalysis(imageBitmap: Bitmap) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val ctx = context ?: return@launch
+            try {
+                val userSettings = AppSettings(ctx.applicationContext)
+                val optimizedBitmap = resizeBitmapToMax(imageBitmap)
+
+                val rawResponse = GeminiAnalyzer.analyzeIngredientsImage(
+                    optimizedBitmap,
+                    backendAnalysisUrl
+                )
+
+                Log.d("LabelScanner", "HomeFragment [Vision Analysis]: Raw Response = $rawResponse")
+                parseAndDisplayAnalysis(rawResponse, userSettings)
+
+            } catch (e: Exception) {
+                Log.e("LabelScanner", "Vision scan execution failed", e)
+                withContext(Dispatchers.Main) {
+                    isAnalyzing = false
+                    textExplanation.text = getString(R.string.analysis_failed_error, e.localizedMessage ?: getString(R.string.analysis_error))
                 }
             }
         }
+    }
 
-        val hasClearNutritionBox = (cal != null || sod != null || carb != null || sug != null)
-        val hasClearIngredients = ingredientsList.isNotEmpty()
+    private suspend fun parseAndDisplayAnalysis(rawResponse: String, userSettings: AppSettings) {
+        val json = JSONObject(rawResponse.replace("```json", "").replace("```", "").trim())
+        val ctx = context ?: requireContext()
 
-        if (!hasClearNutritionBox && !hasClearIngredients) {
-            return null
+        val productName = json.optString("product_name", json.optString("item_name", getString(R.string.scan_result)))
+        val nameLower = productName.lowercase(Locale.ROOT)
+
+        val isNonFood = !json.optBoolean("is_food", true) ||
+                !json.optBoolean("is_valid_food", true) ||
+                !json.optBoolean("valid_food", true) ||
+                nameLower.contains("non-food") ||
+                nameLower.contains("not food") ||
+                nameLower.contains("not a food") ||
+                nameLower.contains("not edible") ||
+                nameLower.contains("unable to identify") ||
+                nameLower.contains("cannot identify") ||
+                nameLower.startsWith("none")
+
+        if (isNonFood) {
+            withContext(Dispatchers.Main) {
+                isAnalyzing = false
+                val nonFoodResult = EvaluationResult(
+                    gradeTitle = "Not a Valid Food Label",
+                    textColor = ContextCompat.getColor(ctx, R.color.gradeAvoid),
+                    subtextColor = ContextCompat.getColor(ctx, R.color.textSecondary),
+                    bgColor = ContextCompat.getColor(ctx, R.color.cardSurface),
+                    redViolations = listOf("Avoid: No valid nutrition facts or food label identified. Please photograph a food label."),
+                    yellowViolations = emptyList()
+                )
+                displaySummaryCard(
+                    evaluation = nonFoodResult,
+                    subtitle = "Non-food item detected",
+                    calories = 0,
+                    protein = 0f,
+                    sodium = 0,
+                    potassium = 0f,
+                    carbs = 0f,
+                    netCarbs = 0f,
+                    sugar = 0f,
+                    isKeto = false
+                )
+            }
+            return
         }
 
-        val json = JSONObject().apply {
-            put("nutrition_facts_found", hasClearNutritionBox)
-            if (cal != null) put("calories", cal)
-            if (sod != null) put("sodium", sod)
-            if (pro != null) put("protein", pro)
-            if (carb != null) put("carbs", carb)
-            put("fiber", fiber)
-            if (sug != null) put("sugar", sug)
-            if (pot != null) put("potassium", pot)
-            put("ingredients", org.json.JSONArray(ingredientsList))
-        }
+        val ingredients = extractIngredientsFromJson(json)
+        val loadedRedTriggers = userSettings.loadTriggersFromAssets(getString(R.string.red_txt).lowercase(Locale.ROOT))
 
-        return Pair(json, ingredientsList)
+        val evalResult = LabelEvaluator.evaluateScanData(
+            json,
+            ingredients,
+            userSettings.getSelectedConditions(),
+            userSettings,
+            loadedRedTriggers,
+            userSettings.getCustomWatchlist(getString(R.string.red_txt)),
+            userSettings.getCustomWatchlist(getString(R.string.yellow_txt))
+        )
+        withContext(Dispatchers.Main) {
+            isAnalyzing = false
+            val fiber = if (json.has("fiber_g")) json.optDouble("fiber_g") else json.optDouble("fiber", 0.0)
+            val carbs = if (json.has("total_carbohydrates_g")) json.optDouble("total_carbohydrates_g") else json.optDouble("carbs", 0.0)
+
+            val potassiumVal = optDoubleResilient(json, "potassium_mg", "potassium")
+            val sugarVal = optDoubleResilient(json, "total_sugar_g", "sugar")
+
+            displaySummaryCard(
+                evalResult,
+                getString(R.string.scan_result),
+                json.optInt("calories"),
+                json.optDouble("protein", 0.0).toFloat().let { if (it == 0f) json.optDouble("protein_g", 0.0).toFloat() else it },
+                json.optInt("sodium", 0).let { if (it == 0) json.optInt("sodium_mg", 0) else it },
+                potassiumVal.toFloat(),
+                carbs.toFloat(),
+                (carbs - fiber).toFloat(),
+                sugarVal.toFloat(),
+                userSettings.getSelectedConditions().contains("keto")
+            )
+        }
     }
 
     private fun extractIngredientsFromJson(json: JSONObject): List<String> {
@@ -759,189 +791,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         return emptyList()
     }
 
-    private fun resizeBitmapToMax(source: Bitmap, maxDimension: Int = 1024): Bitmap {
-        val width = source.width
-        val height = source.height
-        if (width <= maxDimension && height <= maxDimension) return source
-
-        val aspectRatio = width.toFloat() / height.toFloat()
-        val targetWidth: Int
-        val targetHeight: Int
-
-        if (width > height) {
-            targetWidth = maxDimension
-            targetHeight = (maxDimension / aspectRatio).toInt()
-        } else {
-            targetHeight = maxDimension
-            targetWidth = (maxDimension * aspectRatio).toInt()
-        }
-
-        return Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
-    }
-
-    private fun runAnalysis(imageBitmap: Bitmap, sourceUri: Uri? = null) {
-        isAnalyzing = true
-        textExplanation.text = "Reading label..."
-
-        val ctx = context ?: return
-        val image = try {
-            val uri = sourceUri ?: tempPhotoUri ?: getTempPhotoUri(ctx)
-            InputImage.fromFilePath(ctx, uri)
-        } catch (e: Exception) {
-            InputImage.fromBitmap(imageBitmap, 0)
-        }
-
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-
-        recognizer.process(image)
-            .addOnSuccessListener { visionText ->
-                val extractedText = visionText.text
-                if (extractedText.isNotBlank()) {
-                    val localResult = tryParseNutritionLocally(extractedText)
-                    if (localResult != null) {
-                        val (json, ingredients) = localResult
-                        val userSettings = AppSettings(requireContext())
-                        val loadedRedTriggers = userSettings.loadTriggersFromAssets("red")
-
-                        val evalResult = LabelEvaluator.evaluateScanData(
-                            json,
-                            ingredients,
-                            userSettings.getSelectedConditions(),
-                            userSettings,
-                            loadedRedTriggers,
-                            userSettings.getCustomWatchlist("RED"),
-                            userSettings.getCustomWatchlist("YELLOW")
-                        )
-
-                        val fiber = json.optDouble("fiber", 0.0)
-                        val carbs = json.optDouble("carbs", 0.0)
-                        val potVal = optDoubleResilient(json, "potassium_mg", "potassium")
-                        val sugVal = optDoubleResilient(json, "total_sugar_g", "sugar")
-
-                        isAnalyzing = false
-                        displaySummaryCard(
-                            evalResult,
-                            "Scan Result",
-                            json.optInt("calories", 0),
-                            json.optDouble("protein", 0.0).toFloat(),
-                            json.optInt("sodium", 0),
-                            potVal.toFloat(),
-                            carbs.toFloat(),
-                            (carbs - fiber).coerceAtLeast(0.0).toFloat(),
-                            sugVal.toFloat(),
-                            userSettings.getSelectedConditions().contains("keto")
-                        )
-                    } else {
-                        textExplanation.text = "Analyzing text..."
-                        executeTextBasedAnalysis(extractedText)
-                    }
-                } else {
-                    textExplanation.text = "Using visual fallback..."
-                    executeVisionBasedAnalysis(imageBitmap)
-                }
-            }
-            .addOnFailureListener { e ->
-                Log.e("LabelScanner", "Local OCR Failed, falling back to Vision API", e)
-                textExplanation.text = "OCR Failed. Using visual fallback..."
-                executeVisionBasedAnalysis(imageBitmap)
-            }
-    }
-
-    private fun executeTextBasedAnalysis(extractedText: String) {
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val ctx = context ?: return@launch
-            try {
-                val userSettings = AppSettings(ctx.applicationContext)
-                val rawResponse = GeminiAnalyzer.analyzeIngredientsText(
-                    extractedText,
-                    backendAnalysisUrl
-                )
-
-                Log.d("LabelScanner", "HomeFragment [Hybrid Text]: Raw Response = $rawResponse")
-                parseAndDisplayAnalysis(rawResponse, userSettings)
-
-            } catch (e: Exception) {
-                Log.e("LabelScanner", "Text hybrid scan execution failed", e)
-                withContext(Dispatchers.Main) {
-                    isAnalyzing = false
-                    textExplanation.text = "Failed: ${e.localizedMessage ?: "Analysis error"}"
-                }
-            }
-        }
-    }
-
-    private fun executeVisionBasedAnalysis(imageBitmap: Bitmap) {
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val ctx = context ?: return@launch
-            try {
-                val userSettings = AppSettings(ctx.applicationContext)
-                val optimizedBitmap = resizeBitmapToMax(imageBitmap, 1024)
-
-                val rawResponse = GeminiAnalyzer.analyzeIngredientsImage(
-                    optimizedBitmap,
-                    backendAnalysisUrl
-                )
-
-                Log.d("LabelScanner", "HomeFragment [Fallback Vision]: Raw Response = $rawResponse")
-                parseAndDisplayAnalysis(rawResponse, userSettings)
-
-            } catch (e: Exception) {
-                Log.e("LabelScanner", "Vision fallback scan execution failed", e)
-                withContext(Dispatchers.Main) {
-                    isAnalyzing = false
-                    textExplanation.text = "Failed: ${e.localizedMessage ?: "Analysis error"}"
-                }
-            }
-        }
-    }
-
-    private suspend fun parseAndDisplayAnalysis(rawResponse: String, userSettings: AppSettings) {
-        val json = JSONObject(rawResponse.replace("```json", "").replace("```", "").trim())
-
-        val ingredients = extractIngredientsFromJson(json)
-        val loadedRedTriggers = userSettings.loadTriggersFromAssets("red")
-
-        val evalResult = LabelEvaluator.evaluateScanData(
-            json,
-            ingredients,
-            userSettings.getSelectedConditions(),
-            userSettings,
-            loadedRedTriggers,
-            userSettings.getCustomWatchlist("RED"),
-            userSettings.getCustomWatchlist("YELLOW")
-        )
-        withContext(Dispatchers.Main) {
-            isAnalyzing = false
-            val fiber = if (json.has("fiber_g")) json.optDouble("fiber_g") else json.optDouble("fiber", 0.0)
-            val carbs = if (json.has("total_carbohydrates_g")) json.optDouble("total_carbohydrates_g") else json.optDouble("carbs", 0.0)
-
-            val potassiumVal = optDoubleResilient(json, "potassium_mg", "potassium")
-            val sugarVal = optDoubleResilient(json, "total_sugar_g", "sugar")
-
-            displaySummaryCard(
-                evalResult,
-                "Scan Result",
-                json.optInt("calories"),
-                json.optDouble("protein", 0.0).toFloat().let { if (it == 0f) json.optDouble("protein_g", 0.0).toFloat() else it },
-                json.optInt("sodium", 0).let { if (it == 0) json.optInt("sodium_mg", 0) else it },
-                potassiumVal.toFloat(),
-                carbs.toFloat(),
-                (carbs - fiber).toFloat(),
-                sugarVal.toFloat(),
-                userSettings.getSelectedConditions().contains("keto")
-            )
-        }
-    }
-
     // Comprehensive Non-Food & Inedible Reality Gate
     private fun runProduceAnalysis(imageBitmap: Bitmap) {
         isAnalyzing = true
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val ctx = context ?: return@launch
             try {
-                val optimizedBitmap = resizeBitmapToMax(imageBitmap, 1024)
+                val optimizedBitmap = resizeBitmapToMax(imageBitmap)
 
-                withContext(Dispatchers.Main) { textExplanation.text = "Analyzing Image ..." }
+                withContext(Dispatchers.Main) { textExplanation.text = getString(R.string.analyzing_image) }
 
                 val rawResponse = GeminiAnalyzer.analyzeProduceImage(
                     optimizedBitmap,
@@ -950,7 +808,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 Log.d("LabelScanner", "HomeFragment: Raw Produce Response = $rawResponse")
 
                 val json = JSONObject(rawResponse.replace("```json", "").replace("```", "").trim())
-                val name = json.optString("item_name", "Produce")
+                val name = json.optString("item_name", getString(R.string.produce_default_name))
                 val nameLower = name.lowercase(Locale.ROOT)
 
                 val isNonFood = !json.optBoolean("is_food", true) ||
@@ -969,17 +827,17 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     withContext(Dispatchers.Main) {
                         isAnalyzing = false
                         val cleanSubtitle = if (nameLower.contains("produce") || nameLower.startsWith("none")) {
-                            "Non-food item detected"
+                            getString(R.string.non_food_detected)
                         } else {
                             name
                         }
 
                         val nonFoodResult = EvaluationResult(
-                            gradeTitle = "Not Edible Produce",
+                            gradeTitle = getString(R.string.not_edible_produce),
                             textColor = ContextCompat.getColor(ctx, R.color.gradeAvoid),
                             subtextColor = ContextCompat.getColor(ctx, R.color.textSecondary),
                             bgColor = ContextCompat.getColor(ctx, R.color.cardSurface),
-                            redViolations = listOf("No fresh produce identified. Please photograph edible raw fruits or vegetables."),
+                            redViolations = listOf(getString(R.string.produce_error_message)),
                             yellowViolations = emptyList()
                         )
                         displaySummaryCard(
@@ -1037,7 +895,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 Log.e("LabelScanner", "Produce analysis error", e)
                 withContext(Dispatchers.Main) {
                     isAnalyzing = false
-                    textExplanation.text = "Failed: ${e.localizedMessage ?: "Produce error"}"
+                    textExplanation.text = getString(R.string.analysis_failed_error, e.localizedMessage ?: getString(R.string.analysis_error))
                 }
             }
         }
@@ -1077,6 +935,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         cardSummary.strokeWidth = (2 * resources.displayMetrics.density).toInt()
 
         val context = cardSummary.context
+        @Suppress("DiscouragedApi")
         val titleResId = context.resources.getIdentifier("textProductTitle", "id", context.packageName).let { id ->
             if (id != 0) id else context.resources.getIdentifier("textSummaryTitle", "id", context.packageName).let { id2 ->
                 if (id2 != 0) id2 else context.resources.getIdentifier("textProduct", "id", context.packageName)
@@ -1091,7 +950,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             textProductTitle.gravity = android.view.Gravity.CENTER
             textSummaryGrade.text = evaluation.gradeTitle
         } else {
-            textSummaryGrade.text = "$subtitle\n${evaluation.gradeTitle}"
+            textSummaryGrade.text = getString(R.string.summary_grade_format, subtitle, evaluation.gradeTitle)
         }
         textSummaryGrade.gravity = android.view.Gravity.CENTER
         textSummaryGrade.setTextColor(evaluation.textColor)
@@ -1113,7 +972,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         textTapPrompt?.setTextColor(evaluation.textColor)
 
         if (suggestions != null && suggestions.isNotEmpty()) {
-            textTapPrompt?.text = "Alternatives Found! Tap for details ➔"
+            textTapPrompt?.text = getString(R.string.alternatives_found_prompt)
             val pulseAnimation = android.view.animation.AlphaAnimation(0.4f, 1.0f).apply {
                 duration = 1000
                 repeatMode = android.view.animation.Animation.REVERSE
@@ -1121,7 +980,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
             textTapPrompt?.startAnimation(pulseAnimation)
         } else if (isSearchingAlternatives) {
-            textTapPrompt?.text = "Searching for safer alternatives... ⏳"
+            textTapPrompt?.text = getString(R.string.searching_alternatives)
             val pulseAnimation = android.view.animation.AlphaAnimation(0.4f, 1.0f).apply {
                 duration = 800
                 repeatMode = android.view.animation.Animation.REVERSE
@@ -1129,7 +988,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
             textTapPrompt?.startAnimation(pulseAnimation)
         } else {
-            textTapPrompt?.text = "Tap for details ➔"
+            textTapPrompt?.text = getString(R.string.tap_for_details)
             textTapPrompt?.clearAnimation()
         }
 
@@ -1141,7 +1000,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 if (now - lastToastTimestamp > 3000L) {
                     lastToastTimestamp = now
                     activeSearchToast?.cancel()
-                    activeSearchToast = Toast.makeText(context, "Searching for alternatives, please wait...", Toast.LENGTH_SHORT)
+                    activeSearchToast = Toast.makeText(context, getString(R.string.searching_alternatives_toast), Toast.LENGTH_SHORT)
                     activeSearchToast?.show()
                 }
                 return@setOnClickListener
@@ -1172,13 +1031,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             cachedSub = ""
             cachedMacros = null
             cachedSuggestions = null
-            textExplanation.text = "Ready..."
+            textExplanation.text = getString(R.string.ready_status)
             context?.let { textExplanation.setTextColor(ContextCompat.getColor(it, R.color.textPrimary)) }
         }
     }
 
     private fun updateConditionText() {
-        btnProfileSelector.text = "Profile: ${AppSettings(requireContext()).getActiveProfile()} ▾"
+        btnProfileSelector.text = getString(R.string.profile_selector_format, AppSettings(requireContext()).getActiveProfile())
     }
 
     override fun onResume() {

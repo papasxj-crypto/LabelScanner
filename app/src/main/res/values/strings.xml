@@ -5,39 +5,39 @@
     <string name="dev_URL">https://analyze-recipe-dev-955054852456.us-central1.run.app</string>
     <string name="production_URL">https://analyze-recipe-955054852456.us-west1.run.app</string>
 
-    <string-array name="medical_conditions_array">
+    <!--string-array name="medical_conditions_array">
         <item>Chronic Kidney Disease (CKD)</item>
         <item>Type 2 Diabetes</item>
         <item>GLP-1 Diet Support</item>
         <item>General Low Sodium</item>
-    </string-array>
+    </string-array-->
 
-    <string name="error_loading_msg">Error loading captured image.</string>
-    <string name="selected_target_message">Selected Target: %1$s</string>
+    <!--string name="error_loading_msg">Error loading captured image.</string-->
+    <!--string name="selected_target_message">Selected Target: %1$s</string-->
 
-    <string name="error_processing_label_msg">Error processing label metrics.</string>
+    <!--string name="error_processing_label_msg">Error processing label metrics.</string-->
 
-    <string name="error_loading_image">Error loading captured image.</string>
-    <string name="error_processing_file">Error processing storage file.</string>
-    <string name="camera_cancelled">Camera scan canceled or failed.</string>
-    <string name="storage_error_message">Storage Error: %1$s</string>
-    <string name="metrics_error_message">Error processing label metrics.</string>
+    <!--string name="error_loading_image">Error loading captured image.</string-->
+    <!--string name="error_processing_file">Error processing storage file.</string-->
+    <!--string name="camera_cancelled">Camera scan canceled or failed.</string-->
+    <!--string name="storage_error_message">Storage Error: %1$s</string-->
+    <!--string name="metrics_error_message">Error processing label metrics.</string-->
 
-    <string name="selected_target_label">Selected Target: %1$s</string>
-    <string name="no_conditions_active">No profile restrictions active. Ready to scan.</string>
-    <string name="active_profile_tracking">Active Profile Filter: %1$s\nStrictest Sodium Ceiling: %2$dmg\nReady to scan.</string>
+    <!--string name="selected_target_label">Selected Target: %1$s</string-->
+    <!--string name="no_conditions_active">No profile restrictions active. Ready to scan.</string-->
+    <!--string name="active_profile_tracking">Active Profile Filter: %1$s\nStrictest Sodium Ceiling: %2$dmg\nReady to scan.</string-->
 
-    <string name="grade_red_blacklist">RED: BLACKLISTED INGREDIENT DETECTED</string>
+    <!--string name="grade_red_blacklist">RED: BLACKLISTED INGREDIENT DETECTED</string>
     <string name="grade_red_high_risk">RED: HIGH RISK INGREDIENT MATCH</string>
     <string name="grade_red_high_sodium">RED: HIGH SODIUM\n%1$dmg per serving exceeds %2$dmg limit!</string>
     <string name="grade_yellow_moderate">YELLOW: MODERATE SODIUM (%1$dmg)</string>
     <string name="grade_yellow_warning">YELLOW: WARNING INGREDIENT MATCH</string>
     <string name="grade_green_compliant">GREEN: SAFE COMPLIANT SODIUM: (%1$dmg per serving)</string>
-    <string name="selected_target_standard_baseline">Selected Target: Standard Baseline</string>
+    <string name="selected_target_standard_baseline">Selected Target: Standard Baseline</string-->
 
-    <string name="ready_to_scan">Ready to scan.</string>
+    <!--string name="ready_to_scan">Ready to scan.</string>
     <string name="open_settings">Open Settings</string>
-    <string name="take_picture">TAKE PICTURE</string>
+    <string name="take_picture">TAKE PICTURE</string-->
 
     <string-array name="negation_phrases">
         <item>NOT A SIGNIFICANT SOURCE</item>
@@ -57,8 +57,8 @@
     <!-- "#FFFFFF" -->
     <string name="white">#FFFFFF</string>
 
-    <string name="grade_red_blacklist_format">RED: BLACKLISTED INGREDIENT DETECTED\n(%1$s)</string>
-    <string name="grade_red_high_risk_format">RED: HIGH RISK INGREDIENT MATCH\n(%1$s)</string>
+    <!--string name="grade_red_blacklist_format">RED: BLACKLISTED INGREDIENT DETECTED\n(%1$s)</string>
+    <string name="grade_red_high_risk_format">RED: HIGH RISK INGREDIENT MATCH\n(%1$s)</string-->
 
     <!-- New added strings -->
     <string name="title_dietary_thresholds">Dietary Thresholds</string>
@@ -183,6 +183,35 @@
     <string name="cashew">CASHEW</string>
     <string name="cashews">CASHEWS</string>
     <string name="walnut">WALNUT</string>
+
+    <!-- HomeFragment.kt -->
+    <string name="camera_permission_required">Camera permission is required to scan labels and barcodes.</string>
+    <string name="searching_ellipsis">Searching…</string>
+    <string name="variable_weight_warning">This is a store-packaged variable weight item. Please use \'Camera Scan\' to evaluate its ingredient label directly!</string>
+    <string name="alternatives_found_prompt">Alternatives Found! Tap for details ➔</string>
+    <string name="tap_for_details">Tap for details ➔</string>
+    <string name="searching_alternatives">Searching for safer alternatives… ⏳</string>
+    <string name="searching_alternatives_toast">Searching for alternatives, please wait…</string>
+    <string name="unknown_connection_failure">Unknown connection failure</string>
+    <string name="connection_error_format">Error: %1$s</string>
+    <string name="reading_label">Reading label…</string>
+    <string name="analyzing_text">Analyzing text…</string>
+    <string name="using_visual_fallback">Using visual fallback…</string>
+    <string name="ocr_failed_fallback">OCR Failed. Using visual fallback…</string>
+    <string name="scan_result">Scan Result</string>
+    <string name="analyzing_image">Analyzing Image …</string>
+    <string name="non_food_detected">Non-food item detected</string>
+    <string name="not_edible_produce">Not Edible Produce</string>
+    <string name="produce_error_message">No fresh produce identified. Please photograph edible raw fruits or vegetables.</string>
+    <string name="produce_default_name">Produce</string>
+    <string name="select_active_profile">Select Active Profile</string>
+    <string name="switched_to_profile">Switched to %1$s</string>
+    <string name="camera_open_error">Could not open camera: %1$s</string>
+    <string name="analysis_error">Analysis error</string>
+    <string name="analysis_failed_error">Failed: %1$s</string>
+    <string name="ready_status">Ready…</string>
+    <string name="profile_selector_format">Profile: %1$s ▾</string>
+    <string name="summary_grade_format">%1$s\n%2$s</string>
 
     <!-- Common Quick Add Watchlist Items [1] -->
     <string-array name="common_watchlist_items">
