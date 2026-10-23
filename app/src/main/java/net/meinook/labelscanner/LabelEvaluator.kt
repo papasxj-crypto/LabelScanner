@@ -93,10 +93,12 @@ object LabelEvaluator {
         val context = userSettings.context
 
         // GUARDRAIL: Check if the AI backend flagged the image as an invalid food item or label
-        val isValidFood = jsonResult.optBoolean("is_valid_food",
-            jsonResult.optBoolean("valid_food",
-                jsonResult.optBoolean("is_valid_label",
-                    jsonResult.optBoolean("valid_label", true)
+        val isValidFood = jsonResult.optBoolean("is_food",
+            jsonResult.optBoolean("is_valid_food",
+                jsonResult.optBoolean("valid_food",
+                    jsonResult.optBoolean("is_valid_label",
+                        jsonResult.optBoolean("valid_label", true)
+                    )
                 )
             )
         )
@@ -106,44 +108,44 @@ object LabelEvaluator {
             val errorMessage = if (backendError.isNotBlank() && !backendError.equals("null", ignoreCase = true)) {
                 backendError
             } else {
-                "The scanned image is not a valid food item or nutrition label."
+                context.getString(R.string.invalid_food_item_message)
             }
             return EvaluationResult(
                 bgColor = ContextCompat.getColor(context, R.color.gradeAvoidBackground),
                 textColor = ContextCompat.getColor(context, R.color.gradeAvoid),
                 subtextColor = ContextCompat.getColor(context, R.color.gradeAvoidSubtext),
-                gradeTitle = "Invalid Scan",
+                gradeTitle = context.getString(R.string.grade_invalid_scan),
                 redViolations = listOf(errorMessage),
                 yellowViolations = emptyList()
             )
         }
 
         val cleanIngredients = detectedIngredients.map { ingredient ->
-            ingredient?.replace("\u00A0", " ")
-                ?.replace("\\s+".toRegex(), " ")
-                ?.uppercase(Locale.US)
-                ?.trim() ?: ""
+            ingredient.replace("\u00A0", " ")
+                .replace("\\s+".toRegex(), " ")
+                .uppercase(Locale.US)
+                .trim()
         }.filter { it.isNotEmpty() }
 
         val cleanRedTriggers = xmlRedTriggers.map { trigger ->
-            trigger?.replace("\u00A0", " ")
-                ?.replace("\\s+".toRegex(), " ")
-                ?.uppercase(Locale.US)
-                ?.trim() ?: ""
+            trigger.replace("\u00A0", " ")
+                .replace("\\s+".toRegex(), " ")
+                .uppercase(Locale.US)
+                .trim()
         }.filter { it.isNotEmpty() }
 
         val cleanCustomReds = customRedWatchlist.map { item ->
-            item?.replace("\u00A0", " ")
-                ?.replace("\\s+".toRegex(), " ")
-                ?.uppercase(Locale.US)
-                ?.trim() ?: ""
+            item.replace("\u00A0", " ")
+                .replace("\\s+".toRegex(), " ")
+                .uppercase(Locale.US)
+                .trim()
         }.filter { it.isNotEmpty() }
 
         val cleanCustomYellows = customYellowWatchlist.map { item ->
-            item?.replace("\u00A0", " ")
-                ?.replace("\\s+".toRegex(), " ")
-                ?.uppercase(Locale.US)
-                ?.trim() ?: ""
+            item.replace("\u00A0", " ")
+                .replace("\\s+".toRegex(), " ")
+                .uppercase(Locale.US)
+                .trim()
         }.filter { it.isNotEmpty() }
 
         Log.d("LabelEvaluator", "evaluateScanData: Cleaned Ingredients count = ${cleanIngredients.size}")
@@ -158,7 +160,7 @@ object LabelEvaluator {
             }.distinct()
 
             val matchText = if (matchedItems.isNotEmpty()) matchedItems.joinToString(", ") else matchedReds.joinToString(", ")
-            redViolations.add("Blacklisted profile ingredient matched: $matchText")
+            redViolations.add(context.getString(R.string.violation_blacklisted_profile, matchText))
         }
 
         // 2. CUSTOM WATCHLISTS EVALUATION (Precise Word Boundaries)
@@ -166,14 +168,14 @@ object LabelEvaluator {
             cleanIngredients.any { isIngredientMatch(it, upperItem) }
         }
         if (matchedCustomReds.isNotEmpty()) {
-            redViolations.add("Your Watchlist (Avoid): matched ${matchedCustomReds.distinct().joinToString(", ")}")
+            redViolations.add(context.getString(R.string.violation_watchlist_avoid, matchedCustomReds.distinct().joinToString(", ")))
         }
 
         val matchedCustomYellows = cleanCustomYellows.filter { upperItem ->
             cleanIngredients.any { isIngredientMatch(it, upperItem) }
         }
         if (matchedCustomYellows.isNotEmpty()) {
-            yellowViolations.add("Your Watchlist (Caution): matched ${matchedCustomYellows.distinct().joinToString(", ")}")
+            yellowViolations.add(context.getString(R.string.violation_watchlist_caution, matchedCustomYellows.distinct().joinToString(", ")))
         }
 
         // 3. ROUTING & STATE CONTROLLER
@@ -193,9 +195,9 @@ object LabelEvaluator {
                     bgColor = ContextCompat.getColor(context, R.color.cardSurface),
                     textColor = ContextCompat.getColor(context, R.color.textMuted),
                     subtextColor = ContextCompat.getColor(context, R.color.textSecondary),
-                    gradeTitle = "Incomplete Scan",
+                    gradeTitle = context.getString(R.string.grade_incomplete_scan),
                     redViolations = emptyList(),
-                    yellowViolations = listOf("No nutrition data or ingredients detected.") + yellowViolations
+                    yellowViolations = listOf(context.getString(R.string.no_nutrition_or_ingredients)) + yellowViolations
                 )
             }
         }
@@ -226,15 +228,15 @@ object LabelEvaluator {
 
             // Check A: Absolute single-sitting overload (Exceeds full meal ceiling -> RED)
             if (enforceCeiling && proteinVal > proteinRules.mealMax) {
-                redViolations.add("Protein exceeds meal ceiling: found ${proteinVal.toInt()}g (max limit: ${proteinRules.mealMax.toInt()}g)")
+                redViolations.add(context.getString(R.string.protein_exceeds_meal_ceiling, proteinVal.toInt(), proteinRules.mealMax))
             }
             // Check B: Full meal with inadequate protein for dialysis requirements
             else if (isMeal && enforceFloor && proteinVal < proteinRules.mealMin) {
-                yellowViolations.add("Protein is below meal target: found ${proteinVal.toInt()}g (target: ${proteinRules.mealMin.toInt()}g)")
+                yellowViolations.add(context.getString(R.string.protein_below_meal_target, proteinVal.toInt(), proteinRules.mealMin))
             }
             // Check C: Low-calorie but high protein density (e.g. Sausage, Chicken, Tuna)
             else if (!isMeal && enforceCeiling && proteinVal > proteinRules.snackMax) {
-                yellowViolations.add("Meal Component: ${proteinVal.toInt()}g protein fits meal allowance (max: ${proteinRules.mealMax.toInt()}g), but exceeds standalone snack target (${proteinRules.snackMax.toInt()}g).")
+                yellowViolations.add(context.getString(R.string.protein_meal_component_exceeds_snack, proteinVal.toInt(), proteinRules.mealMax, proteinRules.snackMax))
             }
         }
 
@@ -269,19 +271,19 @@ object LabelEvaluator {
                 else -> String.format(Locale.US, "%.1f g", value.toDouble())
             }
             val modFormatted = when (map.xmlId) {
-                "calories" -> "${mod.toInt()} kcal"
-                "sodium", "potassium" -> "${mod.toInt()} mg"
+                "calories" -> "$mod kcal"
+                "sodium", "potassium" -> "$mod mg"
                 else -> String.format(Locale.US, "%.1f g", mod.toDouble())
             }
             val lowFormatted = when (map.xmlId) {
-                "calories" -> "${low.toInt()} kcal"
-                "sodium", "potassium" -> "${low.toInt()} mg"
+                "calories" -> "$low kcal"
+                "sodium", "potassium" -> "$low mg"
                 else -> String.format(Locale.US, "%.1f g", low.toDouble())
             }
 
             if (value > mod) {
                 val label = if (map.useNetCarbs && useNetCarbsActive) "Net Carbs" else map.displayName
-                val message = "$label exceeds target limit: found $actualValFormatted (limit: $modFormatted)"
+                val message = context.getString(R.string.nutrient_exceeds_limit, label, actualValFormatted, modFormatted)
 
                 // Cumulative dietary metrics (fats, calories) NEVER trigger a Hard RED
                 val isCumulativeDietaryMetric = (map.xmlId == "saturated_fat" || map.xmlId == "total_fat" || map.xmlId == "calories")
@@ -290,8 +292,9 @@ object LabelEvaluator {
                 } else {
                     yellowViolations.add(message)
                 }
-            } else if (value > low) {                val label = if (map.useNetCarbs && useNetCarbsActive) "Net Carbs" else map.displayName
-                val message = "$label is high: found $actualValFormatted (caution limit: $lowFormatted)"
+            } else if (value > low) {
+                val label = if (map.useNetCarbs && useNetCarbsActive) "Net Carbs" else map.displayName
+                val message = context.getString(R.string.nutrient_is_high, label, actualValFormatted, lowFormatted)
                 yellowViolations.add(message)
             }
             processed.add(map.xmlId)
@@ -311,7 +314,7 @@ object LabelEvaluator {
                 bgColor = ContextCompat.getColor(context, R.color.gradeAvoidBackground),
                 textColor = ContextCompat.getColor(context, R.color.gradeAvoid),
                 subtextColor = ContextCompat.getColor(context, R.color.gradeAvoidSubtext),
-                gradeTitle = if (isIngredientsOnly) "Red - Avoid (Watchlist)" else "Red - Avoid",
+                gradeTitle = if (isIngredientsOnly) context.getString(R.string.grade_red_avoid_watchlist) else context.getString(R.string.grade_red_avoid),
                 redViolations = reds.distinct(),
                 yellowViolations = yellows.distinct()
             )
@@ -319,7 +322,7 @@ object LabelEvaluator {
                 bgColor = ContextCompat.getColor(context, R.color.gradeCautionBackground),
                 textColor = ContextCompat.getColor(context, R.color.gradeCaution),
                 subtextColor = ContextCompat.getColor(context, R.color.gradeCautionSubtext),
-                gradeTitle = if (isIngredientsOnly) "Yellow - Caution (Watchlist)" else "Yellow - Caution",
+                gradeTitle = if (isIngredientsOnly) context.getString(R.string.grade_yellow_caution_watchlist) else context.getString(R.string.grade_yellow_caution),
                 redViolations = emptyList(),
                 yellowViolations = yellows.distinct()
             )
@@ -327,15 +330,15 @@ object LabelEvaluator {
                 bgColor = ContextCompat.getColor(context, R.color.gradeUnrated),
                 textColor = ContextCompat.getColor(context, R.color.gradeUnratedText),
                 subtextColor = ContextCompat.getColor(context, R.color.gradeUnratedSubtext),
-                gradeTitle = "Watchlist Clear (Unrated)",
+                gradeTitle = context.getString(R.string.grade_watchlist_clear),
                 redViolations = emptyList(),
-                yellowViolations = listOf("No blacklisted ingredients found. Nutrition facts not scanned.")
+                yellowViolations = listOf(context.getString(R.string.watchlist_clear_message))
             )
             else -> EvaluationResult(
                 bgColor = ContextCompat.getColor(context, R.color.gradeSafeBackground),
                 textColor = ContextCompat.getColor(context, R.color.gradeSafe),
                 subtextColor = ContextCompat.getColor(context, R.color.gradeSafeSubtext),
-                gradeTitle = "Green - Safe",
+                gradeTitle = context.getString(R.string.grade_green_safe),
                 redViolations = emptyList(),
                 yellowViolations = emptyList()
             )

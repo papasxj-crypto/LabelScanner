@@ -213,6 +213,32 @@
     <string name="profile_selector_format">Profile: %1$s ▾</string>
     <string name="summary_grade_format">%1$s\n%2$s</string>
 
+    <!-- LabelEvaluator.kt -->
+    <!-- Grades & Statuses -->
+    <string name="grade_invalid_scan">Invalid Scan</string>
+    <string name="grade_incomplete_scan">Incomplete Scan</string>
+    <string name="grade_red_avoid">Red - Avoid</string>
+    <string name="grade_red_avoid_watchlist">Red - Avoid (Watchlist)</string>
+    <string name="grade_yellow_caution">Yellow - Caution</string>
+    <string name="grade_yellow_caution_watchlist">Yellow - Caution (Watchlist)</string>
+    <string name="grade_watchlist_clear">Watchlist Clear (Unrated)</string>
+    <string name="grade_green_safe">Green - Safe</string>
+
+    <!-- Evaluation Messages -->
+    <string name="invalid_food_item_message">The scanned image is not a valid food item or nutrition label.</string>
+    <string name="no_nutrition_or_ingredients">No nutrition data or ingredients detected.</string>
+    <string name="watchlist_clear_message">No blacklisted ingredients found. Nutrition facts not scanned.</string>
+    <string name="violation_blacklisted_profile">Blacklisted profile ingredient matched: %1$s</string>
+    <string name="violation_watchlist_avoid">Your Watchlist (Avoid): matched %1$s</string>
+    <string name="violation_watchlist_caution">Your Watchlist (Caution): matched %1$s</string>
+
+    <!-- Clinical Rules Messages -->
+    <string name="protein_exceeds_meal_ceiling">Protein exceeds meal ceiling: found %1$dg (max limit: %2$dg)</string>
+    <string name="protein_below_meal_target">Protein is below meal target: found %1$dg (target: %2$dg)</string>
+    <string name="protein_meal_component_exceeds_snack">Meal Component: %1$dg protein fits meal allowance (max: %2$dg), but exceeds standalone snack target (%3$dg).</string>
+    <string name="nutrient_exceeds_limit">%1$s exceeds target limit: found %2$s (limit: %3$s)</string>
+    <string name="nutrient_is_high">%1$s is high: found %2$s (caution limit: %3$s)</string>
+
     <!-- Common Quick Add Watchlist Items [1] -->
     <string-array name="common_watchlist_items">
         <item>ASPARTAME</item>
