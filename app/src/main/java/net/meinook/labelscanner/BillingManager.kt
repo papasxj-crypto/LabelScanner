@@ -2,6 +2,7 @@ package net.meinook.labelscanner
 
 import android.app.Activity
 import android.content.Context
+import android.util.Log
 import com.android.billingclient.api.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -13,13 +14,45 @@ import kotlinx.coroutines.withContext
 
 class BillingManager(
     private val context: Context,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val listener: BillingUpdatesListener? = null
 ) : PurchasesUpdatedListener {
 
+    private val appSettings = AppSettings(context)
     private var billingClient: BillingClient
 
+    private var proProductDetails: ProductDetails? = null
+    private var monthlyOfferToken: String? = null
+    private var yearlyOfferToken: String? = null
+    private var monthlyFormattedPrice: String = "$4.99"
+    private var yearlyFormattedPrice: String = "$39.99"
+
+    interface BillingUpdatesListener {
+        fun onProductDetailsLoaded(
+            monthlyPrice: String,
+            yearlyPrice: String,
+            hasMonthlyTrial: Boolean,
+            hasYearlyTrial: Boolean
+        )
+        fun onPurchaseSuccess()
+        fun onBillingError(message: String)
+    }
+
+    companion object {
+        private const val TAG = "BillingManager"
+        const val PRODUCT_ID_PRO = "filterpoint_pro"
+        const val BASE_PLAN_MONTHLY = "monthly"
+        const val BASE_PLAN_YEARLY = "yearly"
+
+        fun isProUser(context: Context): Boolean {
+            if (BuildConfig.BYPASS_PAYWALL) {
+                return true
+            }
+            return AppSettings(context).isSubscriptionActive()
+        }
+    }
+
     init {
-        // Required initialization parameter configuration for modern Billing Client versions
         val pendingPurchasesParams = PendingPurchasesParams.newBuilder()
             .enableOneTimeProducts()
             .enablePrepaidPlans()
@@ -28,6 +61,7 @@ class BillingManager(
         billingClient = BillingClient.newBuilder(context)
             .setListener(this)
             .enablePendingPurchases(pendingPurchasesParams)
+            .enableAutoServiceReconnection()
             .build()
 
         startConnection()
@@ -37,24 +71,102 @@ class BillingManager(
         billingClient.startConnection(object : BillingClientStateListener {
             override fun onBillingSetupFinished(billingResult: BillingResult) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                    // Sync active status on connection setup
+                    Log.d(TAG, "BillingClient connected successfully")
+                    queryProductDetails()
                     queryActivePurchases()
+                } else {
+                    Log.e(TAG, "Billing setup failed: ${billingResult.debugMessage}")
+                    listener?.onBillingError("Setup failed: ${billingResult.debugMessage}")
                 }
             }
 
             override fun onBillingServiceDisconnected() {
-                // Standard retry connection logic
-                startConnection()
+                Log.w(TAG, "BillingClient disconnected. Auto-service reconnection active.")
             }
         })
     }
 
-    // Launch Google Play Checkout Flow (Displays the checkout overlay UI)
-    fun launchSubscriptionPurchase(activity: Activity, productDetails: ProductDetails, offerToken: String) {
+    fun queryProductDetails() {
+        val productList = listOf(
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(PRODUCT_ID_PRO)
+                .setProductType(BillingClient.ProductType.SUBS)
+                .build()
+        )
+
+        val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
+            .setProductList(productList)
+            .build()
+
+        billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, queryProductDetailsResult ->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                val detailsList = queryProductDetailsResult.productDetailsList
+                if (detailsList.isNotEmpty()) {
+                    val details = detailsList[0]
+                    proProductDetails = details
+                    parseOffers(details)
+                } else {
+                    Log.w(TAG, "No product details returned for $PRODUCT_ID_PRO")
+                }
+            } else {
+                Log.e(TAG, "Failed to query product details: ${billingResult.debugMessage}")
+            }
+        }
+    }
+
+    private fun parseOffers(details: ProductDetails) {
+        val offers = details.subscriptionOfferDetails ?: return
+
+        var hasMonthlyTrial = false
+        var hasYearlyTrial = false
+
+        for (offer in offers) {
+            val basePlanId = offer.basePlanId
+            val pricingPhases = offer.pricingPhases.pricingPhaseList
+
+            val containsFreeTrial = pricingPhases.any { it.priceAmountMicros == 0L }
+            val recurringPhase = pricingPhases.lastOrNull()
+
+            if (basePlanId == BASE_PLAN_MONTHLY) {
+                if (containsFreeTrial || monthlyOfferToken == null) {
+                    monthlyOfferToken = offer.offerToken
+                    hasMonthlyTrial = containsFreeTrial
+                    recurringPhase?.let { monthlyFormattedPrice = it.formattedPrice }
+                }
+            } else if (basePlanId == BASE_PLAN_YEARLY) {
+                if (containsFreeTrial || yearlyOfferToken == null) {
+                    yearlyOfferToken = offer.offerToken
+                    hasYearlyTrial = containsFreeTrial
+                    recurringPhase?.let { yearlyFormattedPrice = it.formattedPrice }
+                }
+            }
+        }
+
+        scope.launch(Dispatchers.Main) {
+            listener?.onProductDetailsLoaded(
+                monthlyPrice = monthlyFormattedPrice,
+                yearlyPrice = yearlyFormattedPrice,
+                hasMonthlyTrial = hasMonthlyTrial,
+                hasYearlyTrial = hasYearlyTrial
+            )
+        }
+    }
+
+    fun launchPurchaseFlow(activity: Activity, isYearly: Boolean) {
+        val details = proProductDetails
+        val token = if (isYearly) yearlyOfferToken else monthlyOfferToken
+
+        if (details == null || token == null) {
+            Log.e(TAG, "Product details or offer token missing. Attempting reload.")
+            queryProductDetails()
+            listener?.onBillingError("Products loading. Please try again in a moment.")
+            return
+        }
+
         val productDetailsParamsList = listOf(
             BillingFlowParams.ProductDetailsParams.newBuilder()
-                .setProductDetails(productDetails)
-                .setOfferToken(offerToken)
+                .setProductDetails(details)
+                .setOfferToken(token)
                 .build()
         )
 
@@ -65,44 +177,97 @@ class BillingManager(
         billingClient.launchBillingFlow(activity, billingFlowParams)
     }
 
-    // Google Play Listener: Triggered when checkout transaction is completed or updated
     override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            for (purchase in purchases) {
-                scope.launch {
-                    handlePurchase(purchase)
+        when (billingResult.responseCode) {
+            BillingClient.BillingResponseCode.OK -> {
+                if (!purchases.isNullOrEmpty()) {
+                    for (purchase in purchases) {
+                        scope.launch {
+                            handlePurchase(purchase)
+                        }
+                    }
+                }
+            }
+            BillingClient.BillingResponseCode.USER_CANCELED -> {
+                Log.i(TAG, "User canceled billing flow.")
+            }
+            else -> {
+                Log.e(TAG, "Purchase failed: ${billingResult.debugMessage}")
+                scope.launch(Dispatchers.Main) {
+                    listener?.onBillingError("Purchase error: ${billingResult.debugMessage}")
                 }
             }
         }
     }
 
-    // Processes, Acknowledges, and Syncs Purchases to Cloud Firestore
     private suspend fun handlePurchase(purchase: Purchase) {
         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-            // Subscriptions must be acknowledged within 3 days or Google processes an automatic refund
             if (!purchase.isAcknowledged) {
                 val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
                     .setPurchaseToken(purchase.purchaseToken)
                     .build()
 
                 withContext(Dispatchers.IO) {
-                    billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
-                        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                            scope.launch {
-                                syncPurchaseToFirestore(uid, purchase)
-                            }
+                    billingClient.acknowledgePurchase(acknowledgePurchaseParams) { ackResult ->
+                        if (ackResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                            Log.d(TAG, "Purchase acknowledged successfully.")
+                            grantEntitlement(purchase)
+                        } else {
+                            Log.e(TAG, "Failed to acknowledge purchase: ${ackResult.debugMessage}")
                         }
                     }
                 }
             } else {
-                syncPurchaseToFirestore(uid, purchase)
+                grantEntitlement(purchase)
             }
         }
     }
 
-    // Direct Firestore update to register receipt
+    private fun grantEntitlement(purchase: Purchase) {
+        appSettings.setSubscriptionActive(true)
+
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) {
+            scope.launch {
+                syncPurchaseToFirestore(uid, purchase)
+            }
+        }
+
+        scope.launch(Dispatchers.Main) {
+            listener?.onPurchaseSuccess()
+        }
+    }
+
+    fun queryActivePurchases(onComplete: ((Boolean) -> Unit)? = null) {
+        val params = QueryPurchasesParams.newBuilder()
+            .setProductType(BillingClient.ProductType.SUBS)
+            .build()
+
+        billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
+            val hasActiveSubscription = (billingResult.responseCode == BillingClient.BillingResponseCode.OK) &&
+                    purchases.any { it.purchaseState == Purchase.PurchaseState.PURCHASED }
+
+            appSettings.setSubscriptionActive(hasActiveSubscription)
+
+            val uid = FirebaseAuth.getInstance().currentUser?.uid
+            scope.launch {
+                if (hasActiveSubscription) {
+                    for (purchase in purchases) {
+                        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                            handlePurchase(purchase)
+                        }
+                    }
+                } else if (uid != null) {
+                    markSubscriptionInactive(uid)
+                }
+
+                withContext(Dispatchers.Main) {
+                    onComplete?.invoke(hasActiveSubscription)
+                }
+            }
+        }
+    }
+
     private suspend fun syncPurchaseToFirestore(uid: String, purchase: Purchase) {
         val db = FirebaseFirestore.getInstance()
         val updateData = mapOf(
@@ -113,29 +278,10 @@ class BillingManager(
         try {
             db.collection("users").document(uid).update(updateData).await()
         } catch (e: Exception) {
-            // Document might not exist yet; fallback to set
-            db.collection("users").document(uid).set(updateData).await()
-        }
-    }
-
-    // Query active subscriptions from Play Store cache to ensure local state matches Console
-    fun queryActivePurchases() {
-        val params = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.SUBS)
-            .build()
-
-        billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@queryPurchasesAsync
-                scope.launch {
-                    if (purchases.isEmpty()) {
-                        markSubscriptionInactive(uid)
-                    } else {
-                        for (purchase in purchases) {
-                            handlePurchase(purchase)
-                        }
-                    }
-                }
+            try {
+                db.collection("users").document(uid).set(updateData).await()
+            } catch (err: Exception) {
+                Log.w(TAG, "Firestore sync skipped: ${err.message}")
             }
         }
     }
@@ -147,7 +293,7 @@ class BillingManager(
                 .update("subscription_active", false)
                 .await()
         } catch (e: Exception) {
-            // Ignore if profile doesn't exist
+            Log.w(TAG, "Firestore inactive update skipped: ${e.message}")
         }
     }
 }

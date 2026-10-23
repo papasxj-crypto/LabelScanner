@@ -439,6 +439,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             }
                         }
 
+                        val userSettings = AppSettings(requireContext())
                         val evalResult = LabelEvaluator.evaluateScanData(
                             evalJson,
                             ingredients,
@@ -486,7 +487,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 val tempYellowSuggestions = ArrayList<ProductAlternative>()
 
                                 for (targetTag in candidateCategories.take(2)) {
-                                    // Lock 1: Explicit US Domain, Country code, Language, and fields including countries_tags
                                     val searchUrlStr = "https://us.openfoodfacts.org/api/v2/search?categories_tags=$targetTag&countries_tags_en=united-states&cc=us&lc=en&sort_by=unique_scans_n&fields=code,product_name,brands,ingredients_text,nutriments,unique_scans_n,countries_tags&page_size=40"
                                     val searchConnection = URL(searchUrlStr).openConnection() as HttpURLConnection
                                     searchConnection.instanceFollowRedirects = true
@@ -510,7 +510,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                                 val scans = altProduct.optInt("unique_scans_n", 0)
                                                 if (brand.isBlank() || (scans < 5 && j < 25)) continue
 
-                                                // Lock 2: Client-side verification that product is sold in the US
                                                 val altCountries = altProduct.optJSONArray("countries_tags")
                                                 val isUsMarket = if (altCountries != null && altCountries.length() > 0) {
                                                     (0 until altCountries.length()).any { idx ->
@@ -519,7 +518,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                                     }
                                                 } else false
 
-                                                // Strictly skip any product not tagged as sold in the United States
                                                 if (!isUsMarket) continue
 
                                                 val altName = altProduct.optString("product_name", "").ifBlank {
@@ -935,6 +933,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
     }
 
+    // Comprehensive Non-Food & Inedible Reality Gate
     private fun runProduceAnalysis(imageBitmap: Bitmap) {
         isAnalyzing = true
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -952,25 +951,40 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
                 val json = JSONObject(rawResponse.replace("```json", "").replace("```", "").trim())
                 val name = json.optString("item_name", "Produce")
+                val nameLower = name.lowercase(Locale.ROOT)
 
                 val isNonFood = !json.optBoolean("is_food", true) ||
-                        name.contains("non-food", ignoreCase = true) ||
-                        name.startsWith("none", ignoreCase = true)
+                        !json.optBoolean("is_produce", true) ||
+                        nameLower.contains("non-food") ||
+                        nameLower.contains("not food") ||
+                        nameLower.contains("not produce") ||
+                        nameLower.contains("no produce") ||
+                        nameLower.contains("no raw produce") ||
+                        nameLower.contains("not edible") ||
+                        nameLower.contains("unable to identify") ||
+                        nameLower.contains("cannot identify") ||
+                        nameLower.startsWith("none")
 
                 if (isNonFood) {
                     withContext(Dispatchers.Main) {
                         isAnalyzing = false
+                        val cleanSubtitle = if (nameLower.contains("produce") || nameLower.startsWith("none")) {
+                            "Non-food item detected"
+                        } else {
+                            name
+                        }
+
                         val nonFoodResult = EvaluationResult(
                             gradeTitle = "Not Edible Produce",
-                            textColor = ContextCompat.getColor(ctx, R.color.textPrimary),
+                            textColor = ContextCompat.getColor(ctx, R.color.gradeAvoid),
                             subtextColor = ContextCompat.getColor(ctx, R.color.textSecondary),
                             bgColor = ContextCompat.getColor(ctx, R.color.cardSurface),
-                            redViolations = emptyList(),
+                            redViolations = listOf("No fresh produce identified. Please photograph edible raw fruits or vegetables."),
                             yellowViolations = emptyList()
                         )
                         displaySummaryCard(
                             evaluation = nonFoodResult,
-                            subtitle = name.replace(Regex("""(?i)^none\s*\(?"""), "").removeSuffix(")").trim().ifEmpty { "Non-food item" },
+                            subtitle = cleanSubtitle,
                             calories = 0,
                             protein = 0f,
                             sodium = 0,

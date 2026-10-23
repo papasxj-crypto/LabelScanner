@@ -12,7 +12,7 @@ android {
         applicationId = "com.filterpointsoftware.filterpoint"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
+        versionCode = 9
         versionName = "1.0.0-beta01"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -29,9 +29,19 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "keepRules/rules.keep"
+            )
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 
@@ -71,18 +81,11 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.activity:activity-ktx:1.8.2")
 
-    // Google ML Kit Patched Libraries for 16KB Compliance on SDK 34
+    // Google ML Kit Text Recognition (Used by OCR label scan)
     implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
-    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1")
 
     // Barcode Scanning - ZXing
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
-
-    // CameraX Stable Framework matching SDK 34 parameters
-    implementation("androidx.camera:camera-core:1.4.1")
-    implementation("androidx.camera:camera-camera2:1.4.1")
-    implementation("androidx.camera:camera-lifecycle:1.4.1")
-    implementation("androidx.camera:camera-view:1.4.1")
 
     // Navigation Components
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.7")

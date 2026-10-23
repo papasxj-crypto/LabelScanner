@@ -1,6 +1,7 @@
 package net.meinook.labelscanner
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
@@ -8,6 +9,7 @@ import android.text.TextWatcher
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.AdapterView
@@ -122,7 +124,12 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
+        // Door 3: Adjust Macros Paywall Gate
         btnEditActiveProfile.setOnClickListener {
+            if (!BillingManager.isProUser(requireContext())) {
+                startActivity(Intent(requireContext(), PaywallActivity::class.java))
+                return@setOnClickListener
+            }
             CustomProfileManager.showCreateCustomProfileDialog(requireContext(), appSettings) {
                 appSettings.setPendingSaveFlag(true)
                 refreshProfileData()
@@ -132,15 +139,20 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         btnResetCustomSliders.setOnClickListener {
             val activeName = appSettings.getActiveProfile()
             MaterialAlertDialogBuilder(requireContext(), R.style.Theme_LabelScanner)
-                .setTitle("Reset Macro Limits")
-                .setMessage("Reset all custom nutrient limits for '$activeName' back to official clinical guidelines?")
-                .setPositiveButton("Reset") { _, _ ->
+                .setTitle(getString(R.string.reset_macro_limits))
+                .setMessage(
+                    getString(
+                        R.string.reset_all_custom_nutrient_limits_for_back_to_official_clinical_guidelines,
+                        activeName
+                    ))
+                .setPositiveButton(getString(R.string.reset)) { _, _ ->
                     appSettings.resetCustomPlanForActiveMember()
                     appSettings.setPendingSaveFlag(true)
                     refreshProfileData()
-                    Toast.makeText(requireContext(), "Reset macro limits to clinical defaults for $activeName", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(),
+                        getString(R.string.reset_macro_limits_to_clinical_defaults_for, activeName), Toast.LENGTH_SHORT).show()
                 }
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton(getString(R.string.cancel), null)
                 .show()
         }
 
@@ -167,7 +179,8 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             appSettings.renameProfile(currentActive, newName)
             appSettings.setPendingSaveFlag(true)
             refreshProfileData()
-            Toast.makeText(requireContext(), "Profile renamed to '$newName'", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(),
+                getString(R.string.profile_renamed_to, newName), Toast.LENGTH_SHORT).show()
         } else if (newName.isEmpty()) {
             etProfileName.setText(currentActive)
         }
@@ -176,14 +189,13 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private fun refreshProfileData() {
         isRefreshingUi = true
 
-        val context = requireContext()
         val activeMember = appSettings.getActiveProfile()
 
         // 1. Populate Active Profile Name (unless currently typing in it)
         if (!etProfileName.hasFocus()) {
             etProfileName.setText(activeMember)
         }
-        txtClinicalTargetsHeader.text = "CLINICAL TARGETS ($activeMember)"
+        txtClinicalTargetsHeader.text = getString(R.string.clinical_targets, activeMember)
 
         // 2. Reload scoped biometrics for current active profile
         val savedWeight = appSettings.getUserWeight()
@@ -202,17 +214,17 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
         val savedGender = appSettings.getUserGender()
         val selectionIndex = when (savedGender) {
-            "MALE" -> 1
-            "FEMALE" -> 2
+            getString(R.string.male) -> 1
+            getString(R.string.female) -> 2
             else -> 0
         }
         spinnerGender.setSelection(selectionIndex)
 
         updateCalculatedWeights()
 
-        // 3. Inspect custom slider calibration state
+        // 3. Inspect custom slider calibration state (Clean button label without wrap)
         val hasCustomSliders = appSettings.hasCustomPlanForActiveMember()
-        btnEditActiveProfile.text = "Adjust Macros"
+        btnEditActiveProfile.text = getString(R.string.adjust_macros)
         btnResetCustomSliders.visibility = if (hasCustomSliders) View.VISIBLE else View.GONE
 
         // 4. Rebuild conditions & watchlists
@@ -224,10 +236,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
         isRefreshingUi = false
     }
-
-    // ========================================================================
-    // TABS & FORM CONFIGURATION
-    // ========================================================================
 
     private fun setupTabLayout() {
         tabLayoutHealth.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -251,6 +259,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         })
     }
 
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
     private fun setupTab1Profiles() {
         val context = requireContext()
 
@@ -258,18 +267,19 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             ContextCompat.getColor(context, R.color.inputSurface).toDrawable()
         )
 
+        // Custom Adapter ensuring white text on dark background in both view and dropdown popup
         val genderAdapter = object : ArrayAdapter<String>(
             context,
             android.R.layout.simple_spinner_item,
-            arrayOf("Unspecified", "Male", "Female")
+            arrayOf(getString(R.string.unspecified), getString(R.string.male), getString(R.string.female))
         ) {
-            override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val v = super.getView(position, convertView, parent) as TextView
                 v.setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
                 return v
             }
 
-            override fun getDropDownView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val v = super.getDropDownView(position, convertView, parent) as TextView
                 v.setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
                 v.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurface))
@@ -282,9 +292,9 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (isRefreshingUi) return
                 val genderStr = when (position) {
-                    1 -> "MALE"
-                    2 -> "FEMALE"
-                    else -> "UNSPECIFIED"
+                    1 -> getString(R.string.male)
+                    2 -> getString(R.string.female)
+                    else -> getString(R.string.unspecified)
                 }
                 if (appSettings.getUserGender() != genderStr) {
                     appSettings.setUserGender(genderStr)
@@ -333,12 +343,12 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         txtToggleWeight.setOnClickListener {
             if (isWeightRevealed) {
                 etActualWeight.transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
-                txtToggleWeight.text = "SHOW"
+                txtToggleWeight.text = getString(R.string.show)
                 txtToggleWeight.setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
                 isWeightRevealed = false
             } else {
                 etActualWeight.transformationMethod = android.text.method.HideReturnsTransformationMethod.getInstance()
-                txtToggleWeight.text = "HIDE"
+                txtToggleWeight.text = getString(R.string.hide)
                 txtToggleWeight.setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
                 isWeightRevealed = true
             }
@@ -411,8 +421,9 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
-        etHeightInches.setOnTouchListener { _, event ->
+        etHeightInches.setOnTouchListener { v, event ->
             if (event.action == MotionEvent.ACTION_UP) {
+                v.performClick()
                 etHeightFeet.requestFocus()
                 val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 imm?.showSoftInput(etHeightFeet, InputMethodManager.SHOW_IMPLICIT)
@@ -424,31 +435,44 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     }
 
     private fun setupTab2CustomWatchlist() {
+        // Door 4: Add to Red Watchlist Gate
         btnAddRed.setOnClickListener {
+            if (!BillingManager.isProUser(requireContext())) {
+                startActivity(Intent(requireContext(), PaywallActivity::class.java))
+                return@setOnClickListener
+            }
             val text = etCustomIngredient.text.toString().trim()
             if (text.isNotEmpty()) {
-                appSettings.addWatchlistIngredient(text, "RED")
+                appSettings.addWatchlistIngredient(text, getString(R.string.red_txt))
                 appSettings.setCompletedInitialSetup(true)
                 etCustomIngredient.text = null
                 setupCommonQuickAddChips()
                 populateActiveWatchlists()
-                Toast.makeText(context, "'$text' added to Avoid list", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context,
+                    getString(R.string.added_to_avoid_list, text), Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "Please enter an ingredient name.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context,
+                    getString(R.string.please_enter_an_ingredient_name), Toast.LENGTH_SHORT).show()
             }
         }
 
+        // Door 4: Add to Yellow Watchlist Gate
         btnAddYellow.setOnClickListener {
+            if (!BillingManager.isProUser(requireContext())) {
+                startActivity(Intent(requireContext(), PaywallActivity::class.java))
+                return@setOnClickListener
+            }
             val text = etCustomIngredient.text.toString().trim()
             if (text.isNotEmpty()) {
-                appSettings.addWatchlistIngredient(text, "YELLOW")
+                appSettings.addWatchlistIngredient(text, getString(R.string.yellow_txt))
                 appSettings.setCompletedInitialSetup(true)
                 etCustomIngredient.text = null
                 setupCommonQuickAddChips()
                 populateActiveWatchlists()
-                Toast.makeText(context, "'$text' added to Caution list", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context,
+                    getString(R.string.added_to_caution_list, text), Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "Please enter an ingredient name.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.please_enter_an_ingredient_name, Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -461,14 +485,15 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         val ajbw = appSettings.calculateAdjustedBodyWeightLbs()
 
         if (ibw != null && ibw > 0.0) {
-            txtIbwCalculated.text = String.format(Locale.US, "IBW: %.1f lbs", ibw)
+            txtIbwCalculated.text = String.format(Locale.US, getString(R.string.ibw_1f_lbs), ibw)
             txtIbwCalculated.visibility = View.VISIBLE
         } else {
             txtIbwCalculated.visibility = View.GONE
         }
 
         if (ajbw != null && ajbw > 0.0 && ajbw != appSettings.getUserWeight()) {
-            txtAjbwCalculated.text = String.format(Locale.US, "AjBW: %.1f lbs (Obese Adj.)", ajbw)
+            txtAjbwCalculated.text = String.format(Locale.US,
+                getString(R.string.ajbw_1f_lbs_obese_adj), ajbw)
             txtAjbwCalculated.visibility = View.VISIBLE
         } else {
             txtAjbwCalculated.visibility = View.GONE
@@ -481,8 +506,8 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         val commonIngredients = resources.getStringArray(R.array.common_watchlist_items)
         val density = resources.displayMetrics.density
 
-        val redCustom = appSettings.getCustomWatchlist("RED").map { it.uppercase().trim() }.toSet()
-        val yellowCustom = appSettings.getCustomWatchlist("YELLOW").map { it.uppercase().trim() }.toSet()
+        val redCustom = appSettings.getCustomWatchlist(getString(R.string.red_txt)).map { it.uppercase().trim() }.toSet()
+        val yellowCustom = appSettings.getCustomWatchlist(getString(R.string.yellow_txt)).map { it.uppercase().trim() }.toSet()
 
         val activeConditions = appSettings.getSelectedConditions()
         val activeTriggers = mutableSetOf<String>()
@@ -497,10 +522,13 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             val upper = ingredient.uppercase().trim()
             if (triggers.contains(upper)) return true
             return when (upper) {
-                "DAIRY" -> triggers.contains("MILK") || triggers.contains("BUTTER") || triggers.contains("CHEESE") || triggers.contains("LACTOSE")
-                "GLUTEN" -> triggers.contains("WHEAT") || triggers.contains("BARLEY") || triggers.contains("RYE") || triggers.contains("GLUTEN")
-                "PEANUTS" -> triggers.contains("PEANUT") || triggers.contains("PEANUTS")
-                "TREE NUTS" -> triggers.contains("ALMOND") || triggers.contains("CASHEW") || triggers.contains("CASHEWS") || triggers.contains("WALNUT")
+                getString(R.string.dairy) -> triggers.contains(getString(R.string.milk)) || triggers.contains(getString(R.string.butter)) ||
+                        triggers.contains(getString(R.string.cheese)) || triggers.contains(getString(R.string.lactose))
+                getString(R.string.gluten) -> triggers.contains(getString(R.string.wheat)) || triggers.contains(getString(R.string.barley)) ||
+                        triggers.contains(getString(R.string.rye)) || triggers.contains(getString(R.string.gluten))
+                getString(R.string.peanuts) -> triggers.contains(getString(R.string.peanut)) || triggers.contains(getString(R.string.peanuts))
+                getString(R.string.tree_nuts) -> triggers.contains(getString(R.string.almond)) || triggers.contains(getString(R.string.cashew)) ||
+                        triggers.contains(getString(R.string.cashews)) || triggers.contains(getString(R.string.walnut))
                 else -> false
             }
         }
@@ -537,30 +565,37 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
     }
 
+    // Door 4: Quick-Add Chip Selection Gate
     private fun showQuickAddSelectionDialog(chipView: View, ingredient: String) {
-        val context = requireContext()
+        if (!BillingManager.isProUser(requireContext())) {
+            startActivity(Intent(requireContext(), PaywallActivity::class.java))
+            return
+        }
 
+        val context = requireContext()
         val popup = PopupMenu(context, chipView).apply {
-            menu.add(0, 1, 0, "Add to Avoid (Red)")
-            menu.add(0, 2, 1, "Add to Caution (Yellow)")
+            menu.add(0, 1, 0, getString(R.string.add_to_avoid_red))
+            menu.add(0, 2, 1, getString(R.string.add_to_caution_yellow))
         }
 
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 1 -> {
-                    appSettings.addWatchlistIngredient(ingredient, "RED")
+                    appSettings.addWatchlistIngredient(ingredient, getString(R.string.red_txt))
                     appSettings.setCompletedInitialSetup(true)
                     setupCommonQuickAddChips()
                     populateActiveWatchlists()
-                    Toast.makeText(context, "'$ingredient' added to Avoid list", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context,
+                        getString(R.string.added_to_avoid_list, ingredient), Toast.LENGTH_SHORT).show()
                     true
                 }
                 2 -> {
-                    appSettings.addWatchlistIngredient(ingredient, "YELLOW")
+                    appSettings.addWatchlistIngredient(ingredient, getString(R.string.yellow_txt))
                     appSettings.setCompletedInitialSetup(true)
                     setupCommonQuickAddChips()
                     populateActiveWatchlists()
-                    Toast.makeText(context, "'$ingredient' added to Caution list", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context,
+                        getString(R.string.added_to_caution_list, ingredient), Toast.LENGTH_SHORT).show()
                     true
                 }
                 else -> false
@@ -575,11 +610,11 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         layoutActiveYellows.removeAllViews()
         val context = requireContext()
 
-        val redItems = appSettings.getCustomWatchlist("RED")
-        val yellowItems = appSettings.getCustomWatchlist("YELLOW")
+        val redItems = appSettings.getCustomWatchlist(getString(R.string.red_txt))
+        val yellowItems = appSettings.getCustomWatchlist(getString(R.string.yellow_txt))
         val density = resources.displayMetrics.density
 
-        fun createActiveItemView(item: String, tier: String): View {
+        fun createActiveItemView(item: String): View {
             val row = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -618,7 +653,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
         if (redItems.isEmpty()) {
             val emptyText = TextView(requireContext()).apply {
-                text = "No custom items to avoid."
+                text = context.getString(R.string.no_custom_items_to_avoid)
                 setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
                 textSize = 12f
                 setPadding(0, 0, 0, (12 * density).toInt())
@@ -626,13 +661,13 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             layoutActiveReds.addView(emptyText)
         } else {
             for (item in redItems) {
-                layoutActiveReds.addView(createActiveItemView(item, "RED"))
+                layoutActiveReds.addView(createActiveItemView(item))
             }
         }
 
         if (yellowItems.isEmpty()) {
             val emptyText = TextView(requireContext()).apply {
-                text = "No custom caution markers."
+                text = context.getString(R.string.no_custom_caution_markers)
                 setTextColor(ContextCompat.getColor(context, R.color.textSecondary))
                 textSize = 12f
                 setPadding(0, 0, 0, (12 * density).toInt())
@@ -640,7 +675,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             layoutActiveYellows.addView(emptyText)
         } else {
             for (item in yellowItems) {
-                layoutActiveYellows.addView(createActiveItemView(item, "YELLOW"))
+                layoutActiveYellows.addView(createActiveItemView(item))
             }
         }
     }
@@ -679,7 +714,10 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                     appSettings.setCompletedInitialSetup(true)
 
                     val currentSelected = appSettings.getSelectedConditions()
-                    if (profile.id == "healthy_baseline" || isChecked || currentSelected.contains("healthy_baseline")) {
+                    if (profile.id == context.getString(R.string.healthy_baseline) || isChecked || currentSelected.contains(
+                            context.getString(
+                                R.string.healthy_baseline
+                            ))) {
                         buildDynamicCheckBoxes()
                     }
                 }
@@ -690,7 +728,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 }
             }
 
-            if (profile.id.startsWith("allergen")) {
+            if (profile.id.startsWith(getString(R.string.allergen))) {
                 layoutAllergens.addView(checkBox)
             } else {
                 layoutConditions.addView(checkBox)
@@ -702,15 +740,15 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         val triggers = appSettings.getIngredientsFromAssetFile(profileId)
 
         val message = if (triggers.isNotEmpty()) {
-            "LabelScanner will flag these ingredients:\n\n• " + triggers.joinToString("\n• ")
+            getString(R.string.labelscanner_will_flag_these_ingredients) + triggers.joinToString("\n• ")
         } else {
-            "Evaluating based on clinical macro thresholds."
+            getString(R.string.evaluating_based_on_clinical_macro_thresholds)
         }
 
         MaterialAlertDialogBuilder(requireContext(), R.style.Theme_LabelScanner)
             .setTitle(title)
             .setMessage(message)
-            .setPositiveButton("OK", null)
+            .setPositiveButton(getString(R.string.ok), null)
             .show()
     }
 }

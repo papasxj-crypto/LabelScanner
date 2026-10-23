@@ -19,6 +19,7 @@
 
     <application
         tools:ignore="LockedOrientationActivity"
+        android:resizeableActivity="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"

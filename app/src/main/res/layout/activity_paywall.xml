@@ -13,45 +13,63 @@
         android:padding="24dp"
         android:gravity="center_horizontal">
 
-        <!-- App Header Lock Icon (Vivid Non-RYG Accent) -->
+        <!-- Top Navigation / Close Button -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/btnClose"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="start|center_vertical"
+                android:padding="4dp"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                app:tint="@color/textMuted"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Close Paywall" />
+        </FrameLayout>
+
+        <!-- App Header Lock Icon -->
         <ImageView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:layout_marginTop="32dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginTop="8dp"
             android:src="@android:drawable/ic_lock_lock"
             app:tint="@color/accentWarm"
             android:contentDescription="Premium Lock" />
 
-        <!-- Secret Tap Bypass Title -->
+        <!-- Paywall Title with Secret Tap -->
         <TextView
             android:id="@+id/txtPaywallTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="FILTERPOINT PREMIUM"
+            android:text="FILTERPOINT PRO"
             android:textColor="@color/textPrimary"
-            android:textSize="20sp"
+            android:textSize="22sp"
             android:textStyle="bold"
-            android:letterSpacing="0.1"
-            android:layout_marginTop="16dp" />
+            android:letterSpacing="0.08"
+            android:layout_marginTop="12dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Your Personal Health Shield"
+            android:text="Advanced AI Recipe Engine &amp; Clinical Controls"
             android:textColor="@color/textMuted"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:layout_marginTop="4dp"
-            android:layout_marginBottom="32dp" />
+            android:layout_marginBottom="20dp" />
 
-        <!-- Benefits Card (Warm Charcoal Surface) -->
+        <!-- Benefits Card -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardBackgroundColor="@color/cardSurface"
-            app:cardCornerRadius="16dp"
+            app:cardCornerRadius="14dp"
             app:strokeWidth="1dp"
             app:strokeColor="@color/surfaceStroke"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="20dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -62,60 +80,174 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="✓ Unlocked CKD, Diabetes &amp; Custom Profiles"
+                    android:text="✓ AI Recipe Adjuster &amp; Cook Mode"
                     android:textColor="@color/textPrimary"
                     android:textSize="14sp"
-                    android:layout_marginBottom="12dp" />
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="✓ Active Ingredient Substitution Solver"
+                    android:text="✓ Custom Target Macro Sliders"
                     android:textColor="@color/textPrimary"
                     android:textSize="14sp"
-                    android:layout_marginBottom="12dp" />
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="✓ Parallel USDA Prefetching &amp; O(1) Scanning"
+                    android:text="✓ Infinite Custom Watchlists"
                     android:textColor="@color/textPrimary"
                     android:textSize="14sp"
-                    android:layout_marginBottom="12dp" />
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="✓ Infinite Custom Watchlist Capacity"
+                    android:text="✓ Active Clinical Substitution Solver"
                     android:textColor="@color/textPrimary"
-                    android:textSize="14sp" />
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Price Badge -->
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Plan 1: Yearly (Default & Best Value) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPlanYearly"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="$4.99 / month"
-            android:textColor="@color/textPrimary"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            app:cardBackgroundColor="@color/cardSurface"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="2dp"
+            app:strokeColor="@color/accentWarm"
+            android:layout_marginBottom="12dp"
+            android:clickable="true"
+            android:focusable="true">
 
-        <TextView
-            android:layout_width="wrap_content"
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="14dp">
+
+                <RadioButton
+                    android:id="@+id/radioYearly"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:clickable="false"
+                    android:checked="true" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toEndOf="@id/radioYearly"
+                    android:layout_centerVertical="true"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Annual Plan (Save 33%)"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/txtYearlyPrice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="$39.99 / year ($3.33/mo)"
+                        android:textColor="@color/textMuted"
+                        android:textSize="13sp"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:text="7 DAYS FREE"
+                    android:textColor="@color/accentWarm"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Plan 2: Monthly -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardPlanMonthly"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Cancel anytime. Secure checkout via Google Play."
-            android:textColor="@color/textMuted"
-            android:textSize="11sp"
-            android:layout_marginBottom="24dp" />
+            app:cardBackgroundColor="@color/cardSurface"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/surfaceStroke"
+            android:layout_marginBottom="20dp"
+            android:clickable="true"
+            android:focusable="true">
 
-        <!-- Checkout Primary Button -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="14dp">
+
+                <RadioButton
+                    android:id="@+id/radioMonthly"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:clickable="false"
+                    android:checked="false" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toEndOf="@id/radioMonthly"
+                    android:layout_centerVertical="true"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Monthly Plan"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/txtMonthlyPrice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="$4.99 / month"
+                        android:textColor="@color/textMuted"
+                        android:textSize="13sp"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:text="7 DAYS FREE"
+                    android:textColor="@color/accentWarm"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </RelativeLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Primary CTA Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSubscribe"
             android:layout_width="match_parent"
             android:layout_height="54dp"
-            android:text="Subscribe Now"
+            android:text="Start 7-Day Free Trial"
             android:textColor="@color/buttonPrimaryText"
             android:textSize="15sp"
             android:textStyle="bold"
@@ -123,7 +255,18 @@
             app:cornerRadius="8dp"
             android:layout_marginBottom="12dp" />
 
-        <!-- Restore Purchases Action -->
+        <!-- Mandatory Google Play Disclosure -->
+        <TextView
+            android:id="@+id/txtTrialDisclosure"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="7 days free, then $39.99/year. Cancel anytime in Google Play Subscriptions before trial ends to avoid charges."
+            android:textColor="@color/textMuted"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Restore Purchases -->
         <TextView
             android:id="@+id/txtRestorePurchase"
             android:layout_width="wrap_content"
@@ -134,7 +277,47 @@
             android:textStyle="bold"
             android:padding="8dp"
             android:clickable="true"
-            android:focusable="true" />
+            android:focusable="true"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Legal Footer -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/txtPrivacyPolicy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Privacy Policy"
+                android:textColor="@color/textMuted"
+                android:textSize="11sp"
+                android:padding="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="•"
+                android:textColor="@color/textMuted"
+                android:textSize="11sp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp" />
+
+            <TextView
+                android:id="@+id/txtTermsOfService"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Terms of Service"
+                android:textColor="@color/textMuted"
+                android:textSize="11sp"
+                android:padding="6dp"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

@@ -1,6 +1,7 @@
 package net.meinook.labelscanner
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
 import android.widget.ImageView
@@ -19,6 +20,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var cbLeftHanded: MaterialCheckBox
     private lateinit var btnAddNewProfile: MaterialButton
     private lateinit var btnDeleteProfile: MaterialButton
+    private lateinit var btnOpenManual: MaterialButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,6 +32,7 @@ class SettingsActivity : AppCompatActivity() {
         cbLeftHanded = findViewById(R.id.cb_left_handed)
         btnAddNewProfile = findViewById(R.id.btnAddNewProfile)
         btnDeleteProfile = findViewById(R.id.btnDeleteProfile)
+        btnOpenManual = findViewById(R.id.btnOpenManual)
         val txtAppVersion = findViewById<TextView>(R.id.txtAppVersion)
 
         btnBackTop.setOnClickListener {
@@ -56,6 +59,17 @@ class SettingsActivity : AppCompatActivity() {
         // Single Point: Delete Profile
         btnDeleteProfile.setOnClickListener {
             showDeleteProfileDialog()
+        }
+
+        // Launch Hosted Web User Manual
+        btnOpenManual.setOnClickListener {
+            val manualUri = Uri.parse(getString(R.string.manual_link))
+            val browserIntent = Intent(Intent.ACTION_VIEW, manualUri)
+            try {
+                startActivity(browserIntent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Unable to open web browser: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
@@ -30,10 +31,14 @@ class MainActivity : AppCompatActivity() {
     private var isCheckingSubscription = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // 1. Initialize the Google Jetpack Splash Screen before onCreate
+        // 1. Initialize the Google Jetpack Splash Screen FIRST before super.onCreate
         val splashScreen = installSplashScreen()
 
         super.onCreate(savedInstanceState)
+
+        // 2. Enable modern Edge-to-Edge and explicitly suppress any default ActionBar
+        enableEdgeToEdge()
+        supportActionBar?.hide()
 
         appSettings = AppSettings(this)
 
@@ -98,8 +103,15 @@ class MainActivity : AppCompatActivity() {
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
 
-        // 1. Global Tab Navigation: Always land on the Root screen of each tab
+        // 1. Global Tab Navigation with Pro Gates for Recipe (Door 1) and Saved (Door 2)
         bottomNav.setOnItemSelectedListener { item ->
+            if (item.itemId == R.id.recipeFragment || item.itemId == R.id.navigation_history) {
+                if (!BillingManager.isProUser(this)) {
+                    startActivity(Intent(this, PaywallActivity::class.java))
+                    return@setOnItemSelectedListener false
+                }
+            }
+
             val navOptions = NavOptions.Builder()
                 .setLaunchSingleTop(true)
                 .setRestoreState(false)
@@ -231,6 +243,12 @@ class MainActivity : AppCompatActivity() {
 
             intent.removeExtra(Intent.EXTRA_TEXT)
             intent.action = null
+
+            // Gate incoming shared recipes from web browsers
+            if (!BillingManager.isProUser(this)) {
+                startActivity(Intent(this, PaywallActivity::class.java))
+                return
+            }
 
             if (!url.isNullOrEmpty()) {
                 val bundle = Bundle().apply {

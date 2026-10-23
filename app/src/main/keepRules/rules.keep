@@ -1,12 +1,50 @@
-# Add project specific R8 rules here.
-# AGP will combine all keep rule files in src/main/keepRules to pass to R8
-#
-# For more details, see
-#   https://d.android.com/r/tools/r8/keep-rules
+# ===================================================================================
+# FILTERPOINT R8 / PROGUARD OPTIMIZATION & KEEP RULES
+# ===================================================================================
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# 1. Keep Kotlin & Java Reflection Attributes
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,SourceFile,LineNumberTable
+
+# 2. Keep Domain Data Classes & Bundle-Serialized Objects
+-keep class net.meinook.labelscanner.EvaluationResult { *; }
+-keep class net.meinook.labelscanner.ProductAlternative { *; }
+-keep class net.meinook.labelscanner.SavedItem { *; }
+-keep class net.meinook.labelscanner.DietProfile { *; }
+-keep class net.meinook.labelscanner.ProteinRules { *; }
+-keep class net.meinook.labelscanner.NutrientRule { *; }
+
+# Preserve all Serializable classes and their serialization methods
+-keepnames class * implements java.io.Serializable
+-keepclassmembers class * implements java.io.Serializable {
+    static final long serialVersionUID;
+    private static final java.io.ObjectStreamField[] serialPersistentFields;
+    !static !transient <fields>;
+    !private <fields>;
+    !private <methods>;
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+    java.lang.Object writeReplace();
+    java.lang.Object readResolve();
+}
+
+# 3. Custom Views Inflated via XML
+-keep class net.meinook.labelscanner.ClinicalGaugeBar {
+    public <init>(android.content.Context);
+    public <init>(android.content.Context, android.util.AttributeSet);
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+    *;
+}
+
+# 4. Barcode Scanning - ZXing
+-keep class com.journeyapps.barcodescanner.** { *; }
+-keep class com.google.zxing.** { *; }
+-dontwarn com.google.zxing.**
+
+# 5. Network & HTTP - OkHttp
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn javax.annotation.**
+
+# 6. Firebase & Google Play Services (Suppress harmless build warnings)
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**

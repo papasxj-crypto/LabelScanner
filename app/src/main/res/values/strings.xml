@@ -12,22 +12,17 @@
         <item>General Low Sodium</item>
     </string-array>
 
-    <string name="camera_msg_1">Opening camera…</string>
-    <string name="analyzing_label_msg">Analyzing label…</string>
-
     <string name="error_loading_msg">Error loading captured image.</string>
     <string name="selected_target_message">Selected Target: %1$s</string>
 
     <string name="error_processing_label_msg">Error processing label metrics.</string>
 
-    <string name="opening_camera">Opening camera…</string>
     <string name="error_loading_image">Error loading captured image.</string>
     <string name="error_processing_file">Error processing storage file.</string>
     <string name="camera_cancelled">Camera scan canceled or failed.</string>
     <string name="storage_error_message">Storage Error: %1$s</string>
     <string name="metrics_error_message">Error processing label metrics.</string>
 
-    <string name="analyzing_label">Analyzing label…</string>
     <string name="selected_target_label">Selected Target: %1$s</string>
     <string name="no_conditions_active">No profile restrictions active. Ready to scan.</string>
     <string name="active_profile_tracking">Active Profile Filter: %1$s\nStrictest Sodium Ceiling: %2$dmg\nReady to scan.</string>
@@ -143,6 +138,51 @@
     <string name="allergen_watchlist_txt">Allergen Watchlist</string>
     <string name="long_press_for_details_txt">Long press for details</string>
     <string name="zero_txt">0</string>
+    <string name="manual_link">https://filterpoint.app/manual</string>
+    <string name="clinical_targets">CLINICAL TARGETS (%1$s)</string>
+    <string name="adjust_macros">Adjust Macros</string>
+    <string name="show">SHOW</string>
+    <string name="hide">HIDE</string>
+    <string name="no_custom_items_to_avoid">No custom items to avoid.</string>
+    <string name="no_custom_caution_markers">No custom caution markers.</string>
+    <string name="allergen">allergen</string>
+    <string name="healthy_baseline">healthy_baseline</string>
+    <string name="labelscanner_will_flag_these_ingredients">"LabelScanner will flag these ingredients:\n\n• "</string>
+    <string name="evaluating_based_on_clinical_macro_thresholds">Evaluating based on clinical macro thresholds.</string>
+    <string name="ok">OK</string>
+    <string name="red1">RED</string>
+    <string name="please_enter_an_ingredient_name">Please enter an ingredient name.</string>
+    <string name="added_to_avoid_list">\'%1$s\' added to Avoid list</string>
+    <string name="added_to_caution_list">\'%1$s\' added to Caution list</string>
+    <string name="male">MALE</string>
+    <string name="female">FEMALE</string>
+    <string name="profile_renamed_to">Profile renamed to \'%1$s\'</string>
+    <string name="cancel">Cancel</string>
+    <string name="reset_macro_limits_to_clinical_defaults_for">Reset macro limits to clinical defaults for %1$s</string>
+    <string name="reset">Reset</string>
+    <string name="reset_macro_limits">Reset Macro Limits</string>
+    <string name="reset_all_custom_nutrient_limits_for_back_to_official_clinical_guidelines">Reset all custom nutrient limits for \'%1$s\' back to official clinical guidelines?</string>
+    <string name="unspecified">Unspecified</string>
+    <string name="ibw_1f_lbs">IBW: %.1f lbs</string>
+    <string name="ajbw_1f_lbs_obese_adj">AjBW: %.1f lbs (Obese Adj.)</string>
+    <string name="add_to_avoid_red">Add to Avoid (Red)</string>
+    <string name="add_to_caution_yellow">Add to Caution (Yellow)</string>
+    <string name="dairy">DAIRY</string>
+    <string name="gluten">GLUTEN</string>
+    <string name="peanuts">PEANUTS</string>
+    <string name="tree_nuts">TREE NUTS</string>
+    <string name="milk">MILK</string>
+    <string name="butter">BUTTER</string>
+    <string name="cheese">CHEESE</string>
+    <string name="lactose">LACTOSE</string>
+    <string name="wheat">WHEAT</string>
+    <string name="barley">BARLEY</string>
+    <string name="rye">RYE</string>
+    <string name="peanut">PEANUT</string>
+    <string name="almond">ALMOND</string>
+    <string name="cashew">CASHEW</string>
+    <string name="cashews">CASHEWS</string>
+    <string name="walnut">WALNUT</string>
 
     <!-- Common Quick Add Watchlist Items [1] -->
     <string-array name="common_watchlist_items">
