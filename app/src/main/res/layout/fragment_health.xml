@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     android:background="@drawable/bg_vintage_parchment"
     android:orientation="vertical"
     android:padding="16dp">
@@ -146,14 +147,28 @@
                                 android:orientation="vertical"
                                 android:layout_marginEnd="6dp">
 
-                                <TextView
+                                <LinearLayout
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Actual Weight (lbs)"
-                                    android:textColor="@color/textSecondary"
-                                    android:textSize="11sp"
-                                    android:textStyle="bold"
-                                    android:layout_marginBottom="4dp" />
+                                    android:orientation="horizontal"
+                                    android:layout_marginBottom="4dp">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Actual Weight (lbs)"
+                                        android:textColor="@color/textSecondary"
+                                        android:textSize="11sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text=" (Private)"
+                                        android:textColor="@color/textHint"
+                                        android:textSize="9sp"
+                                        android:textStyle="italic" />
+                                </LinearLayout>
 
                                 <LinearLayout
                                     android:layout_width="match_parent"
@@ -174,7 +189,7 @@
                                         android:selectAllOnFocus="true"
                                         android:paddingStart="10dp"
                                         android:paddingEnd="4dp"
-                                        android:maxLength="5"
+                                        android:maxLength="4"
                                         android:hint="0"
                                         android:textColorHint="@color/textHint"
                                         android:textSize="14sp" />

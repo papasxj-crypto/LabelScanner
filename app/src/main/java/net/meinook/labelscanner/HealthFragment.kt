@@ -307,6 +307,9 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
+        // GUARD: Limit weight input to 4 digits (max 9999)
+        etActualWeight.filters = arrayOf(android.text.InputFilter.LengthFilter(4))
+
         etActualWeight.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -325,6 +328,18 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 etActualWeight.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurfaceHighlight))
             } else {
                 etActualWeight.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurface))
+
+                val weight = etActualWeight.text.toString().toDoubleOrNull() ?: 0.0
+                if (weight > 1000.0) {
+                    Toast.makeText(context, "Weight cannot exceed 1,000 lbs. Reset to 0.", Toast.LENGTH_SHORT).show()
+                    isRefreshingUi = true
+                    etActualWeight.setText("")
+                    isRefreshingUi = false
+                    appSettings.setUserWeight(0.0)
+                    appSettings.setPendingSaveFlag(true)
+                    appSettings.setCompletedInitialSetup(true)
+                    updateCalculatedWeights()
+                }
             }
         }
 
@@ -355,6 +370,10 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             etActualWeight.setSelection(etActualWeight.text?.length ?: 0)
         }
 
+        // GUARD: Height filters (Feet max 1 digit (0-9), Inches max 2 digits (0-99))
+        etHeightFeet.filters = arrayOf(android.text.InputFilter.LengthFilter(1))
+        etHeightInches.filters = arrayOf(android.text.InputFilter.LengthFilter(2))
+
         etHeightFeet.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -375,8 +394,22 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
                 if (isRefreshingUi) return
-                val feet = etHeightFeet.text.toString().toDoubleOrNull() ?: 0.0
-                val inches = s.toString().toDoubleOrNull() ?: 0.0
+                var feet = etHeightFeet.text.toString().toIntOrNull() ?: 0
+                var inches = s.toString().toIntOrNull() ?: 0
+
+                // GUARD: Automatically roll over excessive inches into feet (e.g. 45" -> 3' 9")
+                if (inches >= 12) {
+                    val rolloverFeet = inches / 12
+                    val remainderInches = inches % 12
+                    feet += rolloverFeet
+                    inches = remainderInches
+
+                    isRefreshingUi = true
+                    etHeightFeet.setText(feet.coerceAtMost(8).toString())
+                    etHeightInches.setText(inches.toString())
+                    isRefreshingUi = false
+                }
+
                 val totalInches = (feet * 12.0) + inches
                 appSettings.setUserHeightInches(totalInches)
                 appSettings.setPendingSaveFlag(true)
@@ -385,13 +418,29 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         })
 
-        etHeightFeet.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
-                etHeightFeet.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurfaceHighlight))
-            } else {
-                etHeightFeet.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurface))
+        // GUARD: Validate total height on focus loss (Max 8 feet = 96 inches)
+        val heightFocusListener = View.OnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val feet = etHeightFeet.text.toString().toIntOrNull() ?: 0
+                val inches = etHeightInches.text.toString().toIntOrNull() ?: 0
+                val totalInches = (feet * 12) + inches
+
+                if (totalInches > 96) {
+                    Toast.makeText(context, "Height cannot exceed 8 feet. Reset to 5' 8\".", Toast.LENGTH_SHORT).show()
+                    isRefreshingUi = true
+                    etHeightFeet.setText("5")
+                    etHeightInches.setText("8")
+                    isRefreshingUi = false
+                    appSettings.setUserHeightInches(68.0)
+                    appSettings.setPendingSaveFlag(true)
+                    appSettings.setCompletedInitialSetup(true)
+                    updateCalculatedWeights()
+                }
             }
         }
+
+        etHeightFeet.setOnFocusChangeListener(heightFocusListener)
+        etHeightInches.setOnFocusChangeListener(heightFocusListener)
 
         etHeightFeet.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_NEXT) {
@@ -399,14 +448,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
                 true
             } else {
                 false
-            }
-        }
-
-        etHeightInches.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
-                etHeightInches.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurfaceHighlight))
-            } else {
-                etHeightInches.setBackgroundColor(ContextCompat.getColor(context, R.color.inputSurface))
             }
         }
 

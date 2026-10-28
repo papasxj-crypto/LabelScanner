@@ -20,6 +20,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
@@ -262,23 +263,6 @@ class RecipeFragment : Fragment() {
                 txtOriginalInputCollapsed.visibility = View.GONE
                 txtToggleOriginalInput.text = "▶ View Original Ingredients"
             }
-        }
-
-        fun deduplicateText(raw: String): String {
-            val trimmed = raw.trim()
-            val len = trimmed.length
-            if (len < 16) return raw
-            if (len % 2 == 0 && trimmed.substring(0, len / 2).trim() == trimmed.substring(len / 2).trim()) {
-                return trimmed.substring(0, len / 2).trim()
-            }
-            val lines = trimmed.lines().filter { it.isNotBlank() }
-            if (lines.size >= 2 && lines.size % 2 == 0) {
-                val half = lines.size / 2
-                if (lines.subList(0, half) == lines.subList(half, lines.size)) {
-                    return lines.subList(0, half).joinToString("\n")
-                }
-            }
-            return raw
         }
 
         var isSelfFormatting = false
@@ -743,12 +727,15 @@ class RecipeFragment : Fragment() {
     private fun handleActionSubmit() {
         val rawText = edtRecipeInput.text?.toString()?.trim() ?: ""
         if (rawText.isNotBlank()) {
+            edtRecipeInput.error = null
             if (rawText.startsWith("http://", ignoreCase = true) || rawText.startsWith("https://", ignoreCase = true)) {
                 scrapeWebpageContents(rawText)
             } else {
                 analyzeRecipeAndAdjust(rawText)
             }
         } else {
+            edtRecipeInput.error = "Please enter ingredients or paste a link first."
+            edtRecipeInput.requestFocus()
             Toast.makeText(context, "Please enter recipe ingredients or paste a link.", Toast.LENGTH_SHORT).show()
         }
     }
@@ -1336,7 +1323,23 @@ class RecipeFragment : Fragment() {
         cardClinicalGauge.visibility = View.GONE
         layoutPostAnalysisActions.visibility = View.GONE
         progressAnalysisIndicator.visibility = View.VISIBLE
-        txtAdjustedOutput.text = "Profiling ingredients and generating clinical adjustments..."
+
+        // S-02: Staged Progress Ticker
+        val analysisJob = lifecycleScope.launch(Dispatchers.Main) {
+            val stages = listOf(
+                "Parsing recipe ingredients and quantities...",
+                "Querying clinical nutrition database...",
+                "Evaluating against active health profile...",
+                "Generating clinical substitutions...",
+                "Finalizing telemetry gauges..."
+            )
+            for ((index, stage) in stages.withIndex()) {
+                txtAdjustedOutput.text = stage
+                if (index < stages.size - 1) {
+                    kotlinx.coroutines.delay(2500L)
+                }
+            }
+        }
 
         btnRetrieveSteps.isEnabled = true
         btnRetrieveSteps.text = "Get Steps"
@@ -1345,6 +1348,9 @@ class RecipeFragment : Fragment() {
 
         lifecycleScope.launch {
             val responseString = fetchRecipeNutritionFromBackend(rawText, activeProfiles, activeServings)
+
+            // Cancel ticker and hide progress indicator when backend responds
+            analysisJob.cancel()
             progressAnalysisIndicator.visibility = View.GONE
 
             if (responseString != null) {
@@ -1352,7 +1358,26 @@ class RecipeFragment : Fragment() {
                     val parsedResult = JSONObject(responseString)
 
                     val servings = activeServings
-                    val adjustedIngredients = parsedResult.optString("adjusted_ingredients", "")
+                    val adjustedIngredients = parsedResult.optString("adjusted_ingredients", "").trim()
+
+                    val originalJson = parsedResult.optJSONObject("original_nutrition")
+                    val origCal = originalJson?.optDouble("calories", 0.0)?.div(servings) ?: 0.0
+                    val origSod = (originalJson?.optDouble("sodium_mg", 0.0) ?: 0.0) / servings
+                    val origPot = (originalJson?.optDouble("potassium_mg", 0.0) ?: 0.0) / servings
+                    val origCarb = ((originalJson?.optDouble("total_carbohydrates_g", 0.0) ?: 0.0) - (originalJson?.optDouble("fiber_g", 0.0) ?: 0.0)).coerceAtLeast(0.0) / servings
+                    val origProt = (originalJson?.optDouble("protein_g", 0.0) ?: 0.0) / servings
+
+                    val hasValidMacroData = (origCal > 10.0 || origProt > 1.0 || origSod > 10.0 || origPot > 10.0 || origCarb > 1.0)
+                    val hasValidIngredients = adjustedIngredients.isNotBlank()
+
+                    // GUARD: Reject random gibberish or non-recipe text
+                    if (!hasValidMacroData || !hasValidIngredients) {
+                        withContext(Dispatchers.Main) {
+                            showInputState()
+                            Toast.makeText(context, "Could not identify valid ingredients or recipe data. Please enter a valid recipe.", Toast.LENGTH_LONG).show()
+                        }
+                        return@launch
+                    }
 
                     lastOriginalIngredients = rawText
                     lastAdjustedIngredients = adjustedIngredients
@@ -1378,7 +1403,6 @@ class RecipeFragment : Fragment() {
                         line.replace(Regex("\\(.*?\\)"), "").trim()
                     }.filter { it.isNotEmpty() }
 
-                    val originalJson = parsedResult.optJSONObject("original_nutrition")
                     val originalEvalResult = if (originalJson != null) {
                         val originalPerServing = JSONObject().apply {
                             put("calories", originalJson.optDouble("calories", 0.0) / servings)
@@ -1429,14 +1453,6 @@ class RecipeFragment : Fragment() {
                             isRecipe = true
                         )
                     } else null
-
-                    val origCal = originalJson?.optDouble("calories", 0.0)?.div(servings) ?: 0.0
-                    val origSod = (originalJson?.optDouble("sodium_mg", 0.0) ?: 0.0) / servings
-                    val origPot = (originalJson?.optDouble("potassium_mg", 0.0) ?: 0.0) / servings
-                    val origCarb = ((originalJson?.optDouble("total_carbohydrates_g", 0.0) ?: 0.0) - (originalJson?.optDouble("fiber_g", 0.0) ?: 0.0)).coerceAtLeast(0.0) / servings
-                    val origProt = (originalJson?.optDouble("protein_g", 0.0) ?: 0.0) / servings
-
-                    val hasValidMacroData = (origCal > 10.0 || origProt > 1.0 || origSod > 10.0 || origPot > 10.0 || origCarb > 1.0)
 
                     val isOriginalAlreadySafe = hasValidMacroData &&
                             originalEvalResult?.gradeTitle?.startsWith("Green", ignoreCase = true) == true &&
@@ -1519,30 +1535,17 @@ class RecipeFragment : Fragment() {
                     btnCopyAdjusted.text = "Save"
                     btnCopyAdjusted.isEnabled = true
                     btnCopyAdjusted.setOnClickListener {
-                        val baseProfileId = activeProfiles.map { pid ->
-                            val bId = userSettings.getBaseProfileIdForProfile(pid)
-                            if (bId.isNotEmpty()) bId else pid
-                        }.firstOrNull() ?: "healthy_baseline"
-
-                        val savedItem = SavedItem(
-                            id = saverId,
-                            timestamp = System.currentTimeMillis(),
-                            title = dynamicTitle,
-                            baseProfileId = baseProfileId,
-                            adjustedGrade = if (isOriginalAlreadySafe) "Green - Safe" else (adjustedEvalResult?.gradeTitle ?: "Unknown"),
-                            sourceUrl = scrapedRecipeUrl ?: "",
-                            originalInput = rawText,
-                            adjustedOutput = finalAdjustedText,
-                            instructions = "",
-                            originalNutrition = originalJson?.toString() ?: "",
-                            adjustedNutrition = if (isOriginalAlreadySafe) (originalJson?.toString() ?: "") else (adjustedJson?.toString() ?: ""),
+                        showSaveRecipeDialog(
+                            defaultTitle = dynamicTitle,
+                            rawText = rawText,
+                            finalAdjustedText = finalAdjustedText,
+                            originalJson = originalJson,
+                            adjustedJson = adjustedJson,
                             servings = servings,
-                            itemType = "RECIPE"
+                            activeProfiles = activeProfiles,
+                            adjustedEvalResult = adjustedEvalResult,
+                            isOriginalAlreadySafe = isOriginalAlreadySafe
                         )
-                        SavedPersistenceManager.saveItem(requireContext(), savedItem)
-                        btnCopyAdjusted.text = "Saved in Cookbook"
-                        btnCopyAdjusted.isEnabled = false
-                        Toast.makeText(requireContext(), "Recipe saved to your Clinical Cookbook!", Toast.LENGTH_SHORT).show()
                     }
 
                 } catch (e: Exception) {
@@ -1557,6 +1560,68 @@ class RecipeFragment : Fragment() {
             btnAdjustRecipe.isEnabled = true
             btnAdjustRecipe.text = "Profile & Adjust"
         }
+    }
+
+    private fun showSaveRecipeDialog(
+        defaultTitle: String,
+        rawText: String,
+        finalAdjustedText: String,
+        originalJson: JSONObject?,
+        adjustedJson: JSONObject?,
+        servings: Int,
+        activeProfiles: Set<String>,
+        adjustedEvalResult: EvaluationResult?,
+        isOriginalAlreadySafe: Boolean
+    ) {
+        val context = requireContext()
+        val userSettings = AppSettings(context)
+        val input = EditText(context).apply {
+            setText(defaultTitle)
+            setSelection(text.length)
+            setPadding(48, 32, 48, 32)
+            textSize = 16f
+            setTextColor(ContextCompat.getColor(context, R.color.textPrimary))
+            setHintTextColor(ContextCompat.getColor(context, R.color.textHint))
+        }
+
+        MaterialAlertDialogBuilder(context, R.style.Theme_LabelScanner)
+            .setTitle("Save to Clinical Cookbook")
+            .setMessage("Name your recipe:")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val finalTitle = input.text.toString().trim().ifEmpty { defaultTitle }
+                txtTopRecipeTitle.text = finalTitle
+
+                val baseProfileId = activeProfiles.map { pid ->
+                    val bId = userSettings.getBaseProfileIdForProfile(pid)
+                    if (bId.isNotEmpty()) bId else pid
+                }.firstOrNull() ?: "healthy_baseline"
+
+                val saverId = activeHistoryId ?: System.currentTimeMillis().toString()
+                activeHistoryId = saverId
+
+                val savedItem = SavedItem(
+                    id = saverId,
+                    timestamp = System.currentTimeMillis(),
+                    title = finalTitle,
+                    baseProfileId = baseProfileId,
+                    adjustedGrade = if (isOriginalAlreadySafe) "Green - Safe" else (adjustedEvalResult?.gradeTitle ?: "Unknown"),
+                    sourceUrl = scrapedRecipeUrl ?: "",
+                    originalInput = rawText,
+                    adjustedOutput = finalAdjustedText,
+                    instructions = "",
+                    originalNutrition = originalJson?.toString() ?: "",
+                    adjustedNutrition = if (isOriginalAlreadySafe) (originalJson?.toString() ?: "") else (adjustedJson?.toString() ?: ""),
+                    servings = servings,
+                    itemType = "RECIPE"
+                )
+                SavedPersistenceManager.saveItem(context, savedItem)
+                btnCopyAdjusted.text = "Saved in Cookbook"
+                btnCopyAdjusted.isEnabled = false
+                Toast.makeText(context, "Recipe saved to your Clinical Cookbook!", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun displayCachedRecipeResult(

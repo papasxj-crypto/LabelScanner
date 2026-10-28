@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -46,6 +49,7 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -295,6 +299,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             ThumbMenuButton(
                 icon = produceIcon,
                 containerColor = unifiedButtonColor,
+                label = "Produce",
                 xOffset = if (isRightHanded) (-10).dp else 10.dp,
                 yOffset = (-190).dp,
                 onClick = onProduceClick
@@ -303,6 +308,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             ThumbMenuButton(
                 icon = barcodeIcon,
                 containerColor = unifiedButtonColor,
+                label = "Barcode",
                 xOffset = if (isRightHanded) (-80).dp else 80.dp,
                 yOffset = (-65).dp,
                 onClick = onBarcodeClick
@@ -311,6 +317,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             ThumbMenuButton(
                 icon = cameraIcon,
                 containerColor = unifiedButtonColor,
+                label = "Food Label",
                 xOffset = if (isRightHanded) (-130).dp else 130.dp,
                 yOffset = 60.dp,
                 onClick = onLabelClick
@@ -322,24 +329,42 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private fun ThumbMenuButton(
         icon: ImageVector,
         containerColor: Color,
+        label: String,
         xOffset: androidx.compose.ui.unit.Dp,
         yOffset: androidx.compose.ui.unit.Dp,
         onClick: () -> Unit
     ) {
-        FloatingActionButton(
-            onClick = onClick,
-            shape = CircleShape,
-            containerColor = containerColor,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .size(90.dp)
                 .offset(x = xOffset, y = yOffset)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.Unspecified,
-                modifier = Modifier.size(64.dp)
-            )
+            FloatingActionButton(
+                onClick = onClick,
+                shape = CircleShape,
+                containerColor = containerColor,
+                modifier = Modifier.size(76.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(44.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Surface(
+                color = colorResource(id = R.color.cardSurface).copy(alpha = 0.9f),
+                shape = CircleShape,
+                shadowElevation = 2.dp
+            ) {
+                Text(
+                    text = label,
+                    color = colorResource(id = R.color.textPrimary),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+            }
         }
     }
 

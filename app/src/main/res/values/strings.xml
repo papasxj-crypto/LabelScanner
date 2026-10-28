@@ -238,6 +238,8 @@
     <string name="protein_meal_component_exceeds_snack">Meal Component: %1$dg protein fits meal allowance (max: %2$dg), but exceeds standalone snack target (%3$dg).</string>
     <string name="nutrient_exceeds_limit">%1$s exceeds target limit: found %2$s (limit: %3$s)</string>
     <string name="nutrient_is_high">%1$s is high: found %2$s (caution limit: %3$s)</string>
+    <string name="weight_cannot_exceed_1_000_lbs">Weight cannot exceed 1,000 lbs.</string>
+    <string name="max_weight">1000</string>
 
     <!-- Common Quick Add Watchlist Items [1] -->
     <string-array name="common_watchlist_items">
