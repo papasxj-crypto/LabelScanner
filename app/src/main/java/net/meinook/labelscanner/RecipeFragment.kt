@@ -69,10 +69,12 @@ class RecipeFragment : Fragment() {
     private lateinit var edtRecipeInput: EditText
     private lateinit var btnAdjustRecipe: MaterialButton
     private lateinit var edtServingsInput: EditText
+    private lateinit var txtServingsNotice: TextView
     private lateinit var btnImportHub: MaterialButton
 
     // State 2: Results Views
     private lateinit var txtTopRecipeTitle: TextView
+    private lateinit var txtTopRecipeServings: TextView
     private lateinit var btnReProfile: MaterialButton
     private lateinit var btnNewRecipe: MaterialButton
 
@@ -190,9 +192,11 @@ class RecipeFragment : Fragment() {
         edtRecipeInput = root.findViewById(R.id.edtRecipeInput)
         btnAdjustRecipe = root.findViewById(R.id.btnAdjustRecipe)
         edtServingsInput = root.findViewById(R.id.edtServingsInput)
+        txtServingsNotice = root.findViewById(R.id.txtServingsNotice)
         btnImportHub = root.findViewById(R.id.btnImportHub)
 
         txtTopRecipeTitle = root.findViewById(R.id.txtTopRecipeTitle)
+        txtTopRecipeServings = root.findViewById(R.id.txtTopRecipeServings)
         btnReProfile = root.findViewById(R.id.btnReProfile)
         btnNewRecipe = root.findViewById(R.id.btnNewRecipe)
 
@@ -405,6 +409,8 @@ class RecipeFragment : Fragment() {
 
             val savedTitle = arguments?.getString("RECIPE_TITLE") ?: "Adjusted Recipe"
             txtTopRecipeTitle.text = savedTitle
+            val servingsCount = edtServingsInput.text.toString().toIntOrNull() ?: 4
+            txtTopRecipeServings.text = "Servings: $servingsCount"
 
             if (savedInstructions.isNotBlank()) {
                 btnRetrieveSteps.isEnabled = false
@@ -491,6 +497,7 @@ class RecipeFragment : Fragment() {
     fun resetToCleanInput() {
         edtRecipeInput.setText("")
         edtServingsInput.setText("4")
+        txtServingsNotice.visibility = View.GONE
         lastOriginalIngredients = ""
         lastAdjustedIngredients = ""
         lastDiagnosticError = null
@@ -503,6 +510,7 @@ class RecipeFragment : Fragment() {
         txtOriginalInputCollapsed.visibility = View.GONE
         txtToggleOriginalInput.text = "▶ View Original Ingredients"
         txtTopRecipeTitle.text = "Recipe Name"
+        txtTopRecipeServings.text = "Servings: 4"
         txtClinicalImpactHeader.text = "CLINICAL IMPACT"
         showInputState()
     }
@@ -726,6 +734,20 @@ class RecipeFragment : Fragment() {
 
     private fun handleActionSubmit() {
         val rawText = edtRecipeInput.text?.toString()?.trim() ?: ""
+
+        // GUARD: Validate servings cannot be 0 or negative (M-02)
+        val servingsStr = edtServingsInput.text.toString().trim()
+        val servingsInt = servingsStr.toIntOrNull() ?: 1
+        if (servingsInt <= 0) {
+            edtServingsInput.error = "Must be at least 1"
+            edtServingsInput.setText("1")
+            edtServingsInput.requestFocus()
+            Toast.makeText(context, "Servings adjusted to minimum of 1.", Toast.LENGTH_SHORT).show()
+            return
+        } else {
+            edtServingsInput.error = null
+        }
+
         if (rawText.isNotBlank()) {
             edtRecipeInput.error = null
             if (rawText.startsWith("http://", ignoreCase = true) || rawText.startsWith("https://", ignoreCase = true)) {
@@ -825,6 +847,7 @@ class RecipeFragment : Fragment() {
         btnAdjustRecipe.text = "Scraping page link..."
         scrapedRecipeTitle = null
         scrapedServings = null
+        txtServingsNotice.visibility = View.GONE
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -858,8 +881,10 @@ class RecipeFragment : Fragment() {
                             scrapedRecipeUrl = canonicalUrl
 
                             setRecipeTextGuarded(sanitizedOutput, "Ingredients imported! Verify servings, then click Analyze.")
-                            scrapedServings?.let {
-                                edtServingsInput.setText(it.toString())
+                            scrapedServings?.let { scraped ->
+                                edtServingsInput.setText(scraped.toString())
+                                txtServingsNotice.visibility = View.VISIBLE
+                                txtServingsNotice.text = "ℹ Servings ($scraped) pulled from recipe metadata"
                             }
 
                             hideKeyboardAndClipboard()
@@ -1285,9 +1310,8 @@ class RecipeFragment : Fragment() {
         val userSettings = AppSettings(requireContext())
         val activeProfiles = userSettings.getSelectedConditions()
 
-        val activeServings = edtServingsInput.text.toString().trim().toIntOrNull()?.coerceAtLeast(1)
-            ?: scrapedServings
-            ?: 4
+        val rawServingsInput = edtServingsInput.text.toString().trim().toIntOrNull() ?: 1
+        val activeServings = if (rawServingsInput <= 0) 1 else rawServingsInput
 
         // 1. CACHE INTERCEPTOR: Checks Servings Match, Profile Match, & Bypass Flag
         if (!forceReprofile) {
@@ -1320,6 +1344,7 @@ class RecipeFragment : Fragment() {
 
         showResultsState()
         txtTopRecipeTitle.text = scrapedRecipeTitle ?: "Analyzing Recipe..."
+        txtTopRecipeServings.text = "Servings: $activeServings"
         cardClinicalGauge.visibility = View.GONE
         layoutPostAnalysisActions.visibility = View.GONE
         progressAnalysisIndicator.visibility = View.VISIBLE
@@ -1349,7 +1374,6 @@ class RecipeFragment : Fragment() {
         lifecycleScope.launch {
             val responseString = fetchRecipeNutritionFromBackend(rawText, activeProfiles, activeServings)
 
-            // Cancel ticker and hide progress indicator when backend responds
             analysisJob.cancel()
             progressAnalysisIndicator.visibility = View.GONE
 
@@ -1519,6 +1543,17 @@ class RecipeFragment : Fragment() {
 
                     txtTopRecipeTitle.text = dynamicTitle
 
+                    // S-03: Display top violation/offending ingredient right in the servings subtitle if flagged
+                    val topViolation = adjustedEvalResult?.yellowViolations?.firstOrNull()
+                        ?: adjustedEvalResult?.redViolations?.firstOrNull()
+                        ?: ""
+                    val subtitleText = if (topViolation.isNotBlank()) {
+                        "Servings: $servings • $topViolation"
+                    } else {
+                        "Servings: $servings"
+                    }
+                    txtTopRecipeServings.text = subtitleText
+
                     if (isOriginalAlreadySafe) {
                         txtAdjustedRecipeHeader.text = "INGREDIENTS (SAFE AS-IS)"
                         txtAdjustedOutput.text = "✓ SAFE AS-IS: All ingredients and nutritional metrics are compliant with your active profile. No substitutions required.\n\n$rawText"
@@ -1641,6 +1676,7 @@ class RecipeFragment : Fragment() {
 
         val titleText = if (cachedRecipe.title.isNotBlank()) cachedRecipe.title else "Adjusted Recipe"
         txtTopRecipeTitle.text = titleText
+        txtTopRecipeServings.text = "Servings: $servings"
         txtAdjustedRecipeHeader.text = "INGREDIENTS (ADJUSTED)"
 
         val displayText = if (cachedRecipe.instructions.isNotBlank()) {

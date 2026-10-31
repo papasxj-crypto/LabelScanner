@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -42,6 +43,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.FragmentNavigatorExtras
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -73,6 +75,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     private lateinit var textExplanation: TextView
     private lateinit var btnProfileSelector: MaterialButton
     private lateinit var cardSummary: MaterialCardView
+    private lateinit var btnCloseSummary: MaterialButton
+    private lateinit var progressScanIndicator: LinearProgressIndicator
     private lateinit var textSummaryGrade: TextView
     private lateinit var textSummaryExplanation: TextView
     private lateinit var composeView: ComposeView
@@ -100,11 +104,13 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     val bitmap = BitmapFactory.decodeStream(inputStream)
                     bitmap?.let {
                         isAnalyzing = true
+                        progressScanIndicator.visibility = View.VISIBLE
                         textExplanation.text = getString(R.string.analyzing_image)
                         executeVisionBasedAnalysis(it)
                     }
                 }
             } catch (_: Exception) {
+                progressScanIndicator.visibility = View.GONE
                 Log.e("HomeFragment", "Failed to open captured label image stream")
             }
         }
@@ -127,6 +133,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     bitmap?.let { runProduceAnalysis(it) }
                 }
             } catch (_: Exception) {
+                progressScanIndicator.visibility = View.GONE
                 Log.e("HomeFragment", "Failed to open captured produce image stream")
             }
         }
@@ -190,8 +197,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         textExplanation = view.findViewById(R.id.textExplanation)
         btnProfileSelector = view.findViewById(R.id.btnProfileSelector)
         cardSummary = view.findViewById(R.id.cardSummary)
+        btnCloseSummary = view.findViewById(R.id.btnCloseSummary)
+        progressScanIndicator = view.findViewById(R.id.progressScanIndicator)
         textSummaryGrade = view.findViewById(R.id.textSummaryGrade)
         textSummaryExplanation = view.findViewById(R.id.textSummaryExplanation)
+
+        // S-02: Wire up Scan Again button below the card
+        btnCloseSummary.setOnClickListener {
+            resetUI()
+        }
 
         composeView = view.findViewById(R.id.composeViewMenu)
         rebuildComposeMenu()
@@ -382,6 +396,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
     private fun lookupBarcodeOnline(upcCode: String) {
         textExplanation.text = getString(R.string.searching_ellipsis)
+        progressScanIndicator.visibility = View.VISIBLE
 
         val cleanCode = upcCode.trim()
 
@@ -389,6 +404,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 (cleanCode.length == 13 && (cleanCode.startsWith("02") || (cleanCode.substring(0, 2).toIntOrNull() in 20..29)))
 
         if (isVariableWeight) {
+            progressScanIndicator.visibility = View.GONE
             resetUI()
             textExplanation.text = getString(R.string.variable_weight_warning)
             context?.let { textExplanation.setTextColor(ContextCompat.getColor(it, R.color.textPrimary)) }
@@ -404,8 +420,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("User-Agent", "FilterPoint/1.0 (support@filterpoint.app - Android)")
-                connection.connectTimeout = 8000
-                connection.readTimeout = 12000
+                connection.connectTimeout = 6000
+                connection.readTimeout = 8000
 
                 if (connection.responseCode == 200) {
                     val response = connection.inputStream.bufferedReader().use { it.readText() }
@@ -421,7 +437,14 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         if (categoriesTags != null && categoriesTags.length() > 0) {
                             for (i in categoriesTags.length() - 1 downTo 0) {
                                 val tag = categoriesTags.optString(i, "")
-                                if (tag.startsWith("en:") && !tag.contains("cjips", ignoreCase = true)) {
+                                val lowerTag = tag.lowercase(Locale.ROOT)
+                                if (lowerTag.startsWith("en:") &&
+                                    !lowerTag.contains("chips") &&
+                                    !lowerTag.contains("snacks") &&
+                                    !lowerTag.contains("beverages") &&
+                                    !lowerTag.contains("desserts") &&
+                                    !lowerTag.contains("candies") &&
+                                    !lowerTag.contains("biscuits")) {
                                     candidateCategories.add(tag)
                                 }
                             }
@@ -498,6 +521,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                         isSearchingAlternatives = needsAlternatives
 
                         withContext(Dispatchers.Main) {
+                            progressScanIndicator.visibility = View.GONE
                             displaySummaryCard(
                                 evalResult,
                                 productName,
@@ -526,8 +550,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                     searchConnection.instanceFollowRedirects = true
                                     searchConnection.requestMethod = "GET"
                                     searchConnection.setRequestProperty("User-Agent", "FilterPoint/1.0 (support@filterpoint.app - Android)")
-                                    searchConnection.connectTimeout = 8000
-                                    searchConnection.readTimeout = 12000
+                                    searchConnection.connectTimeout = 6000
+                                    searchConnection.readTimeout = 8000
 
                                     if (searchConnection.responseCode == 200) {
                                         val searchResponse = searchConnection.inputStream.bufferedReader().use { it.readText() }
@@ -558,6 +582,21 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                                     altProduct.optString("product_name_en", "")
                                                 }
                                                 if (altName.isBlank()) continue
+
+                                                val originalIsProtein = productName.lowercase(Locale.ROOT).let { name ->
+                                                    name.contains("brat") || name.contains("sausage") || name.contains("chicken") ||
+                                                            name.contains("beef") || name.contains("pork") || name.contains("turkey") ||
+                                                            name.contains("meat") || name.contains("bacon") || name.contains("hot dog") ||
+                                                            name.contains("frank") || name.contains("burger")
+                                                }
+                                                if (originalIsProtein) {
+                                                    val altLower = altName.lowercase(Locale.ROOT)
+                                                    val isAltProtein = altLower.contains("brat") || altLower.contains("sausage") || altLower.contains("chicken") ||
+                                                            altLower.contains("beef") || altLower.contains("pork") || altLower.contains("turkey") ||
+                                                            altLower.contains("meat") || altLower.contains("bacon") || altLower.contains("links") ||
+                                                            altLower.contains("plant-based") || altLower.contains("veggie")
+                                                    if (!isAltProtein) continue
+                                                }
 
                                                 val altNutriments = altProduct.optJSONObject("nutriments") ?: JSONObject()
                                                 val altIngredients = altProduct.optString("ingredients_text", "").split(",").map { it.trim().uppercase() }
@@ -649,13 +688,29 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                                 }
                             }
                         }
+                    } else {
+                        // PRODUCT NOT FOUND (e.g. A&D ointment, status == 0)
+                        withContext(Dispatchers.Main) {
+                            progressScanIndicator.visibility = View.GONE
+                            resetUI()
+                            Toast.makeText(appContext, "Product not found in database.", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                } else {
+                    // NON-200 RESPONSE
+                    withContext(Dispatchers.Main) {
+                        progressScanIndicator.visibility = View.GONE
+                        resetUI()
+                        Toast.makeText(appContext, "Product not found in database.", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
-                Log.e("LabelScanner", "Barcode lookup background error", e)
+                Log.e("LabelScanner", "Barcode lookup background error or timeout", e)
                 withContext(Dispatchers.Main) {
+                    progressScanIndicator.visibility = View.GONE
                     isSearchingAlternatives = false
-                    textExplanation.text = getString(R.string.connection_error_format, e.localizedMessage ?: getString(R.string.unknown_connection_failure))
+                    resetUI()
+                    Toast.makeText(appContext, "Barcode search timed out or product not found.", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -700,6 +755,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 Log.e("LabelScanner", "Vision scan execution failed", e)
                 withContext(Dispatchers.Main) {
                     isAnalyzing = false
+                    progressScanIndicator.visibility = View.GONE
                     textExplanation.text = getString(R.string.analysis_failed_error, e.localizedMessage ?: getString(R.string.analysis_error))
                 }
             }
@@ -727,6 +783,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         if (isNonFood) {
             withContext(Dispatchers.Main) {
                 isAnalyzing = false
+                progressScanIndicator.visibility = View.GONE
                 val nonFoodResult = EvaluationResult(
                     gradeTitle = "Not a Valid Food Label",
                     textColor = ContextCompat.getColor(ctx, R.color.gradeAvoid),
@@ -765,6 +822,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         )
         withContext(Dispatchers.Main) {
             isAnalyzing = false
+            progressScanIndicator.visibility = View.GONE
             val fiber = if (json.has("fiber_g")) json.optDouble("fiber_g") else json.optDouble("fiber", 0.0)
             val carbs = if (json.has("total_carbohydrates_g")) json.optDouble("total_carbohydrates_g") else json.optDouble("carbs", 0.0)
 
@@ -817,8 +875,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     // Comprehensive Non-Food & Inedible Reality Gate
+// Comprehensive Non-Food & Inedible Reality Gate
     private fun runProduceAnalysis(imageBitmap: Bitmap) {
         isAnalyzing = true
+        progressScanIndicator.visibility = View.VISIBLE
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val ctx = context ?: return@launch
             try {
@@ -836,26 +896,33 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 val name = json.optString("item_name", getString(R.string.produce_default_name))
                 val nameLower = name.lowercase(Locale.ROOT)
 
+                // GUARD: Comprehensive non-food, object, and unrecognized item check
                 val isNonFood = !json.optBoolean("is_food", true) ||
                         !json.optBoolean("is_produce", true) ||
                         nameLower.contains("non-food") ||
                         nameLower.contains("not food") ||
                         nameLower.contains("not produce") ||
                         nameLower.contains("no produce") ||
-                        nameLower.contains("no raw produce") ||
+                        nameLower.contains("no raw") ||
+                        nameLower.contains("not raw") ||
                         nameLower.contains("not edible") ||
                         nameLower.contains("unable to identify") ||
                         nameLower.contains("cannot identify") ||
+                        nameLower.contains("unidentifiable") ||
+                        nameLower.contains("unknown") ||
+                        nameLower.contains("no item") ||
+                        nameLower.contains("unidentified") ||
+                        nameLower.contains("invalid") ||
+                        nameLower.contains("not recognized") ||
+                        nameLower.contains("object") ||
+                        nameLower.contains("device") ||
                         nameLower.startsWith("none")
 
                 if (isNonFood) {
                     withContext(Dispatchers.Main) {
                         isAnalyzing = false
-                        val cleanSubtitle = if (nameLower.contains("produce") || nameLower.startsWith("none")) {
-                            getString(R.string.non_food_detected)
-                        } else {
-                            name
-                        }
+                        progressScanIndicator.visibility = View.GONE
+                        val cleanSubtitle = "Non-Food Item Detected"
 
                         val nonFoodResult = EvaluationResult(
                             gradeTitle = getString(R.string.not_edible_produce),
@@ -894,6 +961,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
 
                 withContext(Dispatchers.Main) {
                     isAnalyzing = false
+                    progressScanIndicator.visibility = View.GONE
 
                     val proteinVal = optDoubleResilient(json, "protein_g", "protein").toFloat()
                     val sodiumVal = optDoubleResilient(json, "sodium_mg", "sodium").toInt()
@@ -920,6 +988,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                 Log.e("LabelScanner", "Produce analysis error", e)
                 withContext(Dispatchers.Main) {
                     isAnalyzing = false
+                    progressScanIndicator.visibility = View.GONE
                     textExplanation.text = getString(R.string.analysis_failed_error, e.localizedMessage ?: getString(R.string.analysis_error))
                 }
             }
@@ -953,6 +1022,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         }
 
         cardSummary.visibility = View.VISIBLE
+        btnCloseSummary.visibility = View.VISIBLE
+        progressScanIndicator.visibility = View.GONE
         composeView.visibility = View.GONE
 
         cardSummary.setCardBackgroundColor(evaluation.bgColor)
@@ -1051,6 +1122,8 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             isSearchingAlternatives = false
             activeSearchToast?.cancel()
             cardSummary.visibility = View.GONE
+            btnCloseSummary.visibility = View.GONE
+            progressScanIndicator.visibility = View.GONE
             composeView.visibility = View.VISIBLE
             cachedEval = null
             cachedSub = ""

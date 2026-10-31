@@ -462,16 +462,6 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
-        etHeightInches.setOnTouchListener { v, event ->
-            if (event.action == MotionEvent.ACTION_UP) {
-                v.performClick()
-                etHeightFeet.requestFocus()
-                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                imm?.showSoftInput(etHeightFeet, InputMethodManager.SHOW_IMPLICIT)
-            }
-            true
-        }
-
         buildDynamicCheckBoxes()
     }
 
@@ -484,16 +474,22 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
             val text = etCustomIngredient.text.toString().trim()
             if (text.isNotEmpty()) {
-                appSettings.addWatchlistIngredient(text, getString(R.string.red_txt))
-                appSettings.setCompletedInitialSetup(true)
-                etCustomIngredient.text = null
-                setupCommonQuickAddChips()
-                populateActiveWatchlists()
-                Toast.makeText(context,
-                    getString(R.string.added_to_avoid_list, text), Toast.LENGTH_SHORT).show()
+                val upperText = text.uppercase(Locale.ROOT)
+                val redItems = appSettings.getCustomWatchlist(getString(R.string.red_txt)).map { it.uppercase() }
+                val yellowItems = appSettings.getCustomWatchlist(getString(R.string.yellow_txt)).map { it.uppercase() }
+
+                if (redItems.contains(upperText) || yellowItems.contains(upperText)) {
+                    Toast.makeText(context, "\"$text\" is already in your watchlists.", Toast.LENGTH_SHORT).show()
+                } else {
+                    appSettings.addWatchlistIngredient(text, getString(R.string.red_txt))
+                    appSettings.setCompletedInitialSetup(true)
+                    etCustomIngredient.text = null
+                    setupCommonQuickAddChips()
+                    populateActiveWatchlists()
+                    Toast.makeText(context, getString(R.string.added_to_avoid_list, text), Toast.LENGTH_SHORT).show()
+                }
             } else {
-                Toast.makeText(context,
-                    getString(R.string.please_enter_an_ingredient_name), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.please_enter_an_ingredient_name), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -505,13 +501,20 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
             val text = etCustomIngredient.text.toString().trim()
             if (text.isNotEmpty()) {
-                appSettings.addWatchlistIngredient(text, getString(R.string.yellow_txt))
-                appSettings.setCompletedInitialSetup(true)
-                etCustomIngredient.text = null
-                setupCommonQuickAddChips()
-                populateActiveWatchlists()
-                Toast.makeText(context,
-                    getString(R.string.added_to_caution_list, text), Toast.LENGTH_SHORT).show()
+                val upperText = text.uppercase(Locale.ROOT)
+                val redItems = appSettings.getCustomWatchlist(getString(R.string.red_txt)).map { it.uppercase() }
+                val yellowItems = appSettings.getCustomWatchlist(getString(R.string.yellow_txt)).map { it.uppercase() }
+
+                if (redItems.contains(upperText) || yellowItems.contains(upperText)) {
+                    Toast.makeText(context, "\"$text\" is already in your watchlists.", Toast.LENGTH_SHORT).show()
+                } else {
+                    appSettings.addWatchlistIngredient(text, getString(R.string.yellow_txt))
+                    appSettings.setCompletedInitialSetup(true)
+                    etCustomIngredient.text = null
+                    setupCommonQuickAddChips()
+                    populateActiveWatchlists()
+                    Toast.makeText(context, getString(R.string.added_to_caution_list, text), Toast.LENGTH_SHORT).show()
+                }
             } else {
                 Toast.makeText(context, R.string.please_enter_an_ingredient_name, Toast.LENGTH_SHORT).show()
             }
@@ -620,23 +623,34 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
 
         popup.setOnMenuItemClickListener { item ->
+            val upperIngredient = ingredient.uppercase(Locale.ROOT)
+            val redItems = appSettings.getCustomWatchlist(getString(R.string.red_txt)).map { it.uppercase() }
+            val yellowItems = appSettings.getCustomWatchlist(getString(R.string.yellow_txt)).map { it.uppercase() }
+            val isDuplicate = redItems.contains(upperIngredient) || yellowItems.contains(upperIngredient)
+
             when (item.itemId) {
                 1 -> {
-                    appSettings.addWatchlistIngredient(ingredient, getString(R.string.red_txt))
-                    appSettings.setCompletedInitialSetup(true)
-                    setupCommonQuickAddChips()
-                    populateActiveWatchlists()
-                    Toast.makeText(context,
-                        getString(R.string.added_to_avoid_list, ingredient), Toast.LENGTH_SHORT).show()
+                    if (isDuplicate) {
+                        Toast.makeText(context, "\"$ingredient\" is already in your watchlists.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        appSettings.addWatchlistIngredient(ingredient, getString(R.string.red_txt))
+                        appSettings.setCompletedInitialSetup(true)
+                        setupCommonQuickAddChips()
+                        populateActiveWatchlists()
+                        Toast.makeText(context, getString(R.string.added_to_avoid_list, ingredient), Toast.LENGTH_SHORT).show()
+                    }
                     true
                 }
                 2 -> {
-                    appSettings.addWatchlistIngredient(ingredient, getString(R.string.yellow_txt))
-                    appSettings.setCompletedInitialSetup(true)
-                    setupCommonQuickAddChips()
-                    populateActiveWatchlists()
-                    Toast.makeText(context,
-                        getString(R.string.added_to_caution_list, ingredient), Toast.LENGTH_SHORT).show()
+                    if (isDuplicate) {
+                        Toast.makeText(context, "\"$ingredient\" is already in your watchlists.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        appSettings.addWatchlistIngredient(ingredient, getString(R.string.yellow_txt))
+                        appSettings.setCompletedInitialSetup(true)
+                        setupCommonQuickAddChips()
+                        populateActiveWatchlists()
+                        Toast.makeText(context, getString(R.string.added_to_caution_list, ingredient), Toast.LENGTH_SHORT).show()
+                    }
                     true
                 }
                 else -> false

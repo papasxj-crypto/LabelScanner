@@ -184,6 +184,9 @@
     <string name="cashews">CASHEWS</string>
     <string name="walnut">WALNUT</string>
 
+    <!-- SettingsActivity.kt -->
+    <string name="app_version_format">Version %1$s (Build %2$d)</string>
+
     <!-- HomeFragment.kt -->
     <string name="camera_permission_required">Camera permission is required to scan labels and barcodes.</string>
     <string name="searching_ellipsis">Searching…</string>

@@ -1,13 +1,14 @@
 package net.meinook.labelscanner
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -23,6 +24,9 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var btnOpenManual: MaterialButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Enable modern Edge-to-Edge display
+        enableEdgeToEdge()
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
@@ -39,8 +43,8 @@ class SettingsActivity : AppCompatActivity() {
             finish()
         }
 
-        // Bind dynamic version and build number
-        txtAppVersion.text = "Version ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})"
+        // Bind dynamic version and build number using format string resource
+        txtAppVersion.text = getString(R.string.app_version_format, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
 
         // Populate initial state (Checked if NOT right-handed)
         cbLeftHanded.isChecked = !settings.isRightHanded()
@@ -61,9 +65,9 @@ class SettingsActivity : AppCompatActivity() {
             showDeleteProfileDialog()
         }
 
-        // Launch Hosted Web User Manual
+        // Launch Hosted Web User Manual using KTX toUri()
         btnOpenManual.setOnClickListener {
-            val manualUri = Uri.parse(getString(R.string.manual_link))
+            val manualUri = getString(R.string.manual_link).toUri()
             val browserIntent = Intent(Intent.ACTION_VIEW, manualUri)
             try {
                 startActivity(browserIntent)

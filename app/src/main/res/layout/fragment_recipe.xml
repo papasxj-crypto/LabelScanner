@@ -102,6 +102,20 @@
                                 android:selectAllOnFocus="true" />
                         </LinearLayout>
 
+                        <!-- Scraped Servings Notice Banner -->
+                        <TextView
+                            android:id="@+id/txtServingsNotice"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@color/headerSurface"
+                            android:paddingHorizontal="14dp"
+                            android:paddingBottom="6dp"
+                            android:text="ℹ Servings updated from recipe metadata"
+                            android:textColor="@color/textSecondary"
+                            android:textSize="11sp"
+                            android:textStyle="italic"
+                            android:visibility="gone" />
+
                         <!-- Multi-line Text Area -->
                         <EditText
                             android:id="@+id/edtRecipeInput"
@@ -142,7 +156,7 @@
                 android:visibility="gone"
                 tools:visibility="visible">
 
-                <!-- Top Result Header Bar (Recipe Name + Re-Profile + Edit Actions) -->
+                <!-- Top Result Header Bar (Recipe Name + Servings + Actions) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -150,17 +164,33 @@
                     android:gravity="center_vertical"
                     android:layout_marginBottom="12dp">
 
-                    <TextView
-                        android:id="@+id/txtTopRecipeTitle"
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Recipe Name"
-                        android:textColor="@color/textPrimary"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:maxLines="2"
-                        android:ellipsize="end" />
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/txtTopRecipeTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Recipe Name"
+                            android:textColor="@color/textPrimary"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:maxLines="2"
+                            android:ellipsize="end" />
+
+                        <TextView
+                            android:id="@+id/txtTopRecipeServings"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Servings: 4"
+                            android:textColor="@color/textSecondary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
 
                     <!-- Re-Profile Action (Forces Live AI / Skips Cache) -->
                     <com.google.android.material.button.MaterialButton

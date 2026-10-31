@@ -50,6 +50,7 @@
     <style name="Theme.LabelScanner" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Default background -->
         <item name="android:windowBackground">@color/cardSurface</item>
+        <item name="android:statusBarColor">@color/cardSurface</item>
 
         <!-- Global Bottom Navigation Style Override -->
         <item name="bottomNavigationStyle">@style/Widget.LabelScanner.BottomNavigationView</item>

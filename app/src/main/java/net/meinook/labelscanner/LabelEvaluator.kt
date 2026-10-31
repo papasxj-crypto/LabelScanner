@@ -300,6 +300,25 @@ object LabelEvaluator {
             processed.add(map.xmlId)
         }
 
+        // ULTIMATE CATCH-ALL: If all core macros are 0.0 and no violations found,
+        // never allow an unrecognized or unidentifiable object to be graded Green - Safe.
+        val hasZeroNutritionalData = (getVal("calories") == 0.0f &&
+                getVal("protein") == 0.0f &&
+                getVal("sodium") == 0.0f &&
+                getVal("potassium") == 0.0f &&
+                getVal("carbs") == 0.0f)
+
+        if (redViolations.isEmpty() && yellowViolations.isEmpty() && hasZeroNutritionalData) {
+            return EvaluationResult(
+                bgColor = ContextCompat.getColor(context, R.color.cardSurface),
+                textColor = ContextCompat.getColor(context, R.color.gradeCaution),
+                subtextColor = ContextCompat.getColor(context, R.color.textSecondary),
+                gradeTitle = "Unrecognized Item (Unverified)",
+                redViolations = emptyList(),
+                yellowViolations = listOf("Caution: No valid food properties or nutritional data could be verified. Safety unknown.")
+            )
+        }
+
         return finalizeResult(redViolations, yellowViolations, isIngredientsOnly = false, context = context)
     }
 
