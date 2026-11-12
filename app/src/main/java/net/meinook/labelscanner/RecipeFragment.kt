@@ -160,7 +160,7 @@ class RecipeFragment : Fragment() {
         }
         return FileProvider.getUriForFile(
             requireContext(),
-            "net.meinook.labelscanner.fileprovider",
+            "${requireContext().packageName}.fileprovider",
             tmpFile
         )
     }
@@ -733,6 +733,12 @@ class RecipeFragment : Fragment() {
     }
 
     private fun handleActionSubmit() {
+        // Gated behind Pro/Premium subscription check
+        if (!BillingManager.isProUser(requireContext())) {
+            startActivity(Intent(requireContext(), PaywallActivity::class.java))
+            return
+        }
+
         val rawText = edtRecipeInput.text?.toString()?.trim() ?: ""
 
         // GUARD: Validate servings cannot be 0 or negative (M-02)
@@ -1986,7 +1992,7 @@ class RecipeFragment : Fragment() {
                     val jsonResponse = JSONObject(responseString)
                     val rationale = jsonResponse.optString("rationale", "")
                     if (rationale.isNotBlank()) {
-                        val updatedWithAnalysis = "$currentText\n\nCLINICAL SUBSTITUTION RATIONALE:\n$rationale"
+                        val updatedWithAnalysis = "$currentText\n\nCLINICAL SUBSTITUTION RATIONATION:\n$rationale"
                         txtAdjustedOutput.text = updatedWithAnalysis
 
                         btnRetrieveAnalysis.text = "Analysis Loaded"

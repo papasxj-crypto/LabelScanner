@@ -689,19 +689,19 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                             }
                         }
                     } else {
-                        // PRODUCT NOT FOUND (e.g. A&D ointment, status == 0)
+                        // PRODUCT NOT FOUND (status == 0) -> Trigger Barcode Fallback Dialog
                         withContext(Dispatchers.Main) {
                             progressScanIndicator.visibility = View.GONE
                             resetUI()
-                            Toast.makeText(appContext, "Product not found in database.", Toast.LENGTH_LONG).show()
+                            showBarcodeNotFoundDialog()
                         }
                     }
                 } else {
-                    // NON-200 RESPONSE
+                    // NON-200 RESPONSE -> Trigger Barcode Fallback Dialog
                     withContext(Dispatchers.Main) {
                         progressScanIndicator.visibility = View.GONE
                         resetUI()
-                        Toast.makeText(appContext, "Product not found in database.", Toast.LENGTH_SHORT).show()
+                        showBarcodeNotFoundDialog()
                     }
                 }
             } catch (e: Exception) {
@@ -710,10 +710,23 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
                     progressScanIndicator.visibility = View.GONE
                     isSearchingAlternatives = false
                     resetUI()
-                    Toast.makeText(appContext, "Barcode search timed out or product not found.", Toast.LENGTH_LONG).show()
+                    showBarcodeNotFoundDialog()
                 }
             }
         }
+    }
+
+    private fun showBarcodeNotFoundDialog() {
+        val ctx = context ?: return
+        AlertDialog.Builder(ctx)
+            .setTitle(getString(R.string.barcode_not_found_title))
+            .setMessage(getString(R.string.barcode_not_found_message))
+            .setPositiveButton(getString(R.string.snap_photo_label)) { _, _ ->
+                resetUI()
+                runWithCameraPermission(PendingCameraAction.CAMERA_SCAN)
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
     }
 
     private fun resizeBitmapToMax(source: Bitmap): Bitmap {
@@ -875,7 +888,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     // Comprehensive Non-Food & Inedible Reality Gate
-// Comprehensive Non-Food & Inedible Reality Gate
     private fun runProduceAnalysis(imageBitmap: Bitmap) {
         isAnalyzing = true
         progressScanIndicator.visibility = View.VISIBLE

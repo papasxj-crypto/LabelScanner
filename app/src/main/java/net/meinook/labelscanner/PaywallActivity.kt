@@ -3,7 +3,6 @@ package net.meinook.labelscanner
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.View
 import android.widget.ImageView
 import android.widget.RadioButton
 import android.widget.TextView
@@ -36,13 +35,15 @@ class PaywallActivity : AppCompatActivity(), BillingManager.BillingUpdatesListen
     private var isYearlySelected = true
     private var monthlyPriceText = "$4.99"
     private var yearlyPriceText = "$39.99"
+    private var hasMonthlyTrial = true
+    private var hasYearlyTrial = true
 
     private var secretTapCount = 0
     private var lastSecretTapTime = 0L
 
     companion object {
-        private const val PRIVACY_POLICY_URL = "https://filterpointsoftware.com/privacy"
-        private const val TERMS_OF_SERVICE_URL = "https://filterpointsoftware.com/terms"
+        private const val PRIVACY_POLICY_URL = "https://filterpoint.app/privacy"
+        private const val TERMS_OF_SERVICE_URL = "https://filterpoint.app/terms"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,7 +79,7 @@ class PaywallActivity : AppCompatActivity(), BillingManager.BillingUpdatesListen
             finish()
         }
 
-        // Secret Tap Backdoor for testing
+        // Secret Tap Backdoor for testing on release builds
         txtPaywallTitle.setOnClickListener {
             val currentTime = System.currentTimeMillis()
             if (currentTime - lastSecretTapTime < 1500) {
@@ -160,20 +161,34 @@ class PaywallActivity : AppCompatActivity(), BillingManager.BillingUpdatesListen
 
         updateSubscribeButtonText()
 
+        val activeHasTrial = if (isYearlySelected) hasYearlyTrial else hasMonthlyTrial
         txtTrialDisclosure.text = if (isYearlySelected) {
-            "7 days free, then $yearlyPriceText/year. Cancel anytime in Google Play Subscriptions before trial ends to avoid charges."
+            if (activeHasTrial) {
+                "7 days free, then $yearlyPriceText/year. Cancel anytime in Google Play Subscriptions before trial ends to avoid charges."
+            } else {
+                "$yearlyPriceText/year. Renews automatically. Cancel anytime in Google Play Subscriptions."
+            }
         } else {
-            "7 days free, then $monthlyPriceText/month. Cancel anytime in Google Play Subscriptions before trial ends to avoid charges."
+            if (activeHasTrial) {
+                "7 days free, then $monthlyPriceText/month. Cancel anytime in Google Play Subscriptions before trial ends to avoid charges."
+            } else {
+                "$monthlyPriceText/month. Renews automatically. Cancel anytime in Google Play Subscriptions."
+            }
         }
     }
 
     private fun updateSubscribeButtonText() {
-        btnSubscribe.text = "Start 7-Day Free Trial"
+        val activeHasTrial = if (isYearlySelected) hasYearlyTrial else hasMonthlyTrial
+        btnSubscribe.text = if (activeHasTrial) "Start 7-Day Free Trial" else "Subscribe Now"
     }
 
     private fun openWebPage(url: String) {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        startActivity(intent)
+        try {
+            startActivity(intent)
+        } catch (_: Exception) {
+            Toast.makeText(this, "Could not open web browser.", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onProductDetailsLoaded(
@@ -184,6 +199,8 @@ class PaywallActivity : AppCompatActivity(), BillingManager.BillingUpdatesListen
     ) {
         monthlyPriceText = monthlyPrice
         yearlyPriceText = yearlyPrice
+        this.hasMonthlyTrial = hasMonthlyTrial
+        this.hasYearlyTrial = hasYearlyTrial
 
         txtMonthlyPrice.text = "$monthlyPrice / month"
         txtYearlyPrice.text = "$yearlyPrice / year"
@@ -192,7 +209,7 @@ class PaywallActivity : AppCompatActivity(), BillingManager.BillingUpdatesListen
     }
 
     override fun onPurchaseSuccess() {
-        Toast.makeText(this, "FilterPoint Pro Unlocked!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "FilterPoint Premium Unlocked!", Toast.LENGTH_SHORT).show()
         finish()
     }
 

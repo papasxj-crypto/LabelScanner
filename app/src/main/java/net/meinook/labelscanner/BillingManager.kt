@@ -2,8 +2,10 @@ package net.meinook.labelscanner
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import com.android.billingclient.api.*
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
@@ -21,11 +23,11 @@ class BillingManager(
     private val appSettings = AppSettings(context)
     private var billingClient: BillingClient
 
-    private var proProductDetails: ProductDetails? = null
+    private var premiumProductDetails: ProductDetails? = null
     private var monthlyOfferToken: String? = null
-    private var yearlyOfferToken: String? = null
+    private var annualOfferToken: String? = null
     private var monthlyFormattedPrice: String = "$4.99"
-    private var yearlyFormattedPrice: String = "$39.99"
+    private var annualFormattedPrice: String = "$39.99"
 
     interface BillingUpdatesListener {
         fun onProductDetailsLoaded(
@@ -40,15 +42,33 @@ class BillingManager(
 
     companion object {
         private const val TAG = "BillingManager"
-        const val PRODUCT_ID_PRO = "filterpoint_pro"
+        const val PRODUCT_ID_PREMIUM = "filterpoint_premium"
+        const val PRODUCT_ID_PRO = PRODUCT_ID_PREMIUM
+
         const val BASE_PLAN_MONTHLY = "monthly"
-        const val BASE_PLAN_YEARLY = "yearly"
+        const val BASE_PLAN_ANNUAL = "annual"
+        const val BASE_PLAN_YEARLY = BASE_PLAN_ANNUAL
+
+        const val OFFER_ID_MONTHLY_TRIAL = "monthly-7-day-trial"
+        const val OFFER_ID_ANNUAL_TRIAL = "annual-7-day-trial"
 
         fun isProUser(context: Context): Boolean {
             if (BuildConfig.BYPASS_PAYWALL) {
                 return true
             }
             return AppSettings(context).isSubscriptionActive()
+        }
+
+        fun showUpgradeDialog(context: Context) {
+            MaterialAlertDialogBuilder(context, R.style.Theme_LabelScanner)
+                .setTitle("Unlock Premium Features")
+                .setMessage("Please subscribe to benefit from this feature and unlock unlimited profiles, custom macro calibration, and advanced AI recipe adjustments.")
+                .setPositiveButton("View Plans") { _, _ ->
+                    val intent = Intent(context, PaywallActivity::class.java)
+                    context.startActivity(intent)
+                }
+                .setNegativeButton("Not Now", null)
+                .show()
         }
     }
 
@@ -89,7 +109,7 @@ class BillingManager(
     fun queryProductDetails() {
         val productList = listOf(
             QueryProductDetailsParams.Product.newBuilder()
-                .setProductId(PRODUCT_ID_PRO)
+                .setProductId(PRODUCT_ID_PREMIUM)
                 .setProductType(BillingClient.ProductType.SUBS)
                 .build()
         )
@@ -103,10 +123,10 @@ class BillingManager(
                 val detailsList = queryProductDetailsResult.productDetailsList
                 if (detailsList.isNotEmpty()) {
                     val details = detailsList[0]
-                    proProductDetails = details
+                    premiumProductDetails = details
                     parseOffers(details)
                 } else {
-                    Log.w(TAG, "No product details returned for $PRODUCT_ID_PRO")
+                    Log.w(TAG, "No product details returned for $PRODUCT_ID_PREMIUM")
                 }
             } else {
                 Log.e(TAG, "Failed to query product details: ${billingResult.debugMessage}")
@@ -118,43 +138,50 @@ class BillingManager(
         val offers = details.subscriptionOfferDetails ?: return
 
         var hasMonthlyTrial = false
-        var hasYearlyTrial = false
+        var hasAnnualTrial = false
 
         for (offer in offers) {
             val basePlanId = offer.basePlanId
+            val offerId = offer.offerId
             val pricingPhases = offer.pricingPhases.pricingPhaseList
 
             val containsFreeTrial = pricingPhases.any { it.priceAmountMicros == 0L }
-            val recurringPhase = pricingPhases.lastOrNull()
+            val recurringPhase = pricingPhases.firstOrNull { it.priceAmountMicros > 0L } ?: pricingPhases.lastOrNull()
 
             if (basePlanId == BASE_PLAN_MONTHLY) {
-                if (containsFreeTrial || monthlyOfferToken == null) {
+                val isExplicitTrial = offerId == OFFER_ID_MONTHLY_TRIAL
+                if (isExplicitTrial || (containsFreeTrial && !hasMonthlyTrial) || monthlyOfferToken == null) {
                     monthlyOfferToken = offer.offerToken
-                    hasMonthlyTrial = containsFreeTrial
-                    recurringPhase?.let { monthlyFormattedPrice = it.formattedPrice }
+                    if (containsFreeTrial || isExplicitTrial) {
+                        hasMonthlyTrial = true
+                    }
                 }
-            } else if (basePlanId == BASE_PLAN_YEARLY) {
-                if (containsFreeTrial || yearlyOfferToken == null) {
-                    yearlyOfferToken = offer.offerToken
-                    hasYearlyTrial = containsFreeTrial
-                    recurringPhase?.let { yearlyFormattedPrice = it.formattedPrice }
+                recurringPhase?.let { monthlyFormattedPrice = it.formattedPrice }
+            } else if (basePlanId == BASE_PLAN_ANNUAL || basePlanId == "yearly") {
+                val isExplicitTrial = offerId == OFFER_ID_ANNUAL_TRIAL
+                if (isExplicitTrial || (containsFreeTrial && !hasAnnualTrial) || annualOfferToken == null) {
+                    annualOfferToken = offer.offerToken
+                    if (containsFreeTrial || isExplicitTrial) {
+                        hasAnnualTrial = true
+                    }
                 }
+                recurringPhase?.let { annualFormattedPrice = it.formattedPrice }
             }
         }
 
         scope.launch(Dispatchers.Main) {
             listener?.onProductDetailsLoaded(
                 monthlyPrice = monthlyFormattedPrice,
-                yearlyPrice = yearlyFormattedPrice,
+                yearlyPrice = annualFormattedPrice,
                 hasMonthlyTrial = hasMonthlyTrial,
-                hasYearlyTrial = hasYearlyTrial
+                hasYearlyTrial = hasAnnualTrial
             )
         }
     }
 
-    fun launchPurchaseFlow(activity: Activity, isYearly: Boolean) {
-        val details = proProductDetails
-        val token = if (isYearly) yearlyOfferToken else monthlyOfferToken
+    fun launchPurchaseFlow(activity: Activity, isAnnual: Boolean) {
+        val details = premiumProductDetails
+        val token = if (isAnnual) annualOfferToken else monthlyOfferToken
 
         if (details == null || token == null) {
             Log.e(TAG, "Product details or offer token missing. Attempting reload.")

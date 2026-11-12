@@ -215,6 +215,9 @@
     <string name="ready_status">Ready…</string>
     <string name="profile_selector_format">Profile: %1$s ▾</string>
     <string name="summary_grade_format">%1$s\n%2$s</string>
+    <string name="barcode_not_found_title">Product Not Found</string>
+    <string name="barcode_not_found_message">This barcode isn\'t logged in Open Food Facts yet. Would you like to snap a photo of the nutrition label and ingredients list for instant AI analysis?</string>
+    <string name="snap_photo_label">Snap Label Photo</string>
 
     <!-- LabelEvaluator.kt -->
     <!-- Grades & Statuses -->

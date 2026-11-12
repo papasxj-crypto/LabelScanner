@@ -12,13 +12,13 @@ android {
         applicationId = "com.filterpointsoftware.filterpoint"
         minSdk = 24
         targetSdk = 36
-        versionCode = 11
-        versionName = "1.0.0-beta01"
+        versionCode = 15
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Retained for local testing/demo release builds
-        buildConfigField("Boolean", "BYPASS_PAYWALL", "true")
+        buildConfigField("Boolean", "BYPASS_PAYWALL", "false")
     }
 
     buildFeatures {

@@ -1,6 +1,7 @@
 package net.meinook.labelscanner
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.util.Log
@@ -27,6 +28,15 @@ object CustomProfileManager {
         appSettings: AppSettings,
         onProfileSaved: () -> Unit
     ) {
+        // Gated behind Pro/Premium subscription check
+        if (!BillingManager.isProUser(context)) {
+            val paywallIntent = Intent(context, PaywallActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(paywallIntent)
+            return
+        }
+
         val activeConditions = appSettings.getSelectedConditions()
         val allProfiles = appSettings.getAvailableDietProfiles(includeAllergens = false)
 

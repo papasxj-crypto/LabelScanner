@@ -55,8 +55,13 @@ class SettingsActivity : AppCompatActivity() {
             settings.setPendingSaveFlag(true)
         }
 
-        // Single Point: Add New Profile
+        // Single Point: Add New Profile (Gated for Free users exceeding 1 profile limit)
         btnAddNewProfile.setOnClickListener {
+            val currentList = settings.getProfilesList()
+            if (currentList.size >= 1 && !BillingManager.isProUser(this)) {
+                startActivity(Intent(this, PaywallActivity::class.java))
+                return@setOnClickListener
+            }
             showAddNewProfileDialog()
         }
 
