@@ -53,9 +53,6 @@ class BillingManager(
         const val OFFER_ID_ANNUAL_TRIAL = "annual-7-day-trial"
 
         fun isProUser(context: Context): Boolean {
-            if (BuildConfig.BYPASS_PAYWALL) {
-                return true
-            }
             return AppSettings(context).isSubscriptionActive()
         }
 

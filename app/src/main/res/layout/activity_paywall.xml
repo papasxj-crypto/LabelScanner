@@ -16,7 +16,8 @@
         <!-- Top Navigation / Close Button -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp">
 
             <ImageView
                 android:id="@+id/btnClose"
@@ -31,35 +32,54 @@
                 android:contentDescription="Close Paywall" />
         </FrameLayout>
 
-        <!-- App Header Lock Icon -->
-        <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_marginTop="8dp"
-            android:src="@android:drawable/ic_lock_lock"
-            app:tint="@color/accentWarm"
-            android:contentDescription="Premium Lock" />
-
-        <!-- Paywall Title with Secret Tap -->
-        <TextView
-            android:id="@+id/txtPaywallTitle"
-            android:layout_width="wrap_content"
+        <!-- Header Card Container for High Contrast -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="FILTERPOINT PRO"
-            android:textColor="@color/textPrimary"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.08"
-            android:layout_marginTop="12dp" />
+            app:cardBackgroundColor="@color/cardSurface"
+            app:cardCornerRadius="14dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/surfaceStroke"
+            android:layout_marginBottom="20dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Advanced AI Recipe Engine &amp; Clinical Controls"
-            android:textColor="@color/textMuted"
-            android:textSize="13sp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="20dp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:gravity="center_horizontal">
+
+                <!-- App Header Lock Icon -->
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="4dp"
+                    android:src="@android:drawable/ic_lock_lock"
+                    app:tint="@color/accentWarm"
+                    android:contentDescription="Premium Lock" />
+
+                <!-- Paywall Title -->
+                <TextView
+                    android:id="@+id/txtPaywallTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="FILTERPOINT PREMIUM"
+                    android:textColor="@color/textPrimary"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Advanced AI Recipe Engine &amp; Clinical Controls"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="13sp"
+                    android:gravity="center"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Benefits Card -->
         <com.google.android.material.card.MaterialCardView
@@ -98,7 +118,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="✓ Infinite Custom Watchlists"
+                    android:text="✓ Multi-Profile Family Health Management"
                     android:textColor="@color/textPrimary"
                     android:textSize="14sp"
                     android:textStyle="bold"
@@ -260,9 +280,10 @@
             android:id="@+id/txtTrialDisclosure"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="7 days free, then $39.99/year. Cancel anytime in Google Play Subscriptions before trial ends to avoid charges."
-            android:textColor="@color/textMuted"
-            android:textSize="11sp"
+            android:text="Core scanning is always free. Optional Premium is $39.99/year (7 days free, cancel anytime in Google Play)."
+            android:textColor="@color/textPrimary"
+            android:textSize="12sp"
+            android:textStyle="bold"
             android:gravity="center"
             android:layout_marginBottom="16dp" />
 
@@ -280,44 +301,57 @@
             android:focusable="true"
             android:layout_marginBottom="16dp" />
 
-        <!-- Legal Footer -->
-        <LinearLayout
-            android:layout_width="wrap_content"
+        <!-- Legal Footer inside a Subtle Dark Container -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center">
+            app:cardBackgroundColor="@color/cardSurface"
+            app:cardCornerRadius="12dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/surfaceStroke"
+            android:layout_marginBottom="24dp">
 
-            <TextView
-                android:id="@+id/txtPrivacyPolicy"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Privacy Policy"
-                android:textColor="@color/textMuted"
-                android:textSize="11sp"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true" />
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:padding="12dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="•"
-                android:textColor="@color/textMuted"
-                android:textSize="11sp"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp" />
+                <TextView
+                    android:id="@+id/txtPrivacyPolicy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Privacy Policy"
+                    android:textColor="#80E8A8"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:padding="6dp"
+                    android:clickable="true"
+                    android:focusable="true" />
 
-            <TextView
-                android:id="@+id/txtTermsOfService"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Terms of Service"
-                android:textColor="@color/textMuted"
-                android:textSize="11sp"
-                android:padding="6dp"
-                android:clickable="true"
-                android:focusable="true" />
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="•"
+                    android:textColor="@color/textMuted"
+                    android:textSize="12sp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp" />
+
+                <TextView
+                    android:id="@+id/txtTermsOfService"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Terms of Service"
+                    android:textColor="#80E8A8"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:padding="6dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

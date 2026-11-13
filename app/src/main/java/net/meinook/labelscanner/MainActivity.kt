@@ -13,6 +13,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -49,12 +50,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val startTime = System.currentTimeMillis()
             try {
-                // A. Local Debug Bypass check
-                if (isDebuggable() && !appSettings.isDebugOverrideDisabled()) {
-                    appSettings.setSubscriptionActive(true)
-                }
-
-                // B. Sync active status with Firebase Firestore
+                // Sync active status with Firebase Firestore
                 syncSubscriptionWithFirestore()
 
             } catch (e: Exception) {
@@ -78,12 +74,10 @@ class MainActivity : AppCompatActivity() {
                         startActivity(lockoutIntent)
                         finish()
                     }
-                    appSettings.isSubscriptionActive() -> {
-                        isCheckingSubscription = false
-                    }
                     else -> {
-                        startActivity(Intent(this@MainActivity, PaywallActivity::class.java))
-                        finish()
+                        // Allow all users into MainActivity (Free and Pro).
+                        // Specific gated features trigger the polite upgrade dialog when tapped.
+                        isCheckingSubscription = false
                     }
                 }
             }
@@ -91,6 +85,16 @@ class MainActivity : AppCompatActivity() {
 
         // Standard Main Dashboard initialization continues below
         setContentView(R.layout.activity_main)
+
+        // Friendly first-time welcome greeting for new users
+        if (!appSettings.hasCompletedInitialSetup()) {
+            MaterialAlertDialogBuilder(this, R.style.Theme_LabelScanner)
+                .setTitle("Welcome to FilterPoint")
+                .setMessage("Welcome to FilterPoint — where you take control of your eating health! Enjoy core label and produce scanning completely free, with optional Premium upgrades for advanced recipe adjusting and custom profiles.")
+                .setPositiveButton("Let's Go", null)
+                .show()
+            appSettings.setCompletedInitialSetup(true)
+        }
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
@@ -107,7 +111,7 @@ class MainActivity : AppCompatActivity() {
         bottomNav.setOnItemSelectedListener { item ->
             if (item.itemId == R.id.recipeFragment || item.itemId == R.id.navigation_history) {
                 if (!BillingManager.isProUser(this)) {
-                    startActivity(Intent(this, PaywallActivity::class.java))
+                    BillingManager.showUpgradeDialog(this)
                     return@setOnItemSelectedListener false
                 }
             }
@@ -194,10 +198,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun isDebuggable(): Boolean {
-        return (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
-    }
-
     private suspend fun syncSubscriptionWithFirestore() {
         try {
             val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
@@ -244,9 +244,9 @@ class MainActivity : AppCompatActivity() {
             intent.removeExtra(Intent.EXTRA_TEXT)
             intent.action = null
 
-            // Gate incoming shared recipes from web browsers
+            // Gate incoming shared recipes from web browsers using polite dialog
             if (!BillingManager.isProUser(this)) {
-                startActivity(Intent(this, PaywallActivity::class.java))
+                BillingManager.showUpgradeDialog(this)
                 return
             }
 

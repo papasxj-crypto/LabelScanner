@@ -271,14 +271,28 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val userSettings = AppSettings(context)
         val currentProfiles = userSettings.getProfilesList()
         val activeProfile = userSettings.getActiveProfile()
+        val isPro = BillingManager.isProUser(context)
 
         val activeIndex = currentProfiles.indexOf(activeProfile)
 
+        // Soft-lock profiles beyond the 1 free profile limit for non-pro users
+        val displayProfiles = currentProfiles.mapIndexed { index, name ->
+            if (index > 0 && !isPro) "$name (🔒 Premium)" else name
+        }.toTypedArray()
+
         AlertDialog.Builder(context)
             .setTitle(getString(R.string.select_active_profile))
-            .setSingleChoiceItems(currentProfiles.toTypedArray(), activeIndex) { dialog, which ->
-                dialog.dismiss()
+            .setSingleChoiceItems(displayProfiles, activeIndex) { dialog, which ->
                 val selectedProfile = currentProfiles[which]
+
+                // If a free user taps a premium-locked profile, show the upgrade dialog
+                if (which > 0 && !isPro) {
+                    dialog.dismiss()
+                    BillingManager.showUpgradeDialog(context)
+                    return@setSingleChoiceItems
+                }
+
+                dialog.dismiss()
                 if (selectedProfile != activeProfile) {
                     userSettings.setActiveProfile(selectedProfile)
                     updateConditionText()
