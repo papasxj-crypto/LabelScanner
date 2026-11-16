@@ -13,6 +13,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -65,7 +66,7 @@ class MainActivity : AppCompatActivity() {
                     delay(remainingTime.milliseconds)
                 }
 
-               // D. Determine user routing once background tasks and 3s limit are met
+                // D. Determine user routing once background tasks and 3s limit are met
                 when {
                     appSettings.isUserRevoked() -> {
                         val lockoutIntent = Intent(this@MainActivity, LockoutActivity::class.java).apply {
@@ -93,13 +94,18 @@ class MainActivity : AppCompatActivity() {
         // Standard Main Dashboard initialization continues below
         setContentView(R.layout.activity_main)
 
-        // Friendly first-time welcome greeting for new users
+        // Friendly first-time custom welcome greeting card for new users
         if (!appSettings.hasCompletedInitialSetup()) {
-            MaterialAlertDialogBuilder(this, R.style.Theme_LabelScanner)
-                .setTitle("Welcome to FilterPoint")
-                .setMessage("Welcome to FilterPoint — where you take control of your eating health! Enjoy core label and produce scanning completely free, with optional Premium upgrades for advanced recipe adjusting and custom profiles.")
-                .setPositiveButton("Let's Go", null)
-                .show()
+            val dialogView = layoutInflater.inflate(R.layout.dialog_welcome, null)
+            val dialog = MaterialAlertDialogBuilder(this, R.style.Theme_LabelScanner)
+                .setView(dialogView)
+                .setCancelable(false)
+                .create()
+
+            dialogView.findViewById<MaterialButton>(R.id.btnWelcomeOk).setOnClickListener {
+                dialog.dismiss()
+            }
+            dialog.show()
             appSettings.setCompletedInitialSetup(true)
         }
 
@@ -114,7 +120,7 @@ class MainActivity : AppCompatActivity() {
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
 
-        // 1. Global Tab Navigation with Pro Gates for Recipe (Door 1) and Saved (Door 2)
+        // 1. Global Tab Navigation with Premium Gates for Recipe (Door 1) and Saved (Door 2)
         bottomNav.setOnItemSelectedListener { item ->
             if (item.itemId == R.id.recipeFragment || item.itemId == R.id.navigation_history) {
                 if (!BillingManager.isPremiumUser(this)) {

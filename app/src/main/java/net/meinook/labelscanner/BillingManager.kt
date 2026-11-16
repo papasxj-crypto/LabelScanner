@@ -57,15 +57,20 @@ class BillingManager(
         }
 
         fun showUpgradeDialog(context: Context) {
-            MaterialAlertDialogBuilder(context, R.style.Theme_LabelScanner)
-                .setTitle("Unlock Premium Features")
-                .setMessage("Please subscribe to benefit from this feature and unlock unlimited profiles, custom macro calibration, and advanced AI recipe adjustments.")
-                .setPositiveButton("View Plans") { _, _ ->
-                    val intent = Intent(context, PaywallActivity::class.java)
-                    context.startActivity(intent)
-                }
-                .setNegativeButton("Not Now", null)
-                .show()
+            val dialogView = android.view.LayoutInflater.from(context).inflate(R.layout.dialog_upgrade, null)
+            val dialog = MaterialAlertDialogBuilder(context, R.style.Theme_LabelScanner)
+                .setView(dialogView)
+                .create()
+
+            dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnUpgradeOk).setOnClickListener {
+                dialog.dismiss()
+                val intent = Intent(context, PaywallActivity::class.java)
+                context.startActivity(intent)
+            }
+            dialogView.findViewById<android.widget.TextView>(R.id.txtUpgradeCancel).setOnClickListener {
+                dialog.dismiss()
+            }
+            dialog.show()
         }
     }
 
