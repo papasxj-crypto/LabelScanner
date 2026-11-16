@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
                     delay(remainingTime.milliseconds)
                 }
 
-                // D. Determine user routing once background tasks and 3s limit are met
+               // D. Determine user routing once background tasks and 3s limit are met
                 when {
                     appSettings.isUserRevoked() -> {
                         val lockoutIntent = Intent(this@MainActivity, LockoutActivity::class.java).apply {
@@ -75,8 +75,15 @@ class MainActivity : AppCompatActivity() {
                         finish()
                     }
                     else -> {
-                        // Allow all users into MainActivity (Free and Pro).
-                        // Specific gated features trigger the polite upgrade dialog when tapped.
+                        // Safety Check: If user is not Premium, ensure active profile defaults to index 0 (Free tier limit)
+                        if (!BillingManager.isPremiumUser(this@MainActivity)) {
+                            val profiles = appSettings.getProfilesList()
+                            val active = appSettings.getActiveProfile()
+                            if (profiles.isNotEmpty() && profiles.indexOf(active) > 0) {
+                                appSettings.setActiveProfile(profiles.first())
+                                appSettings.setPendingSaveFlag(true)
+                            }
+                        }
                         isCheckingSubscription = false
                     }
                 }
@@ -110,7 +117,7 @@ class MainActivity : AppCompatActivity() {
         // 1. Global Tab Navigation with Pro Gates for Recipe (Door 1) and Saved (Door 2)
         bottomNav.setOnItemSelectedListener { item ->
             if (item.itemId == R.id.recipeFragment || item.itemId == R.id.navigation_history) {
-                if (!BillingManager.isProUser(this)) {
+                if (!BillingManager.isPremiumUser(this)) {
                     BillingManager.showUpgradeDialog(this)
                     return@setOnItemSelectedListener false
                 }
@@ -245,7 +252,7 @@ class MainActivity : AppCompatActivity() {
             intent.action = null
 
             // Gate incoming shared recipes from web browsers using polite dialog
-            if (!BillingManager.isProUser(this)) {
+            if (!BillingManager.isPremiumUser(this)) {
                 BillingManager.showUpgradeDialog(this)
                 return
             }

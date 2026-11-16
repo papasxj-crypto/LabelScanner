@@ -271,7 +271,7 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         val userSettings = AppSettings(context)
         val currentProfiles = userSettings.getProfilesList()
         val activeProfile = userSettings.getActiveProfile()
-        val isPro = BillingManager.isProUser(context)
+        val isPro = BillingManager.isPremiumUser(context)
 
         val activeIndex = currentProfiles.indexOf(activeProfile)
 

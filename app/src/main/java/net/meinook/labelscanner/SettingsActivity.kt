@@ -58,7 +58,7 @@ class SettingsActivity : AppCompatActivity() {
         // Single Point: Add New Profile (Gated for Free users exceeding 1 profile limit)
         btnAddNewProfile.setOnClickListener {
             val currentList = settings.getProfilesList()
-            if (currentList.size >= 1 && !BillingManager.isProUser(this)) {
+            if (currentList.size >= 1 && !BillingManager.isPremiumUser(this)) {
                 startActivity(Intent(this, PaywallActivity::class.java))
                 return@setOnClickListener
             }

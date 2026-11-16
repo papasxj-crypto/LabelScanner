@@ -52,7 +52,7 @@ class BillingManager(
         const val OFFER_ID_MONTHLY_TRIAL = "monthly-7-day-trial"
         const val OFFER_ID_ANNUAL_TRIAL = "annual-7-day-trial"
 
-        fun isProUser(context: Context): Boolean {
+        fun isPremiumUser(context: Context): Boolean {
             return AppSettings(context).isSubscriptionActive()
         }
 

@@ -210,10 +210,11 @@ class AppSettings(val context: Context) {
     }
 
     // ========================================================================
-    // MEMBER CUSTOM CALIBRATION INSPECTORS
+    // MEMBER CUSTOM CALIBRATION INSPECTORS (GATED BY PREMIUM STATUS)
     // ========================================================================
 
     fun hasCustomPlanForActiveMember(): Boolean {
+        if (!BillingManager.isPremiumUser(context)) return false
         val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
         val customFile = File(File(context.filesDir, "profiles"), "custom_$activeSuffix.xml")
         return customFile.exists()
@@ -446,7 +447,7 @@ class AppSettings(val context: Context) {
     fun isFeatureFlagActive(flagName: String): Boolean {
         val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
         val customFile = File(File(context.filesDir, "profiles"), "custom_$activeSuffix.xml")
-        if (customFile.exists()) {
+        if (customFile.exists() && BillingManager.isPremiumUser(context)) {
             return isFeatureFlagActiveForProfile("custom_$activeSuffix", flagName)
         }
 
@@ -494,7 +495,7 @@ class AppSettings(val context: Context) {
     fun getNutrientThresholds(nutrientKey: String): Triple<Int, Int, Boolean> {
         val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
         val customFile = File(File(context.filesDir, "profiles"), "custom_$activeSuffix.xml")
-        if (customFile.exists()) {
+        if (customFile.exists() && BillingManager.isPremiumUser(context)) {
             val customThresholds = getNutrientThresholdsForProfile("custom_$activeSuffix", nutrientKey)
             if (customThresholds.second > 0) {
                 return customThresholds
@@ -813,7 +814,7 @@ class AppSettings(val context: Context) {
     fun getActiveProteinRules(): ProteinRules {
         val activeSuffix = getActiveProfile().lowercase(Locale.ROOT).replace(" ", "_")
         val customFile = File(File(context.filesDir, "profiles"), "custom_$activeSuffix.xml")
-        val targetProfileIds = if (customFile.exists()) setOf("custom_$activeSuffix") else getSelectedConditions()
+        val targetProfileIds = if (customFile.exists() && BillingManager.isPremiumUser(context)) setOf("custom_$activeSuffix") else getSelectedConditions()
 
         var maxSnackMin = 0
         var minSnackMax = 999

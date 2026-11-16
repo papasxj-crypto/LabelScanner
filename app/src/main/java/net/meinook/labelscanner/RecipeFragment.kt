@@ -734,7 +734,7 @@ class RecipeFragment : Fragment() {
 
     private fun handleActionSubmit() {
         // Gated behind Pro/Premium subscription check
-        if (!BillingManager.isProUser(requireContext())) {
+        if (!BillingManager.isPremiumUser(requireContext())) {
             startActivity(Intent(requireContext(), PaywallActivity::class.java))
             return
         }

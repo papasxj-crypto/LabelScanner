@@ -29,7 +29,7 @@ object CustomProfileManager {
         onProfileSaved: () -> Unit
     ) {
         // Gated behind Pro/Premium subscription check
-        if (!BillingManager.isProUser(context)) {
+        if (!BillingManager.isPremiumUser(context)) {
             val paywallIntent = Intent(context, PaywallActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }

@@ -126,7 +126,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
         // Door 3: Adjust Macros Paywall Gate
         btnEditActiveProfile.setOnClickListener {
-            if (!BillingManager.isProUser(requireContext())) {
+            if (!BillingManager.isPremiumUser(requireContext())) {
                 startActivity(Intent(requireContext(), PaywallActivity::class.java))
                 return@setOnClickListener
             }
@@ -468,7 +468,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     private fun setupTab2CustomWatchlist() {
         // Door 4: Add to Red Watchlist Gate
         btnAddRed.setOnClickListener {
-            if (!BillingManager.isProUser(requireContext())) {
+            if (!BillingManager.isPremiumUser(requireContext())) {
                 startActivity(Intent(requireContext(), PaywallActivity::class.java))
                 return@setOnClickListener
             }
@@ -495,7 +495,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
         // Door 4: Add to Yellow Watchlist Gate
         btnAddYellow.setOnClickListener {
-            if (!BillingManager.isProUser(requireContext())) {
+            if (!BillingManager.isPremiumUser(requireContext())) {
                 startActivity(Intent(requireContext(), PaywallActivity::class.java))
                 return@setOnClickListener
             }
@@ -611,7 +611,7 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
 
     // Door 4: Quick-Add Chip Selection Gate
     private fun showQuickAddSelectionDialog(chipView: View, ingredient: String) {
-        if (!BillingManager.isProUser(requireContext())) {
+        if (!BillingManager.isPremiumUser(requireContext())) {
             startActivity(Intent(requireContext(), PaywallActivity::class.java))
             return
         }
