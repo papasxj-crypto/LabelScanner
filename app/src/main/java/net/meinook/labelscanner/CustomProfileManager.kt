@@ -28,12 +28,9 @@ object CustomProfileManager {
         appSettings: AppSettings,
         onProfileSaved: () -> Unit
     ) {
-        // Gated behind Pro/Premium subscription check
+        // Gated behind Premium subscription check using our polite dialog
         if (!BillingManager.isPremiumUser(context)) {
-            val paywallIntent = Intent(context, PaywallActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(paywallIntent)
+            BillingManager.showUpgradeDialog(context)
             return
         }
 

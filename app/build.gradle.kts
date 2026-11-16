@@ -12,7 +12,7 @@ android {
         applicationId = "com.filterpointsoftware.filterpoint"
         minSdk = 24
         targetSdk = 36
-        versionCode = 18
+        versionCode = 19
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

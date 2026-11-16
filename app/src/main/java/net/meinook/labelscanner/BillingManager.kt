@@ -62,6 +62,9 @@ class BillingManager(
                 .setView(dialogView)
                 .create()
 
+            // Kill the default system gray box background so only our rounded card floats over the scrim
+            dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
             dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnUpgradeOk).setOnClickListener {
                 dialog.dismiss()
                 val intent = Intent(context, PaywallActivity::class.java)
