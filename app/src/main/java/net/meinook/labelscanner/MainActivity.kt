@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
         // Standard Main Dashboard initialization continues below
         setContentView(R.layout.activity_main)
 
-        // Friendly first-time custom welcome greeting card for new users
+        // Friendly first-time custom welcome greeting card for new users (Does not flag setup complete yet)
         if (!appSettings.hasCompletedInitialSetup()) {
             val dialogView = layoutInflater.inflate(R.layout.dialog_welcome, null)
             val dialog = MaterialAlertDialogBuilder(this, R.style.Theme_LabelScanner)
@@ -102,11 +102,13 @@ class MainActivity : AppCompatActivity() {
                 .setCancelable(false)
                 .create()
 
+            // Kill default gray window background
+            dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
             dialogView.findViewById<MaterialButton>(R.id.btnWelcomeOk).setOnClickListener {
                 dialog.dismiss()
             }
             dialog.show()
-            appSettings.setCompletedInitialSetup(true)
         }
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

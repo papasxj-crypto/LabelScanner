@@ -124,10 +124,10 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
-        // Door 3: Adjust Macros Paywall Gate
+        // Door 3: Adjust Macros Premium Gate (Using polite upgrade dialog)
         btnEditActiveProfile.setOnClickListener {
             if (!BillingManager.isPremiumUser(requireContext())) {
-                startActivity(Intent(requireContext(), PaywallActivity::class.java))
+                BillingManager.showUpgradeDialog(requireContext())
                 return@setOnClickListener
             }
             CustomProfileManager.showCreateCustomProfileDialog(requireContext(), appSettings) {
@@ -466,12 +466,8 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
     }
 
     private fun setupTab2CustomWatchlist() {
-        // Door 4: Add to Red Watchlist Gate
+        // Watchlists are 100% free (Core Safety Shield)
         btnAddRed.setOnClickListener {
-            if (!BillingManager.isPremiumUser(requireContext())) {
-                startActivity(Intent(requireContext(), PaywallActivity::class.java))
-                return@setOnClickListener
-            }
             val text = etCustomIngredient.text.toString().trim()
             if (text.isNotEmpty()) {
                 val upperText = text.uppercase(Locale.ROOT)
@@ -493,12 +489,8 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
             }
         }
 
-        // Door 4: Add to Yellow Watchlist Gate
+        // Watchlists are 100% free (Core Safety Shield)
         btnAddYellow.setOnClickListener {
-            if (!BillingManager.isPremiumUser(requireContext())) {
-                startActivity(Intent(requireContext(), PaywallActivity::class.java))
-                return@setOnClickListener
-            }
             val text = etCustomIngredient.text.toString().trim()
             if (text.isNotEmpty()) {
                 val upperText = text.uppercase(Locale.ROOT)
@@ -609,13 +601,8 @@ class HealthFragment : Fragment(R.layout.fragment_health) {
         }
     }
 
-    // Door 4: Quick-Add Chip Selection Gate
+    // Quick-Add Chip Selection (100% Free - Core Safety Shield)
     private fun showQuickAddSelectionDialog(chipView: View, ingredient: String) {
-        if (!BillingManager.isPremiumUser(requireContext())) {
-            startActivity(Intent(requireContext(), PaywallActivity::class.java))
-            return
-        }
-
         val context = requireContext()
         val popup = PopupMenu(context, chipView).apply {
             menu.add(0, 1, 0, getString(R.string.add_to_avoid_red))

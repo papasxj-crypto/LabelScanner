@@ -497,6 +497,76 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
+                <!-- Dynamic User Avoid Watchlist Card (Moved to Top) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/cardSurface"
+                    app:cardCornerRadius="16dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/surfaceStroke"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:id="@+id/txtActiveRedsHeader"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="AVOID LIST (RED)"
+                            android:textColor="@color/gradeAvoid"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1"
+                            android:layout_marginBottom="8dp" />
+
+                        <LinearLayout
+                            android:id="@+id/layoutActiveReds"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Dynamic User Caution Watchlist Card (Moved to Top) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/cardSurface"
+                    app:cardCornerRadius="16dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/surfaceStroke"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:id="@+id/txtActiveYellowsHeader"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="CAUTION LIST (YELLOW)"
+                            android:textColor="@color/gradeCaution"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.1"
+                            android:layout_marginBottom="8dp" />
+
+                        <LinearLayout
+                            android:id="@+id/layoutActiveYellows"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
                 <!-- Input Section Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
@@ -568,7 +638,7 @@
                                 android:text="+ Caution"
                                 android:textSize="11sp"
                                 android:textStyle="bold"
-                                android:insetTop="0dp"
+                                :insetTop="0dp"
                                 android:insetBottom="0dp"
                                 app:cornerRadius="8dp" />
                         </LinearLayout>
@@ -608,76 +678,6 @@
                             android:layout_height="wrap_content"
                             app:chipSpacingHorizontal="8dp"
                             app:chipSpacingVertical="6dp" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Dynamic User Avoid Watchlist Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:cardBackgroundColor="@color/cardSurface"
-                    app:cardCornerRadius="16dp"
-                    app:strokeWidth="1dp"
-                    app:strokeColor="@color/surfaceStroke"
-                    android:layout_marginBottom="12dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-
-                        <TextView
-                            android:id="@+id/txtActiveRedsHeader"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="AVOID LIST (RED)"
-                            android:textColor="@color/gradeAvoid"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.1"
-                            android:layout_marginBottom="8dp" />
-
-                        <LinearLayout
-                            android:id="@+id/layoutActiveReds"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Dynamic User Caution Watchlist Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:cardBackgroundColor="@color/cardSurface"
-                    app:cardCornerRadius="16dp"
-                    app:strokeWidth="1dp"
-                    app:strokeColor="@color/surfaceStroke"
-                    android:layout_marginBottom="12dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-
-                        <TextView
-                            android:id="@+id/txtActiveYellowsHeader"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="CAUTION LIST (YELLOW)"
-                            android:textColor="@color/gradeCaution"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:letterSpacing="0.1"
-                            android:layout_marginBottom="8dp" />
-
-                        <LinearLayout
-                            android:id="@+id/layoutActiveYellows"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
